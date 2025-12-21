@@ -1,0 +1,841 @@
+{% load static %}
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Camera Feed - Smart Vision</title>
+
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#137fec",
+                        "background-dark": "#101922",
+                        "surface-dark": "#1c2532",
+                    },
+                    fontFamily: {
+                        display: ["Space Grotesk", "sans-serif"],
+                    },
+                },
+            },
+        };
+    </script>
+
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+        }
+
+        .glass-card {
+            background: rgba(28, 37, 50, 0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        #videoElement {
+            transform: scaleX(-1);
+        }
+
+        .detection-box {
+            position: absolute;
+            border: 2px solid #137fec;
+            background: rgba(19, 127, 236, 0.1);
+            pointer-events: none;
+        }
+
+        .detection-label {
+            position: absolute;
+            background: #137fec;
+            color: white;
+            padding: 2px 6px;
+            font-size: 12px;
+            font-weight: bold;
+            border-radius: 2px;
+        }
+
+        /* Chat Scrollbar */
+        .chat-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .chat-container::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 3px;
+        }
+        
+        .chat-container::-webkit-scrollbar-thumb {
+            background: rgba(146, 173, 201, 0.3);
+            border-radius: 3px;
+        }
+        
+        .chat-container::-webkit-scrollbar-thumb:hover {
+            background: rgba(146, 173, 201, 0.5);
+        }
+
+        /* Typing indicator animation */
+        @keyframes typing {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+        
+        .typing-dot {
+            animation: typing 1.4s infinite;
+        }
+        
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        /* Snapshot Flash Animation */
+        @keyframes flash {
+            0% { opacity: 0; }
+            50% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        .snapshot-flash {
+            animation: flash 0.3s ease-in-out;
+        }
+
+        /* Snapshot Gallery */
+        .snapshot-gallery::-webkit-scrollbar {
+            height: 6px;
+        }
+        
+        .snapshot-gallery::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 3px;
+        }
+        
+        .snapshot-gallery::-webkit-scrollbar-thumb {
+            background: rgba(146, 173, 201, 0.3);
+            border-radius: 3px;
+        }
+    </style>
+</head>
+
+<body class="font-display bg-background-dark text-white">
+    
+    <!-- Snapshot Flash Overlay -->
+    <div id="snapshotFlash" class="fixed inset-0 bg-white pointer-events-none z-50 hidden"></div>
+
+    <!-- Navigation -->
+    <nav class="border-b border-[#324d67] bg-[#192633]/50 backdrop-blur-md sticky top-0 z-40">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <a href="{% url 'dashboard' %}" class="flex items-center gap-2 text-[#92adc9] hover:text-white transition-colors">
+                    <span class="material-symbols-outlined">arrow_back</span>
+                    <span>Back to Dashboard</span>
+                </a>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-gradient-to-br from-primary to-purple-600 rounded-lg flex items-center justify-center">
+                    <span class="material-symbols-outlined text-white text-2xl">visibility</span>
+                </div>
+                <span class="text-xl font-bold">Smart Vision</span>
+            </div>
+            
+            <div class="flex items-center gap-4">
+                <div class="flex items-center gap-2 px-4 py-2 bg-surface-dark rounded-lg">
+                    <span class="material-symbols-outlined text-sm">account_circle</span>
+                    <span>{{ user.full_name }}</span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-6 py-8">
+        
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <!-- Camera Feed - Left/Main Section (8 columns) -->
+            <div class="lg:col-span-8 space-y-6">
+                
+                <!-- Camera Container -->
+                <div class="glass-card rounded-xl p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-2xl font-bold">Live Camera Feed</h2>
+                        <div class="flex items-center gap-2">
+                            <span class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                            <span class="text-sm text-[#92adc9]" id="statusText">Ready</span>
+                        </div>
+                    </div>
+
+                    <!-- Camera Container -->
+                    <div class="relative bg-black rounded-lg overflow-hidden" style="aspect-ratio: 16/9;">
+                        <video id="videoElement" autoplay playsinline class="w-full h-full object-cover"></video>
+                        <canvas id="detectionCanvas" class="absolute top-0 left-0 w-full h-full pointer-events-none"></canvas>
+                        
+                        <!-- Placeholder when camera is off -->
+                        <div id="cameraPlaceholder" class="absolute inset-0 flex flex-col items-center justify-center bg-surface-dark">
+                            <span class="material-symbols-outlined text-6xl text-[#324d67] mb-4">videocam_off</span>
+                            <p class="text-[#92adc9] mb-4">Camera is not active</p>
+                            <button id="startCameraBtn" class="px-6 py-3 bg-primary hover:bg-primary/90 rounded-lg font-semibold transition-colors flex items-center gap-2">
+                                <span class="material-symbols-outlined">videocam</span>
+                                Start Camera
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Camera Controls -->
+                    <div class="flex items-center justify-between mt-4">
+                        <div class="flex gap-2">
+                            <button id="toggleDetectionBtn" disabled class="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 rounded-lg font-semibold transition-colors flex items-center gap-2">
+                                <span class="material-symbols-outlined">play_arrow</span>
+                                <span id="detectionBtnText">Start Detection</span>
+                            </button>
+                            <button id="stopCameraBtn" disabled class="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-600 rounded-lg font-semibold transition-colors flex items-center gap-2">
+                                <span class="material-symbols-outlined">stop</span>
+                                Stop Camera
+                            </button>
+                        </div>
+                        
+                        <div class="flex gap-2">
+                            <!-- SNAPSHOT BUTTON -->
+                            <button id="snapshotBtn" disabled class="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 rounded-lg font-semibold transition-colors flex items-center gap-2">
+                                <span class="material-symbols-outlined">photo_camera</span>
+                                <span>Snapshot</span>
+                            </button>
+                            <button class="p-2 bg-surface-dark hover:bg-[#2a3442] rounded-lg transition-colors" title="Settings">
+                                <span class="material-symbols-outlined">settings</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Snapshot Gallery -->
+                <div class="glass-card rounded-xl p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-xl font-bold flex items-center gap-2">
+                            <span class="material-symbols-outlined text-purple-400">collections</span>
+                            Snapshots
+                        </h3>
+                        <button id="clearSnapshotsBtn" class="px-3 py-1.5 text-sm bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded-lg transition-colors">
+                            Clear All
+                        </button>
+                    </div>
+                    
+                    <div id="snapshotGallery" class="flex gap-3 overflow-x-auto snapshot-gallery pb-2">
+                        <div class="text-center py-8 w-full text-[#92adc9]">
+                            <span class="material-symbols-outlined text-4xl mb-2 block opacity-50">photo_library</span>
+                            <p class="text-sm">No snapshots yet. Click the snapshot button to capture!</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Detected Objects List -->
+                <div class="glass-card rounded-xl p-6">
+                    <h3 class="text-xl font-bold mb-4 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-green-400">target</span>
+                        Detected Objects
+                    </h3>
+                    
+                    <div id="detectedObjectsList" class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div class="col-span-full text-center py-8 text-[#92adc9]">
+                            <span class="material-symbols-outlined text-4xl mb-2 block opacity-50">search_off</span>
+                            <p class="text-sm">No objects detected yet</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Session Stats -->
+                <div class="glass-card rounded-xl p-6">
+                    <h3 class="text-xl font-bold mb-4">Session Statistics</h3>
+                    
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="text-center p-4 bg-[#192633] rounded-lg">
+                            <p class="text-sm text-[#92adc9] mb-1">Objects Detected</p>
+                            <p class="text-3xl font-bold text-primary" id="sessionObjectCount">0</p>
+                        </div>
+                        <div class="text-center p-4 bg-[#192633] rounded-lg">
+                            <p class="text-sm text-[#92adc9] mb-1">Frames Processed</p>
+                            <p class="text-3xl font-bold text-green-400" id="sessionFrameCount">0</p>
+                        </div>
+                        <div class="text-center p-4 bg-[#192633] rounded-lg">
+                            <p class="text-sm text-[#92adc9] mb-1">Snapshots</p>
+                            <p class="text-3xl font-bold text-purple-400" id="snapshotCount">0</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- AI Chatbot Sidebar - Right (4 columns) -->
+            <div class="lg:col-span-4">
+                <div class="glass-card rounded-xl p-6 h-[calc(100vh-200px)] flex flex-col sticky top-24">
+                    
+                    <!-- Chatbot Header -->
+                    <div class="flex items-center justify-between mb-4 pb-4 border-b border-[#324d67]">
+                        <div class="flex items-center gap-2">
+                            <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center">
+                                <span class="material-symbols-outlined text-white">psychology</span>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-bold">AI Assistant</h3>
+                                <p class="text-xs text-[#92adc9]">Ask about detected objects</p>
+                            </div>
+                        </div>
+                        <button id="clearChatBtn" class="p-2 hover:bg-[#2a3442] rounded-lg transition-colors" title="Clear Chat">
+                            <span class="material-symbols-outlined text-sm">delete</span>
+                        </button>
+                    </div>
+
+                    <!-- Chat Messages Container -->
+                    <div id="chatMessages" class="flex-1 overflow-y-auto mb-4 space-y-3 chat-container">
+                        <!-- Welcome Message -->
+                        <div class="flex gap-3">
+                            <div class="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <span class="material-symbols-outlined text-white text-sm">psychology</span>
+                            </div>
+                            <div class="flex-1">
+                                <div class="bg-[#192633] rounded-lg p-3 rounded-tl-none">
+                                    <p class="text-sm text-white">
+                                        👋 Hello! I'm your AI assistant. I can help you understand what's detected in the camera feed. 
+                                        Try asking questions like:
+                                    </p>
+                                    <ul class="text-xs text-[#92adc9] mt-2 space-y-1 ml-4">
+                                        <li>• "What objects do you see?"</li>
+                                        <li>• "Is there any fire detected?"</li>
+                                        <li>• "How many people are in the frame?"</li>
+                                        <li>• "Describe the scene"</li>
+                                    </ul>
+                                </div>
+                                <p class="text-xs text-[#92adc9] mt-1">Just now</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Typing Indicator (hidden by default) -->
+                    <div id="typingIndicator" class="hidden mb-4">
+                        <div class="flex gap-3">
+                            <div class="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <span class="material-symbols-outlined text-white text-sm">psychology</span>
+                            </div>
+                            <div class="bg-[#192633] rounded-lg p-3 rounded-tl-none flex gap-1">
+                                <span class="w-2 h-2 bg-[#92adc9] rounded-full typing-dot"></span>
+                                <span class="w-2 h-2 bg-[#92adc9] rounded-full typing-dot"></span>
+                                <span class="w-2 h-2 bg-[#92adc9] rounded-full typing-dot"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Chat Input -->
+                    <div class="flex gap-2">
+                        <input 
+                            type="text" 
+                            id="chatInput"
+                            placeholder="Ask me anything about what you see..."
+                            class="flex-1 px-4 py-3 bg-[#192633] border border-[#324d67] rounded-lg text-white placeholder:text-[#92adc9] focus:border-primary focus:outline-none text-sm"
+                        />
+                        <button id="sendChatBtn" class="px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 rounded-lg font-semibold transition-colors flex items-center gap-2">
+                            <span class="material-symbols-outlined">send</span>
+                        </button>
+                    </div>
+
+                    <!-- Quick Action Buttons -->
+                    <div class="flex gap-2 mt-3 flex-wrap">
+                        <button class="quick-action-btn px-3 py-1.5 bg-[#192633] hover:bg-[#2a3442] rounded-lg text-xs text-[#92adc9] hover:text-white transition-colors">
+                            What do you see?
+                        </button>
+                        <button class="quick-action-btn px-3 py-1.5 bg-[#192633] hover:bg-[#2a3442] rounded-lg text-xs text-[#92adc9] hover:text-white transition-colors">
+                            Count objects
+                        </button>
+                        <button class="quick-action-btn px-3 py-1.5 bg-[#192633] hover:bg-[#2a3442] rounded-lg text-xs text-[#92adc9] hover:text-white transition-colors">
+                            Any safety issues?
+                        </button>
+                    </div>
+
+                    <!-- Current Detections Context (for AI) -->
+                    <div class="mt-3 p-3 bg-[#192633]/50 rounded-lg border border-[#324d67]">
+                        <p class="text-xs text-[#92adc9] mb-1">📊 Current Context:</p>
+                        <p class="text-xs text-white" id="contextSummary">No objects detected yet</p>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        // ============================================
+        // CAMERA & DETECTION STATE
+        // ============================================
+        
+        let videoElement = document.getElementById('videoElement');
+        let detectionCanvas = document.getElementById('detectionCanvas');
+        let ctx = detectionCanvas.getContext('2d');
+        let cameraStream = null;
+        let detectionActive = false;
+        let detectionInterval = null;
+        
+        // Current detected objects (for AI context)
+        let currentDetections = [];
+        
+        // Snapshots array
+        let snapshots = [];
+
+        // UI Elements
+        const startCameraBtn = document.getElementById('startCameraBtn');
+        const stopCameraBtn = document.getElementById('stopCameraBtn');
+        const toggleDetectionBtn = document.getElementById('toggleDetectionBtn');
+        const cameraPlaceholder = document.getElementById('cameraPlaceholder');
+        const statusText = document.getElementById('statusText');
+        const snapshotBtn = document.getElementById('snapshotBtn');
+        const snapshotFlash = document.getElementById('snapshotFlash');
+        const snapshotGallery = document.getElementById('snapshotGallery');
+        const clearSnapshotsBtn = document.getElementById('clearSnapshotsBtn');
+        const snapshotCount = document.getElementById('snapshotCount');
+
+        // ============================================
+        // CHAT STATE & ELEMENTS
+        // ============================================
+        
+        const chatMessages = document.getElementById('chatMessages');
+        const chatInput = document.getElementById('chatInput');
+        const sendChatBtn = document.getElementById('sendChatBtn');
+        const clearChatBtn = document.getElementById('clearChatBtn');
+        const typingIndicator = document.getElementById('typingIndicator');
+        const contextSummary = document.getElementById('contextSummary');
+        
+        // Chat history
+        let chatHistory = [];
+
+        // ============================================
+        // CAMERA FUNCTIONS
+        // ============================================
+        
+        startCameraBtn.addEventListener('click', async () => {
+            try {
+                cameraStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        width: 1280, 
+                        height: 720,
+                        facingMode: 'user' 
+                    } 
+                });
+                
+                videoElement.srcObject = cameraStream;
+                cameraPlaceholder.classList.add('hidden');
+                stopCameraBtn.disabled = false;
+                toggleDetectionBtn.disabled = false;
+                snapshotBtn.disabled = false;
+                statusText.textContent = 'Camera Active';
+                
+                // Set canvas size to match video
+                videoElement.onloadedmetadata = () => {
+                    detectionCanvas.width = videoElement.videoWidth;
+                    detectionCanvas.height = videoElement.videoHeight;
+                };
+                
+                addChatMessage('system', 'Camera activated! Start detection to begin analyzing objects.');
+                
+            } catch (error) {
+                console.error('Error accessing camera:', error);
+                alert('Could not access camera. Please check permissions.');
+            }
+        });
+
+        stopCameraBtn.addEventListener('click', () => {
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+                videoElement.srcObject = null;
+                cameraPlaceholder.classList.remove('hidden');
+                stopCameraBtn.disabled = true;
+                toggleDetectionBtn.disabled = true;
+                snapshotBtn.disabled = true;
+                
+                if (detectionActive) {
+                    toggleDetection();
+                }
+                
+                statusText.textContent = 'Ready';
+                addChatMessage('system', 'Camera stopped.');
+            }
+        });
+
+        toggleDetectionBtn.addEventListener('click', () => {
+            toggleDetection();
+        });
+
+        function toggleDetection() {
+            detectionActive = !detectionActive;
+            
+            if (detectionActive) {
+                document.getElementById('detectionBtnText').textContent = 'Stop Detection';
+                toggleDetectionBtn.classList.remove('bg-green-600', 'hover:bg-green-700');
+                toggleDetectionBtn.classList.add('bg-yellow-600', 'hover:bg-yellow-700');
+                statusText.textContent = 'Detecting...';
+                startDetectionLoop();
+                addChatMessage('system', 'Object detection started! I can now answer questions about what I see.');
+            } else {
+                document.getElementById('detectionBtnText').textContent = 'Start Detection';
+                toggleDetectionBtn.classList.remove('bg-yellow-600', 'hover:bg-yellow-700');
+                toggleDetectionBtn.classList.add('bg-green-600', 'hover:bg-green-700');
+                statusText.textContent = 'Camera Active';
+                stopDetectionLoop();
+                addChatMessage('system', 'Object detection stopped.');
+            }
+        }
+
+        function startDetectionLoop() {
+            // TODO: Connect to WebSocket for real detection
+            detectionInterval = setInterval(() => {
+                processFrame();
+            }, 200); // ~5 FPS
+        }
+
+        function stopDetectionLoop() {
+            if (detectionInterval) {
+                clearInterval(detectionInterval);
+                detectionInterval = null;
+            }
+            ctx.clearRect(0, 0, detectionCanvas.width, detectionCanvas.height);
+        }
+
+        function processFrame() {
+            // TODO: This will send frame to backend via WebSocket
+            // For now, simulate detection
+            simulateDetection();
+        }
+
+        function simulateDetection() {
+            // Placeholder - will be replaced with actual WebSocket detection
+            const possibleObjects = ['knife', 'water_bottle', 'helmet', 'fire', 'mobile_phone'];
+            const numDetections = Math.floor(Math.random() * 3);
+            
+            currentDetections = [];
+            for (let i = 0; i < numDetections; i++) {
+                currentDetections.push({
+                    class: possibleObjects[Math.floor(Math.random() * possibleObjects.length)],
+                    confidence: (0.7 + Math.random() * 0.3).toFixed(2)
+                });
+            }
+            
+            updateDetectedObjectsList();
+            updateContextSummary();
+        }
+
+        function updateDetectedObjectsList() {
+            const container = document.getElementById('detectedObjectsList');
+            
+            if (currentDetections.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full text-center py-8 text-[#92adc9]">
+                        <span class="material-symbols-outlined text-4xl mb-2 block opacity-50">search_off</span>
+                        <p class="text-sm">No objects detected yet</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = currentDetections.map(obj => `
+                <div class="bg-[#192633] rounded-lg p-3 text-center hover:bg-[#2a3442] transition-colors cursor-pointer">
+                    <span class="material-symbols-outlined text-2xl text-primary mb-1 block">verified</span>
+                    <p class="text-sm font-semibold text-white capitalize">${obj.class.replace('_', ' ')}</p>
+                    <p class="text-xs text-[#92adc9]">${(obj.confidence * 100).toFixed(0)}%</p>
+                </div>
+            `).join('');
+        }
+
+        function updateContextSummary() {
+            if (currentDetections.length === 0) {
+                contextSummary.textContent = 'No objects detected yet';
+                return;
+            }
+            
+            const objectCounts = {};
+            currentDetections.forEach(obj => {
+                objectCounts[obj.class] = (objectCounts[obj.class] || 0) + 1;
+            });
+            
+            const summary = Object.entries(objectCounts)
+                .map(([cls, count]) => `${count} ${cls.replace('_', ' ')}${count > 1 ? 's' : ''}`)
+                .join(', ');
+            
+            contextSummary.textContent = summary;
+        }
+
+        // ============================================
+        // SNAPSHOT FUNCTIONS
+        // ============================================
+
+        snapshotBtn.addEventListener('click', () => {
+            takeSnapshot();
+        });
+
+        function takeSnapshot() {
+            // Flash effect
+            snapshotFlash.classList.remove('hidden');
+            snapshotFlash.classList.add('snapshot-flash');
+            
+            setTimeout(() => {
+                snapshotFlash.classList.add('hidden');
+                snapshotFlash.classList.remove('snapshot-flash');
+            }, 300);
+
+            // Create canvas for snapshot
+            const canvas = document.createElement('canvas');
+            canvas.width = videoElement.videoWidth;
+            canvas.height = videoElement.videoHeight;
+            const context = canvas.getContext('2d');
+            
+            // Draw video frame (flip back to normal)
+            context.save();
+            context.scale(-1, 1);
+            context.drawImage(videoElement, -canvas.width, 0, canvas.width, canvas.height);
+            context.restore();
+            
+            // Draw detection boxes if active
+            if (detectionActive && currentDetections.length > 0) {
+                context.drawImage(detectionCanvas, 0, 0);
+            }
+            
+            // Convert to image
+            const imageData = canvas.toDataURL('image/png');
+            const timestamp = new Date().toLocaleString();
+            
+            // Add to snapshots array
+            const snapshot = {
+                id: Date.now(),
+                image: imageData,
+                timestamp: timestamp,
+                detections: [...currentDetections]
+            };
+            
+            snapshots.unshift(snapshot);
+            updateSnapshotGallery();
+            updateSnapshotCount();
+            
+            // Show notification
+            addChatMessage('system', `📸 Snapshot captured! ${currentDetections.length} object(s) detected.`);
+        }
+
+        function updateSnapshotGallery() {
+            if (snapshots.length === 0) {
+                snapshotGallery.innerHTML = `
+                    <div class="text-center py-8 w-full text-[#92adc9]">
+                        <span class="material-symbols-outlined text-4xl mb-2 block opacity-50">photo_library</span>
+                        <p class="text-sm">No snapshots yet. Click the snapshot button to capture!</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            snapshotGallery.innerHTML = snapshots.map(snap => `
+                <div class="flex-shrink-0 w-48 group">
+                    <div class="relative rounded-lg overflow-hidden bg-[#192633] border border-[#324d67] hover:border-primary transition-colors">
+                        <img src="${snap.image}" alt="Snapshot" class="w-full h-32 object-cover">
+                        <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                            <button onclick="downloadSnapshot(${snap.id})" class="p-2 bg-primary hover:bg-primary/90 rounded-lg transition-colors" title="Download">
+                                <span class="material-symbols-outlined text-sm">download</span>
+                            </button>
+                            <button onclick="deleteSnapshot(${snap.id})" class="p-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors" title="Delete">
+                                <span class="material-symbols-outlined text-sm">delete</span>
+                            </button>
+                        </div>
+                        <div class="p-2">
+                            <p class="text-xs text-[#92adc9]">${snap.timestamp}</p>
+                            <p class="text-xs text-white">${snap.detections.length} object(s)</p>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateSnapshotCount() {
+            snapshotCount.textContent = snapshots.length;
+        }
+
+        function downloadSnapshot(id) {
+            const snapshot = snapshots.find(s => s.id === id);
+            if (snapshot) {
+                const link = document.createElement('a');
+                link.download = `smart-vision-${snapshot.id}.png`;
+                link.href = snapshot.image;
+                link.click();
+            }
+        }
+
+        function deleteSnapshot(id) {
+            snapshots = snapshots.filter(s => s.id !== id);
+            updateSnapshotGallery();
+            updateSnapshotCount();
+        }
+
+        clearSnapshotsBtn.addEventListener('click', () => {
+            if (snapshots.length > 0 && confirm(`Delete all ${snapshots.length} snapshots?`)) {
+                snapshots = [];
+                updateSnapshotGallery();
+                updateSnapshotCount();
+                addChatMessage('system', 'All snapshots cleared.');
+            }
+        });
+
+        // ============================================
+        // CHAT FUNCTIONS
+        // ============================================
+        
+        function addChatMessage(sender, message, timestamp = null) {
+            const time = timestamp || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            
+            let messageHTML = '';
+            
+            if (sender === 'user') {
+                // User message (right-aligned)
+                messageHTML = `
+                    <div class="flex gap-3 justify-end">
+                        <div class="flex-1 max-w-[80%]">
+                            <div class="bg-gradient-to-r from-primary to-purple-600 rounded-lg p-3 rounded-tr-none">
+                                <p class="text-sm text-white">${message}</p>
+                            </div>
+                            <p class="text-xs text-[#92adc9] mt-1 text-right">${time}</p>
+                        </div>
+                        <div class="w-8 h-8 bg-gradient-to-br from-primary to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <span class="material-symbols-outlined text-white text-sm">person</span>
+                        </div>
+                    </div>
+                `;
+            } else if (sender === 'ai') {
+                // AI message (left-aligned)
+                messageHTML = `
+                    <div class="flex gap-3">
+                        <div class="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <span class="material-symbols-outlined text-white text-sm">psychology</span>
+                        </div>
+                        <div class="flex-1">
+                            <div class="bg-[#192633] rounded-lg p-3 rounded-tl-none">
+                                <p class="text-sm text-white">${message}</p>
+                            </div>
+                            <p class="text-xs text-[#92adc9] mt-1">${time}</p>
+                        </div>
+                    </div>
+                `;
+            } else {
+                // System message (centered)
+                messageHTML = `
+                    <div class="text-center">
+                        <p class="text-xs text-[#92adc9] bg-[#192633] inline-block px-3 py-1 rounded-full">${message}</p>
+                    </div>
+                `;
+            }
+            
+            chatMessages.insertAdjacentHTML('beforeend', messageHTML);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            
+            // Add to history
+            if (sender !== 'system') {
+                chatHistory.push({ sender, message, timestamp: time });
+            }
+        }
+
+        async function sendChatMessage() {
+            const message = chatInput.value.trim();
+            
+            if (!message) return;
+            
+            // Add user message to chat
+            addChatMessage('user', message);
+            chatInput.value = '';
+            
+            // Show typing indicator
+            typingIndicator.classList.remove('hidden');
+            
+            // TODO: Send to backend API
+            // For now, simulate AI response
+            setTimeout(() => {
+                simulateAIResponse(message);
+            }, 1000 + Math.random() * 1000);
+        }
+
+        function simulateAIResponse(userMessage) {
+            // Hide typing indicator
+            typingIndicator.classList.add('hidden');
+            
+            // Generate contextual response based on current detections
+            let response = '';
+            
+            const lowerMsg = userMessage.toLowerCase();
+            
+            if (currentDetections.length === 0) {
+                response = "I don't see any objects in the camera feed right now. Make sure the camera is on and detection is started!";
+            } else if (lowerMsg.includes('what') || lowerMsg.includes('see')) {
+                const objects = [...new Set(currentDetections.map(d => d.class.replace('_', ' ')))];
+                response = `I can see ${objects.join(', ')} in the current frame. ${currentDetections.length} object${currentDetections.length > 1 ? 's' : ''} detected in total.`;
+            } else if (lowerMsg.includes('count') || lowerMsg.includes('how many')) {
+                response = `There ${currentDetections.length === 1 ? 'is' : 'are'} ${currentDetections.length} object${currentDetections.length > 1 ? 's' : ''} detected in the frame right now.`;
+            } else if (lowerMsg.includes('fire') || lowerMsg.includes('danger') || lowerMsg.includes('safety')) {
+                const hasFire = currentDetections.some(d => d.class === 'fire');
+                const hasKnife = currentDetections.some(d => d.class === 'knife');
+                
+                if (hasFire || hasKnife) {
+                    response = `⚠️ WARNING: I detected ${hasFire ? 'fire' : ''}${hasFire && hasKnife ? ' and ' : ''}${hasKnife ? 'a knife' : ''} in the frame! This could be a safety concern.`;
+                } else {
+                    response = "I don't detect any immediate safety concerns like fire or weapons in the current frame.";
+                }
+            } else if (lowerMsg.includes('snapshot') || lowerMsg.includes('picture')) {
+                response = `You have ${snapshots.length} snapshot${snapshots.length !== 1 ? 's' : ''} captured. Click the snapshot button to capture the current frame!`;
+            } else {
+                // Generic response with current context
+                response = `Based on what I see (${currentDetections.map(d => d.class.replace('_', ' ')).join(', ')}), I can help you with specific questions about these objects!`;
+            }
+            
+            addChatMessage('ai', response);
+        }
+
+        // Event listeners for chat
+        sendChatBtn.addEventListener('click', sendChatMessage);
+        
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendChatMessage();
+            }
+        });
+
+        clearChatBtn.addEventListener('click', () => {
+            if (confirm('Clear all chat messages?')) {
+                chatMessages.innerHTML = `
+                    <div class="flex gap-3">
+                        <div class="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <span class="material-symbols-outlined text-white text-sm">psychology</span>
+                        </div>
+                        <div class="flex-1">
+                            <div class="bg-[#192633] rounded-lg p-3 rounded-tl-none">
+                                <p class="text-sm text-white">Chat cleared! How can I help you?</p>
+                            </div>
+                            <p class="text-xs text-[#92adc9] mt-1">Just now</p>
+                        </div>
+                    </div>
+                `;
+                chatHistory = [];
+            }
+        });
+
+        // Quick action buttons
+        document.querySelectorAll('.quick-action-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                chatInput.value = btn.textContent.trim();
+                sendChatMessage();
+            });
+        });
+
+    </script>
+
+</body>
+</html>
