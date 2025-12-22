@@ -1,0 +1,514 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>3D Models - Smart Vision</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0a0e1a 0%, #1a1f35 100%);
+        }
+        
+        .card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.12);
+            transform: translateY(-2px);
+        }
+        
+        #viewer3d {
+            background: radial-gradient(circle at center, rgba(59, 130, 246, 0.1) 0%, rgba(0, 0, 0, 0.5) 100%);
+        }
+        
+        .active-model {
+            border: 2px solid #3b82f6 !important;
+            background: rgba(59, 130, 246, 0.1) !important;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen text-white">
+    
+    <!-- Navigation -->
+    <nav class="bg-black/20 backdrop-blur-xl border-b border-white/10">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <a href="{% url 'dashboard' %}" class="flex items-center gap-2 text-gray-400 hover:text-white transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                    </svg>
+                    <span>Back to Dashboard</span>
+                </a>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                    </svg>
+                </div>
+                <span class="text-xl font-bold">3D Models</span>
+            </div>
+            
+            <div class="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-xl">
+                <span class="text-sm text-gray-400">{{ user.full_name }}</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-6 py-8">
+        
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            
+            <!-- Model List - Sidebar -->
+            <div class="lg:col-span-1 space-y-4">
+                <div class="card rounded-2xl p-6">
+                    <h3 class="text-xl font-bold mb-4">Object Classes</h3>
+                    <p class="text-sm text-gray-400 mb-6">Click to view 3D model</p>
+                    
+                    <div class="space-y-2" id="modelList">
+                        <!-- Models will be loaded here -->
+                    </div>
+                </div>
+                
+                <!-- Controls -->
+                <div class="card rounded-2xl p-6">
+                    <h3 class="text-lg font-bold mb-4">Controls</h3>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="text-sm text-gray-400 block mb-2">Rotation Speed</label>
+                            <input type="range" id="rotationSpeed" min="0" max="0.02" step="0.001" value="0.005" class="w-full">
+                        </div>
+                        
+                        <div>
+                            <label class="text-sm text-gray-400 block mb-2">Zoom</label>
+                            <div class="flex gap-2">
+                                <button id="zoomIn" class="flex-1 px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 rounded-lg transition-colors">
+                                    <svg class="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/>
+                                    </svg>
+                                </button>
+                                <button id="zoomOut" class="flex-1 px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 rounded-lg transition-colors">
+                                    <svg class="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <button id="resetView" class="w-full px-4 py-2 bg-purple-500/20 hover:bg-purple-500/30 rounded-lg transition-colors text-sm font-medium">
+                            Reset View
+                        </button>
+                        
+                        <div class="pt-4 border-t border-white/10">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" id="autoRotate" checked class="w-4 h-4 rounded">
+                                <span class="text-sm text-gray-400">Auto Rotate</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 3D Viewer - Main Area -->
+            <div class="lg:col-span-3">
+                <div class="card rounded-2xl p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <div>
+                            <h2 class="text-2xl font-bold" id="currentModelName">Select a Model</h2>
+                            <p class="text-sm text-gray-400 mt-1" id="currentModelDesc">Choose an object class to view its 3D model</p>
+                        </div>
+                        
+                        <div class="flex items-center gap-2 px-4 py-2 bg-green-500/10 rounded-full border border-green-500/30">
+                            <div class="w-2 h-2 rounded-full bg-green-400"></div>
+                            <span class="text-sm font-medium text-green-400">Viewer Ready</span>
+                        </div>
+                    </div>
+                    
+                    <!-- 3D Viewer Container -->
+                    <div class="relative rounded-xl overflow-hidden" style="height: 600px;">
+                        <div id="viewer3d" class="w-full h-full"></div>
+                        
+                        <!-- Loading Overlay -->
+                        <div id="loadingOverlay" class="absolute inset-0 bg-black/80 flex items-center justify-center hidden">
+                            <div class="text-center">
+                                <div class="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                                <p class="text-gray-400">Loading 3D Model...</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Instructions Overlay -->
+                        <div id="instructionsOverlay" class="absolute inset-0 bg-black/60 flex items-center justify-center">
+                            <div class="text-center max-w-md p-8">
+                                <svg class="w-20 h-20 text-blue-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                                </svg>
+                                <h3 class="text-2xl font-bold mb-2">3D Model Viewer</h3>
+                                <p class="text-gray-400 mb-6">Select an object class from the sidebar to view its 3D model</p>
+                                <div class="text-left space-y-2 text-sm text-gray-500">
+                                    <p>🖱️ Left Click + Drag: Rotate</p>
+                                    <p>🖱️ Right Click + Drag: Pan</p>
+                                    <p>🖱️ Scroll: Zoom</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Info Panel -->
+                    <div class="mt-6 grid grid-cols-3 gap-4">
+                        <div class="text-center p-4 bg-white/5 rounded-xl">
+                            <p class="text-sm text-gray-400 mb-1">Dataset Size</p>
+                            <p class="text-2xl font-bold" id="datasetSize">-</p>
+                        </div>
+                        <div class="text-center p-4 bg-white/5 rounded-xl">
+                            <p class="text-sm text-gray-400 mb-1">Priority</p>
+                            <p class="text-2xl font-bold" id="priority">-</p>
+                        </div>
+                        <div class="text-center p-4 bg-white/5 rounded-xl">
+                            <p class="text-sm text-gray-400 mb-1">Category</p>
+                            <p class="text-2xl font-bold" id="category">-</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+    </main>
+
+    <script>
+        // ============================================
+        // YOUR 10 OBJECT CLASSES DATA
+        // ============================================
+        
+        const objectClasses = [
+            {
+                name: 'knife',
+                displayName: 'Knife',
+                description: 'Sharp cutting tool - Security/Safety detection',
+                color: '#FF0000',
+                category: 'Safety',
+                priority: 'High',
+                datasetSize: 1070,
+                // For demo: Using placeholder 3D model URL
+                modelUrl: 'https://threejs.org/examples/models/gltf/DamagedHelmet/glTF/DamagedHelmet.gltf'
+            },
+            {
+                name: 'water_bottle',
+                displayName: 'Water Bottle',
+                description: 'Plastic or glass water bottle',
+                color: '#00BFFF',
+                category: 'General',
+                priority: 'Low',
+                datasetSize: 1000,
+                modelUrl: 'https://threejs.org/examples/models/gltf/DamagedHelmet/glTF/DamagedHelmet.gltf'
+            },
+            {
+                name: 'bag',
+                displayName: 'Bag',
+                description: 'Backpack, handbag, or luggage',
+                color: '#8B4513',
+                category: 'General',
+                priority: 'Medium',
+                datasetSize: 538,
+                modelUrl: 'https://threejs.org/examples/models/gltf/DamagedHelmet/glTF/DamagedHelmet.gltf'
+            },
+            {
+                name: 'mobile_phone',
+                displayName: 'Mobile Phone',
+                description: 'Smartphone or mobile device',
+                color: '#4169E1',
+                category: 'Electronics',
+                priority: 'Medium',
+                datasetSize: 1414,
+                modelUrl: 'https://threejs.org/examples/models/gltf/DamagedHelmet/glTF/DamagedHelmet.gltf'
+            },
+            {
+                name: 'pen',
+                displayName: 'Pen',
+                description: 'Writing instrument',
+                color: '#000080',
+                category: 'Stationery',
+                priority: 'Low',
+                datasetSize: 2535,
+                modelUrl: 'https://threejs.org/examples/models/gltf/DamagedHelmet/glTF/DamagedHelmet.gltf'
+            },
+            {
+                name: 'helmet',
+                displayName: 'Helmet',
+                description: 'Motorcycle/Safety helmet',
+                color: '#FFD700',
+                category: 'Safety',
+                priority: 'High',
+                datasetSize: 1129,
+                modelUrl: 'https://threejs.org/examples/models/gltf/DamagedHelmet/glTF/DamagedHelmet.gltf'
+            },
+            {
+                name: 'pothole',
+                displayName: 'Pothole',
+                description: 'Road damage/pothole',
+                color: '#696969',
+                category: 'Infrastructure',
+                priority: 'High',
+                datasetSize: 1302,
+                modelUrl: 'https://threejs.org/examples/models/gltf/DamagedHelmet/glTF/DamagedHelmet.gltf'
+            },
+            {
+                name: 'traffic_light',
+                displayName: 'Traffic Light',
+                description: 'Traffic signal/stoplight',
+                color: '#32CD32',
+                category: 'Infrastructure',
+                priority: 'Medium',
+                datasetSize: 1176,
+                modelUrl: 'https://threejs.org/examples/models/gltf/DamagedHelmet/glTF/DamagedHelmet.gltf'
+            },
+            {
+                name: 'fire',
+                displayName: 'Fire',
+                description: 'Fire/Flames - Emergency detection',
+                color: '#FF4500',
+                category: 'Safety',
+                priority: 'Critical',
+                datasetSize: 2555,
+                modelUrl: 'https://threejs.org/examples/models/gltf/DamagedHelmet/glTF/DamagedHelmet.gltf'
+            },
+            {
+                name: 'can',
+                displayName: 'Can',
+                description: 'Aluminum/metal can',
+                color: '#C0C0C0',
+                category: 'Recycling',
+                priority: 'Low',
+                datasetSize: 2666,
+                modelUrl: 'https://threejs.org/examples/models/gltf/DamagedHelmet/glTF/DamagedHelmet.gltf'
+            }
+        ];
+
+        // ============================================
+        // THREE.JS SETUP
+        // ============================================
+        
+        let scene, camera, renderer, controls, currentModel;
+        let rotationSpeed = 0.005;
+        let autoRotateEnabled = true;
+
+        function initViewer() {
+            const container = document.getElementById('viewer3d');
+            
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0a0e1a);
+            
+            // Camera
+            camera = new THREE.PerspectiveCamera(
+                75,
+                container.clientWidth / container.clientHeight,
+                0.1,
+                1000
+            );
+            camera.position.z = 5;
+            
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            container.appendChild(renderer.domElement);
+            
+            // Lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(5, 5, 5);
+            scene.add(directionalLight);
+            
+            const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.5);
+            directionalLight2.position.set(-5, -5, -5);
+            scene.add(directionalLight2);
+            
+            // Controls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.screenSpacePanning = false;
+            controls.minDistance = 2;
+            controls.maxDistance = 10;
+            
+            // Handle window resize
+            window.addEventListener('resize', onWindowResize);
+            
+            // Start animation
+            animate();
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Auto-rotate model
+            if (currentModel && autoRotateEnabled) {
+                currentModel.rotation.y += rotationSpeed;
+            }
+            
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            const container = document.getElementById('viewer3d');
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+
+        function loadModel(modelData) {
+            // Show loading overlay
+            document.getElementById('loadingOverlay').classList.remove('hidden');
+            document.getElementById('instructionsOverlay').classList.add('hidden');
+            
+            // Remove previous model
+            if (currentModel) {
+                scene.remove(currentModel);
+            }
+            
+            // Load new model
+            const loader = new THREE.GLTFLoader();
+            
+            loader.load(
+                modelData.modelUrl,
+                (gltf) => {
+                    currentModel = gltf.scene;
+                    
+                    // Center the model
+                    const box = new THREE.Box3().setFromObject(currentModel);
+                    const center = box.getCenter(new THREE.Vector3());
+                    currentModel.position.sub(center);
+                    
+                    // Scale to fit
+                    const size = box.getSize(new THREE.Vector3());
+                    const maxDim = Math.max(size.x, size.y, size.z);
+                    const scale = 2 / maxDim;
+                    currentModel.scale.setScalar(scale);
+                    
+                    scene.add(currentModel);
+                    
+                    // Hide loading overlay
+                    document.getElementById('loadingOverlay').classList.add('hidden');
+                    
+                    // Update info
+                    document.getElementById('currentModelName').textContent = modelData.displayName;
+                    document.getElementById('currentModelDesc').textContent = modelData.description;
+                    document.getElementById('datasetSize').textContent = modelData.datasetSize.toLocaleString();
+                    document.getElementById('priority').textContent = modelData.priority;
+                    document.getElementById('category').textContent = modelData.category;
+                },
+                (progress) => {
+                    // Loading progress
+                    console.log('Loading: ' + (progress.loaded / progress.total * 100) + '%');
+                },
+                (error) => {
+                    console.error('Error loading model:', error);
+                    document.getElementById('loadingOverlay').classList.add('hidden');
+                    alert('Error loading 3D model. Please try another model.');
+                }
+            );
+        }
+
+        // ============================================
+        // UI FUNCTIONS
+        // ============================================
+        
+        function populateModelList() {
+            const container = document.getElementById('modelList');
+            
+            container.innerHTML = objectClasses.map((obj, index) => `
+                <button 
+                    class="model-btn w-full text-left p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors border border-white/10"
+                    data-index="${index}"
+                    style="border-left: 4px solid ${obj.color};"
+                >
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="font-medium text-white">${obj.displayName}</p>
+                            <p class="text-xs text-gray-400">${obj.category}</p>
+                        </div>
+                        <div class="text-xs text-gray-500">
+                            ${obj.datasetSize}
+                        </div>
+                    </div>
+                </button>
+            `).join('');
+            
+            // Add click handlers
+            document.querySelectorAll('.model-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const index = btn.dataset.index;
+                    selectModel(index);
+                    
+                    // Update active state
+                    document.querySelectorAll('.model-btn').forEach(b => b.classList.remove('active-model'));
+                    btn.classList.add('active-model');
+                });
+            });
+        }
+
+        function selectModel(index) {
+            const modelData = objectClasses[index];
+            loadModel(modelData);
+        }
+
+        // ============================================
+        // CONTROLS
+        // ============================================
+        
+        document.getElementById('rotationSpeed').addEventListener('input', (e) => {
+            rotationSpeed = parseFloat(e.target.value);
+        });
+
+        document.getElementById('autoRotate').addEventListener('change', (e) => {
+            autoRotateEnabled = e.target.checked;
+        });
+
+        document.getElementById('zoomIn').addEventListener('click', () => {
+            camera.position.z = Math.max(camera.position.z - 0.5, controls.minDistance);
+        });
+
+        document.getElementById('zoomOut').addEventListener('click', () => {
+            camera.position.z = Math.min(camera.position.z + 0.5, controls.maxDistance);
+        });
+
+        document.getElementById('resetView').addEventListener('click', () => {
+            camera.position.set(0, 0, 5);
+            controls.reset();
+        });
+
+        // ============================================
+        // INITIALIZE
+        // ============================================
+        
+        window.addEventListener('DOMContentLoaded', () => {
+            initViewer();
+            populateModelList();
+        });
+    </script>
+
+</body>
+</html>
