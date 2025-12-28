@@ -1,322 +1,470 @@
-{% comment %} {% load static %}
-<!DOCTYPE html>
-<html class="dark" lang="en">
-<head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Smart Vision Login Page</title>
-
-    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-
-    <link
-        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&display=swap"
-        rel="stylesheet"
-    />
-
-    <link
-        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
-        rel="stylesheet"
-    />
-
-    <script>
-        tailwind.config = {
-            darkMode: "class",
-            theme: {
-                extend: {
-                    colors: {
-                        primary: "#137fec",
-                        "background-light": "#f6f7f8",
-                        "background-dark": "#101922",
-                    },
-                    fontFamily: {
-                        display: ["Space Grotesk", "sans-serif"],
-                    },
-                    borderRadius: {
-                        DEFAULT: "0.25rem",
-                        lg: "0.5rem",
-                        xl: "0.75rem",
-                        full: "9999px",
-                    },
-                },
-            },
-        };
-    </script>
-
-    <style>
-        .material-symbols-outlined {
-            font-variation-settings:
-                "FILL" 0,
-                "wght" 400,
-                "GRAD" 0,
-                "opsz" 24;
-        }
-    </style>
-</head>
-
-<body class="font-display">
-<div class="relative min-h-screen w-full flex flex-col bg-background-light dark:bg-background-dark overflow-x-hidden">
-
-    <main class="flex flex-1 items-center justify-center">
-        <div class="flex w-full max-w-7xl flex-wrap">
-
-            <!-- LEFT PANEL -->
-            <div class="relative flex w-full md:w-1/2 flex-col items-center justify-center p-8 min-h-[600px]">
-                <div class="absolute inset-0">
-                    <img
-                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuBzXG6Omt8Bx5YfiAwC7fMe0tU_0N_DUYSQ_Jvr2qH7zIcJ7kC1Aq_P8bespweJhGAm7nyjCySOVS_Xq6J7Dj5wTUBaoMiaG87fFNGAjPiwitRN_H6c1XRNFc5rKU8I4AkSQLyIyj-fkfdsOwVLGmvHpfUXBW3WtEo2d5UUAFI_Prpd__lWejW0lyLxXhwT7f-EhGquYzsoZoJrUpZvLLRnWSNflwh_I_10-4EXiMiGSJPKvVxhKxn3sLhtoP9aqln2dHMZMHN4ZJ0"
-                        class="w-full h-full object-cover opacity-10"
-                    />
-                    <div class="absolute inset-0 bg-gradient-to-t from-background-dark to-transparent"></div>
-                </div>
-
-                <div class="relative z-10 text-center text-white">
-                    <h1 class="text-5xl font-bold tracking-tight">Smart Vision</h1>
-                    <p class="text-xl text-white/70 mt-2">
-                        AI-Powered Perception, Redefined.
-                    </p>
-                </div>
-            </div>
-
-            <!-- RIGHT PANEL -->
-            <div class="flex w-full md:w-1/2 items-center justify-center p-8">
-                <div class="w-full max-w-md flex flex-col gap-6">
-
-                    <div>
-                        <h2 class="text-4xl font-black text-white mb-2">
-                            Welcome Back
-                        </h2>
-                        <p class="text-[#92adc9]">
-                            Log in to your Smart Vision account
-                        </p>
-                    </div>
-
-                    <form class="flex flex-col gap-4">
-                        <label>
-                            <p class="text-white mb-2">Email or Username</p>
-                            <input
-                                class="w-full h-14 rounded-lg bg-[#192633] border border-[#324d67] px-4 text-white placeholder:text-[#92adc9]"
-                                placeholder="Enter your email or username"
-                            />
-                        </label>
-
-                        <label>
-                            <p class="text-white mb-2">Password</p>
-                            <div class="flex">
-                                <input
-                                    type="password"
-                                    class="flex-1 h-14 rounded-l-lg bg-[#192633] border border-[#324d67] px-4 text-white placeholder:text-[#92adc9]"
-                                    placeholder="Enter your password"
-                                />
-                                <div class="h-14 px-4 flex items-center border border-l-0 border-[#324d67] bg-[#192633] rounded-r-lg cursor-pointer">
-                                    <span class="material-symbols-outlined text-[#92adc9]">visibility</span>
-                                </div>
-                            </div>
-                        </label>
-
-                        <p class="text-sm text-[#92adc9] underline cursor-pointer">
-                            Forgot Password?
-                        </p>
-
-                        <button
-                            type="submit"
-                            class="h-12 rounded-lg bg-primary text-white font-bold hover:bg-primary/90"
-                        >
-                            Login
-                        </button>
-                    </form>
-
-                    <p class="text-center text-[#92adc9]">
-                        Don't have an account?
-                        <a href="{% url 'signup' %}" class="text-primary font-bold hover:underline">
-                            Sign Up
-                        </a>
-                    </p>
-
-                </div>
-            </div>
-
-        </div>
-    </main>
-</div>
-</body>
-</html> {% endcomment %}
-
-
-
 {% load static %}
 <!DOCTYPE html>
-<html class="dark" lang="en">
+<html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Smart Vision Login Page</title>
 
-    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-
-    <link
-        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&display=swap"
-        rel="stylesheet"
-    />
-
-    <link
-        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
-        rel="stylesheet"
-    />
-
-    <script>
-        tailwind.config = {
-            darkMode: "class",
-            theme: {
-                extend: {
-                    colors: {
-                        primary: "#137fec",
-                        "background-light": "#f6f7f8",
-                        "background-dark": "#101922",
-                    },
-                    fontFamily: {
-                        display: ["Space Grotesk", "sans-serif"],
-                    },
-                    borderRadius: {
-                        DEFAULT: "0.25rem",
-                        lg: "0.5rem",
-                        xl: "0.75rem",
-                        full: "9999px",
-                    },
-                },
-            },
-        };
-    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
 
     <style>
+        /* ============================================
+           RESET & BASE STYLES
+           ============================================ */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background-color: #101922;
+            color: #e0e0e0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
         .material-symbols-outlined {
-            font-variation-settings:
-                "FILL" 0,
-                "wght" 400,
-                "GRAD" 0,
-                "opsz" 24;
+            font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+        }
+
+        /* ============================================
+           MAIN CONTAINER
+           ============================================ */
+        .page-wrapper {
+            width: 100%;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow-x: hidden;
+        }
+
+        .login-container {
+            display: flex;
+            flex-wrap: wrap;
+            width: 100%;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* ============================================
+           LEFT PANEL (BRANDING)
+           ============================================ */
+        .left-panel {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 50%;
+            min-height: 600px;
+            padding: 2rem;
+        }
+
+        .left-panel-bg {
+            position: absolute;
+            inset: 0;
+        }
+
+        .left-panel-bg img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.1;
+        }
+
+        .left-panel-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, #101922 0%, transparent 100%);
+        }
+
+        .brand-content {
+            position: relative;
+            z-index: 10;
+            text-align: center;
+            color: white;
+        }
+
+        .brand-title {
+            font-size: 3.5rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-bottom: 0.5rem;
+        }
+
+        .brand-tagline {
+            font-size: 1.25rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        /* ============================================
+           RIGHT PANEL (LOGIN FORM)
+           ============================================ */
+        .right-panel {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 50%;
+            padding: 2rem;
+        }
+
+        .form-container {
+            width: 100%;
+            max-width: 450px;
+        }
+
+        .form-header {
+            margin-bottom: 2rem;
+        }
+
+        .form-title {
+            font-size: 2.5rem;
+            font-weight: 900;
+            color: white;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-subtitle {
+            color: #92adc9;
+            font-size: 1rem;
+        }
+
+        /* ============================================
+           ERROR MESSAGE
+           ============================================ */
+        .error-message {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.5);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .error-message p {
+            color: #f87171;
+            font-size: 0.875rem;
+        }
+
+        /* ============================================
+           FORM STYLES
+           ============================================ */
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-label {
+            color: white;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .form-input {
+            width: 100%;
+            height: 3.5rem;
+            background-color: #192633;
+            border: 1px solid #324d67;
+            border-radius: 0.5rem;
+            padding: 0 1rem;
+            color: white;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #137fec;
+            box-shadow: 0 0 0 3px rgba(19, 127, 236, 0.1);
+        }
+
+        .form-input::placeholder {
+            color: #92adc9;
+        }
+
+        /* ============================================
+           PASSWORD INPUT WITH TOGGLE
+           ============================================ */
+        .password-wrapper {
+            display: flex;
+            position: relative;
+        }
+
+        .password-input {
+            flex: 1;
+            border-radius: 0.5rem 0 0 0.5rem;
+        }
+
+        .password-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 3.5rem;
+            height: 3.5rem;
+            background-color: #192633;
+            border: 1px solid #324d67;
+            border-left: none;
+            border-radius: 0 0.5rem 0.5rem 0;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .password-toggle:hover {
+            background-color: #1f2e3f;
+        }
+
+        .password-toggle .material-symbols-outlined {
+            color: #92adc9;
+        }
+
+        /* ============================================
+           FORGOT PASSWORD LINK
+           ============================================ */
+        .forgot-password {
+            font-size: 0.875rem;
+            color: #92adc9;
+            text-decoration: underline;
+            cursor: pointer;
+            align-self: flex-start;
+            transition: color 0.3s ease;
+        }
+
+        .forgot-password:hover {
+            color: #137fec;
+        }
+
+        /* ============================================
+           SUBMIT BUTTON
+           ============================================ */
+        .submit-button {
+            height: 3rem;
+            background-color: #137fec;
+            color: white;
+            font-weight: 700;
+            font-size: 1rem;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 0.5rem;
+        }
+
+        .submit-button:hover {
+            background-color: #0d6ad1;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(19, 127, 236, 0.4);
+        }
+
+        .submit-button:active {
+            transform: translateY(0);
+        }
+
+        /* ============================================
+           SIGNUP LINK
+           ============================================ */
+        .signup-link {
+            text-align: center;
+            color: #92adc9;
+            margin-top: 1.5rem;
+        }
+
+        .signup-link a {
+            color: #137fec;
+            font-weight: 700;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .signup-link a:hover {
+            text-decoration: underline;
+            color: #4a9ef5;
+        }
+
+        /* ============================================
+           RESPONSIVE DESIGN
+           ============================================ */
+        @media (max-width: 1024px) {
+            .left-panel,
+            .right-panel {
+                width: 100%;
+            }
+
+            .left-panel {
+                min-height: 400px;
+            }
+
+            .brand-title {
+                font-size: 3rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .left-panel {
+                min-height: 300px;
+                padding: 1.5rem;
+            }
+
+            .brand-title {
+                font-size: 2.5rem;
+            }
+
+            .brand-tagline {
+                font-size: 1rem;
+            }
+
+            .right-panel {
+                padding: 1.5rem;
+            }
+
+            .form-title {
+                font-size: 2rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .brand-title {
+                font-size: 2rem;
+            }
+
+            .brand-tagline {
+                font-size: 0.875rem;
+            }
+
+            .form-title {
+                font-size: 1.75rem;
+            }
+
+            .form-input,
+            .password-toggle {
+                height: 3rem;
+            }
+
+            .submit-button {
+                height: 2.75rem;
+            }
         }
     </style>
 </head>
 
-<body class="font-display">
-<div class="relative min-h-screen w-full flex flex-col bg-background-light dark:bg-background-dark overflow-x-hidden">
+<body>
+    <div class="page-wrapper">
+        <div class="login-container">
 
-    <main class="flex flex-1 items-center justify-center">
-        <div class="flex w-full max-w-7xl flex-wrap">
-
-            <!-- LEFT PANEL -->
-            <div class="relative flex w-full md:w-1/2 flex-col items-center justify-center p-8 min-h-[600px]">
-                <div class="absolute inset-0">
+            <!-- LEFT PANEL - BRANDING -->
+            <div class="left-panel">
+                <div class="left-panel-bg">
                     <img
                         src="https://lh3.googleusercontent.com/aida-public/AB6AXuBzXG6Omt8Bx5YfiAwC7fMe0tU_0N_DUYSQ_Jvr2qH7zIcJ7kC1Aq_P8bespweJhGAm7nyjCySOVS_Xq6J7Dj5wTUBaoMiaG87fFNGAjPiwitRN_H6c1XRNFc5rKU8I4AkSQLyIyj-fkfdsOwVLGmvHpfUXBW3WtEo2d5UUAFI_Prpd__lWejW0lyLxXhwT7f-EhGquYzsoZoJrUpZvLLRnWSNflwh_I_10-4EXiMiGSJPKvVxhKxn3sLhtoP9aqln2dHMZMHN4ZJ0"
-                        class="w-full h-full object-cover opacity-10"
+                        alt="Background"
                     />
-                    <div class="absolute inset-0 bg-gradient-to-t from-background-dark to-transparent"></div>
+                    <div class="left-panel-overlay"></div>
                 </div>
 
-                <div class="relative z-10 text-center text-white">
-                    <h1 class="text-5xl font-bold tracking-tight">Smart Vision</h1>
-                    <p class="text-xl text-white/70 mt-2">
-                        AI-Powered Perception, Redefined.
-                    </p>
+                <div class="brand-content">
+                    <h1 class="brand-title">Smart Vision</h1>
+                    <p class="brand-tagline">AI-Powered Perception, Redefined.</p>
                 </div>
             </div>
 
-            <!-- RIGHT PANEL -->
-            <div class="flex w-full md:w-1/2 items-center justify-center p-8">
-                <div class="w-full max-w-md flex flex-col gap-6">
+            <!-- RIGHT PANEL - LOGIN FORM -->
+            <div class="right-panel">
+                <div class="form-container">
 
-                    <div>
-                        <h2 class="text-4xl font-black text-white mb-2">
-                            Welcome Back
-                        </h2>
-                        <p class="text-[#92adc9]">
-                            Log in to your Smart Vision account
-                        </p>
+                    <div class="form-header">
+                        <h2 class="form-title">Welcome Back</h2>
+                        <p class="form-subtitle">Log in to your Smart Vision account</p>
                     </div>
 
                     <!-- Error Message -->
                     {% if error %}
-                    <div class="bg-red-500/10 border border-red-500/50 rounded-lg p-4">
-                        <p class="text-red-400 text-sm">{{ error }}</p>
+                    <div class="error-message">
+                        <p>{{ error }}</p>
                     </div>
                     {% endif %}
 
-                    <form method="POST" action="{% url 'login' %}" class="flex flex-col gap-4">
+                    <!-- Login Form -->
+                    <form method="POST" action="{% url 'login' %}" class="login-form">
                         {% csrf_token %}
                         
-                        <label>
-                            <p class="text-white mb-2">Email or Username</p>
+                        <!-- Email/Username Input -->
+                        <div class="form-group">
+                            <label class="form-label">Email or Username</label>
                             <input
+                                type="text"
                                 name="email_or_username"
-                                required
-                                class="w-full h-14 rounded-lg bg-[#192633] border border-[#324d67] px-4 text-white placeholder:text-[#92adc9] focus:border-primary focus:outline-none"
+                                class="form-input"
                                 placeholder="Enter your email or username"
+                                required
                             />
-                        </label>
+                        </div>
 
-                        <label>
-                            <p class="text-white mb-2">Password</p>
-                            <div class="flex">
+                        <!-- Password Input -->
+                        <div class="form-group">
+                            <label class="form-label">Password</label>
+                            <div class="password-wrapper">
                                 <input
                                     type="password"
                                     name="password"
                                     id="passwordInput"
-                                    required
-                                    class="flex-1 h-14 rounded-l-lg bg-[#192633] border border-[#324d67] px-4 text-white placeholder:text-[#92adc9] focus:border-primary focus:outline-none"
+                                    class="form-input password-input"
                                     placeholder="Enter your password"
+                                    required
                                 />
-                                <div onclick="togglePassword()" class="h-14 px-4 flex items-center border border-l-0 border-[#324d67] bg-[#192633] rounded-r-lg cursor-pointer hover:bg-[#1f2e3f]">
-                                    <span id="visibilityIcon" class="material-symbols-outlined text-[#92adc9]">visibility</span>
+                                <div class="password-toggle" onclick="togglePassword()">
+                                    <span id="visibilityIcon" class="material-symbols-outlined">visibility</span>
                                 </div>
                             </div>
-                        </label>
+                        </div>
 
-                        <p class="text-sm text-[#92adc9] underline cursor-pointer">
-                            Forgot Password?
-                        </p>
+                        <!-- Forgot Password -->
+                        <a href="#" class="forgot-password">Forgot Password?</a>
 
-                        <button
-                            type="submit"
-                            class="h-12 rounded-lg bg-primary text-white font-bold hover:bg-primary/90 transition-colors"
-                        >
+                        <!-- Submit Button -->
+                        <button type="submit" class="submit-button">
                             Login
                         </button>
                     </form>
 
-                    <p class="text-center text-[#92adc9]">
+                    <!-- Signup Link -->
+                    <p class="signup-link">
                         Don't have an account?
-                        <a href="{% url 'signup' %}" class="text-primary font-bold hover:underline">
-                            Sign Up
-                        </a>
+                        <a href="{% url 'signup' %}">Sign Up</a>
                     </p>
 
                 </div>
             </div>
 
         </div>
-    </main>
-</div>
+    </div>
 
-<script>
-    function togglePassword() {
-        const passwordInput = document.getElementById('passwordInput');
-        const visibilityIcon = document.getElementById('visibilityIcon');
-        
-        if (passwordInput.type === 'password') {
-            passwordInput.type = 'text';
-            visibilityIcon.textContent = 'visibility_off';
-        } else {
-            passwordInput.type = 'password';
-            visibilityIcon.textContent = 'visibility';
+    <script>
+        function togglePassword() {
+            const passwordInput = document.getElementById('passwordInput');
+            const visibilityIcon = document.getElementById('visibilityIcon');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                visibilityIcon.textContent = 'visibility_off';
+            } else {
+                passwordInput.type = 'password';
+                visibilityIcon.textContent = 'visibility';
+            }
         }
-    }
-</script>
+    </script>
 </body>
 </html>
