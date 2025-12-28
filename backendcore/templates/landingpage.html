@@ -6,56 +6,47 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Smart Vision - AI-Powered Visual Understanding</title>
 
-    <!-- Tailwind CSS v3 with plugins -->
-    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-
     <!-- Google Fonts for Poppins -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-        href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap"
-        rel="stylesheet"
-    />
-
-    <!-- Tailwind Config -->
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Poppins', 'sans-serif'],
-                    },
-                    colors: {
-                        'brand-dark': '#0a051d',
-                    },
-                    animation: {
-                        'float-up-down': 'floatUpDown 6s ease-in-out infinite',
-                    },
-                    keyframes: {
-                        floatUpDown: {
-                            '0%, 100%': { transform: 'translateY(-20px)' },
-                            '50%': { transform: 'translateY(20px)' },
-                        }
-                    }
-                }
-            }
-        }
-    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
     <style>
-        body {
-            background-color: #0f172a;
-            background-image:
-                radial-gradient(at top left, #1d1b3e, transparent 50%),
-                radial-gradient(at top right, #3a2d5b, transparent 50%),
-                radial-gradient(at bottom left, #1d1b3e, transparent 50%);
-            color: #e0e0e0;
-            overflow-x: hidden;
+        /* ============================================
+           RESET & BASE STYLES
+           ============================================ */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #0f172a;
+            color: #e0e0e0;
+            overflow-x: hidden;
+            position: relative;
+            min-height: 100vh;
+        }
+
+        /* ============================================
+           ANIMATED BACKGROUND
+           ============================================ */
         body::before {
             content: "";
-            position: absolute;
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(circle at top left, rgba(29, 27, 62, 0.8), transparent 50%),
+                radial-gradient(circle at top right, rgba(58, 45, 91, 0.8), transparent 50%),
+                radial-gradient(circle at bottom left, rgba(29, 27, 62, 0.8), transparent 50%);
+            z-index: -2;
+        }
+
+        body::after {
+            content: "";
+            position: fixed;
             inset: -50%;
             background-image:
                 radial-gradient(circle, rgba(255,255,255,0.4) 1px, transparent 1px),
@@ -67,135 +58,356 @@
             z-index: -1;
         }
 
-        .glassmorphism-card {
+        /* ============================================
+           HEADER
+           ============================================ */
+        header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            padding: 1.5rem 0;
+        }
+
+        .header-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .logo-img {
+            height: 40px;
+            width: auto;
+        }
+
+        .logo-text {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #ffffff;
+        }
+
+        /* ============================================
+           BUTTONS
+           ============================================ */
+        .btn {
+            display: inline-block;
+            padding: 0.5rem 1.5rem;
+            font-weight: 600;
+            text-decoration: none;
+            border-radius: 0.5rem;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6 0%, #9333ea 100%);
+            color: white;
+            box-shadow: 0 0 15px rgba(139, 92, 246, 0.4);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 25px rgba(139, 92, 246, 0.6);
+        }
+
+        .btn-hero {
+            background: linear-gradient(135deg, #06b6d4 0%, #9333ea 100%);
+            color: white;
+            padding: 0.75rem 2rem;
+            font-size: 1.125rem;
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.5);
+        }
+
+        .btn-hero:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 0 30px rgba(6, 182, 212, 0.7);
+        }
+
+        /* ============================================
+           HERO SECTION
+           ============================================ */
+        .hero-section {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            padding-top: 6rem;
+        }
+
+        .hero-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1.5rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+            align-items: center;
+        }
+
+        .hero-content h1 {
+            font-size: 4rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 1.5rem;
+            line-height: 1.1;
+        }
+
+        .hero-content p {
+            font-size: 1.25rem;
+            color: #d1d5db;
+            margin-bottom: 2.5rem;
+            line-height: 1.6;
+        }
+
+        .hero-image {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .hero-image img {
+            max-width: 450px;
+            width: 100%;
+            height: auto;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(-20px);
+            }
+            50% {
+                transform: translateY(20px);
+            }
+        }
+
+        /* ============================================
+           FEATURES SECTION
+           ============================================ */
+        .features-section {
+            padding: 5rem 0;
+        }
+
+        .features-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1.5rem;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .feature-card {
             background: rgba(255, 255, 255, 0.05);
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
-        }
-
-        .wavy-line {
-            position: absolute;
-            top: 50%;
-            left: 0;
-            width: 40%;
-            height: 200px;
-            background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M0 100 C 150 200, 350 0, 500 100' stroke='rgba(255,255,255,0.1)' stroke-width='1' fill='none'/%3e%3cpath d='M0 110 C 150 210, 350 10, 500 110' stroke='rgba(255,255,255,0.1)' stroke-width='1' fill='none'/%3e%3c/svg%3e");
-            transform: translateY(-50%);
-            opacity: 0.5;
-            pointer-events: none;
-        }
-
-        .btn-gradient {
-            position: relative;
-            overflow: hidden;
+            border-radius: 1rem;
+            padding: 2rem;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
             transition: all 0.3s ease;
-            box-shadow: 0 0 15px rgba(139,92,246,0.4);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
         }
 
-        .btn-gradient:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 0 25px rgba(139,92,246,0.6);
+        .feature-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 40px rgba(139, 92, 246, 0.3);
+            border-color: rgba(139, 92, 246, 0.5);
+        }
+
+        .feature-icon {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 1rem;
+        }
+
+        .feature-card h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 0.75rem;
+        }
+
+        .feature-card p {
+            font-size: 1rem;
+            color: #9ca3af;
+            line-height: 1.6;
+        }
+
+        /* ============================================
+           RESPONSIVE DESIGN
+           ============================================ */
+        @media (max-width: 1024px) {
+            .hero-container {
+                grid-template-columns: 1fr;
+                text-align: center;
+            }
+
+            .hero-content h1 {
+                font-size: 3rem;
+            }
+
+            .hero-image img {
+                max-width: 350px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .hero-content h1 {
+                font-size: 2.5rem;
+            }
+
+            .hero-content p {
+                font-size: 1.125rem;
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .logo-text {
+                font-size: 1rem;
+            }
+
+            .btn {
+                padding: 0.5rem 1rem;
+                font-size: 0.875rem;
+            }
+
+            .btn-hero {
+                padding: 0.625rem 1.5rem;
+                font-size: 1rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hero-content h1 {
+                font-size: 2rem;
+            }
+
+            .hero-content p {
+                font-size: 1rem;
+            }
+
+            .logo-img {
+                height: 32px;
+            }
+
+            .features-section {
+                padding: 3rem 0;
+            }
         }
     </style>
 </head>
 
-<body class="font-sans antialiased bg-brand-dark text-gray-200">
-<div class="relative min-h-screen">
+<body>
+    <div class="page-wrapper">
 
-    <div class="wavy-line"></div>
+        <!-- HEADER -->
+        <header>
+            <div class="header-container">
+                <div class="logo-section">
+                    <img
+                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuAG5JJVWyJnLGkWFGV2NmK1GnFiSI1Pte58Uztare4QCtb_r2fMWUPXMZdW38dP9BQHtzRp0LpaSA-JlL0GR2U7FLMW_s9So0Re7XkVOrg0lhT3uOjCmpz6bvCNNEzVNdDmKaun0MsHvR4LggTtde2-ceDDezcf3hVjwB0_WhaPDxwM1z1pm4nlCL5q0-QMcVoG-S6F64-JFtlXw5UTBUuN99hwlcpL75_fMdpO2Ipw0FH4BKnRznjDu8r87kJWPA-vS_TMBszMh9Q"
+                        alt="Smart Vision Logo"
+                        class="logo-img"
+                    />
+                    <span class="logo-text">Smart Vision</span>
+                </div>
 
-    <!-- HEADER -->
-    <header class="absolute top-0 inset-x-0 z-10 py-6">
-        <div class="container mx-auto px-6 flex justify-between items-center">
-            <div class="flex items-center gap-3">
-                <img
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuAG5JJVWyJnLGkWFGV2NmK1GnFiSI1Pte58Uztare4QCtb_r2fMWUPXMZdW38dP9BQHtzRp0LpaSA-JlL0GR2U7FLMW_s9So0Re7XkVOrg0lhT3uOjCmpz6bvCNNEzVNdDmKaun0MsHvR4LggTtde2-ceDDezcf3hVjwB0_WhaPDxwM1z1pm4nlCL5q0-QMcVoG-S6F64-JFtlXw5UTBUuN99hwlcpL75_fMdpO2Ipw0FH4BKnRznjDu8r87kJWPA-vS_TMBszMh9Q"
-                    style="height:40px"
-                />
-                <span class="text-xl font-semibold text-white">Smart Vision</span>
-            </div>
-
-            <a href="{% url 'login' %}"
-               class="btn-gradient bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold py-2 px-6 rounded-lg">
-                Launch App
-            </a>
-        </div>
-    </header>
-
-    <!-- HERO -->
-    <main class="min-h-screen flex items-center pt-24">
-        <div class="container mx-auto px-6 grid lg:grid-cols-2 gap-12 items-center">
-
-            <div>
-                <h1 class="text-6xl font-bold text-white mb-6">Smart Vision</h1>
-                <p class="text-xl text-gray-300 mb-10">
-                    Unleash the power of AI to see and understand the world in real-time.
-                </p>
-                <a href="{% url 'login' %}"
-                   class="btn-gradient bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-semibold py-3 px-8 rounded-lg text-lg">
-                    Get Started
+                <a href="{% url 'login' %}" class="btn btn-primary">
+                    Launch App
                 </a>
             </div>
+        </header>
 
-            <div class="flex justify-center">
-                <img
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuCb3hLwj3hnIcWWLpaXqzDxxUnEa9H0JmaS7MZzygMIDeM7foJbzwwJb9hXXkstoQ9DCM1wsd7gh278vmrZ05vhHaaNhJcx4Qw7_g_U5W0CCYoU9YiGBLFt5MFil8arbZ-7zYuls3XRqPY0bqhEWouwfEBSIvb3BcW2l5LeZn0NnU7BlYGeIVVit7JQCqAgxFHuD_S-AJjwtORVIYHqsotAjwpCPKK_gRdZyCLouX6vLBXVZvxzkKONpj8JWggTOCgg4GdXGDcnr5o"
-                    class="w-[450px]"
-                />
+        <!-- HERO SECTION -->
+        <main class="hero-section">
+            <div class="hero-container">
+                <div class="hero-content">
+                    <h1>Smart Vision</h1>
+                    <p>
+                        Unleash the power of AI to see and understand the world in real-time.
+                    </p>
+                    <a href="{% url 'login' %}" class="btn btn-hero">
+                        Get Started
+                    </a>
+                </div>
+
+                <div class="hero-image">
+                    <img
+                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuCb3hLwj3hnIcWWLpaXqzDxxUnEa9H0JmaS7MZzygMIDeM7foJbzwwJb9hXXkstoQ9DCM1wsd7gh278vmrZ05vhHaaNhJcx4Qw7_g_U5W0CCYoU9YiGBLFt5MFil8arbZ-7zYuls3XRqPY0bqhEWouwfEBSIvb3BcW2l5LeZn0NnU7BlYGeIVVit7JQCqAgxFHuD_S-AJjwtORVIYHqsotAjwpCPKK_gRdZyCLouX6vLBXVZvxzkKONpj8JWggTOCgg4GdXGDcnr5o"
+                        alt="Smart Vision AI Illustration"
+                    />
+                </div>
             </div>
+        </main>
 
-        </div>
-    </main>
-    <section class="py-20" id="features">
-    <div class="container mx-auto px-6 lg:px-8">
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <!-- FEATURES SECTION -->
+        <section class="features-section" id="features">
+            <div class="features-container">
+                <div class="features-grid">
 
-            <!-- Card 1 -->
-            <div class="glassmorphism-card rounded-2xl p-8 text-center flex flex-col items-center transition-transform hover:-translate-y-2">
-                <img
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuAamylTUuiyqn4Ew46Je2gYu4yCS_AaGmwA0HZVmlmMVCbTe5EhlwS3e4mHQ9Sf95EMd6CDGmaq0V_-co-8a5RqmuIYZ2Q-X5rUON9ulyMjLTNpcS_3ai95L_IwSUs_gaFOTFkPAdUMw_58rnSiPnjBKhydBWrk6KNlSBphGmh9SqSvGtBVXYPZEgoMD7CeK2wetmeKlyocS69ZXE9yKhDBsXWWJWT8SG7_mRDGghxyuMI8qpSco70F9c4DMpKOuj9H61XGEh-Oayg"
-                    class="w-16 mb-4"
-                />
-                <h3 class="text-xl font-semibold text-white mb-3">
-                    Real-time Object Detection
-                </h3>
-                <p class="text-gray-400">
-                    Instantly identify and track multiple objects within a live camera feed with exceptional accuracy.
-                </p>
+                    <!-- Feature Card 1 -->
+                    <div class="feature-card">
+                        <img
+                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuAamylTUuiyqn4Ew46Je2gYu4yCS_AaGmwA0HZVmlmMVCbTe5EhlwS3e4mHQ9Sf95EMd6CDGmaq0V_-co-8a5RqmuIYZ2Q-X5rUON9ulyMjLTNpcS_3ai95L_IwSUs_gaFOTFkPAdUMw_58rnSiPnjBKhydBWrk6KNlSBphGmh9SqSvGtBVXYPZEgoMD7CeK2wetmeKlyocS69ZXE9yKhDBsXWWJWT8SG7_mRDGghxyuMI8qpSco70F9c4DMpKOuj9H61XGEh-Oayg"
+                            alt="Object Detection Icon"
+                            class="feature-icon"
+                        />
+                        <h3>Real-time Object Detection</h3>
+                        <p>
+                            Instantly identify and track multiple objects within a live camera feed with exceptional accuracy.
+                        </p>
+                    </div>
+
+                    <!-- Feature Card 2 -->
+                    <div class="feature-card">
+                        <img
+                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuBOy7MyltNcYFHNRS2wnxniHM85h3HS7qoq75NdxMmM7yOOkSKSv7BIEXWd-C_3MdySbvS5qpcyjNKoR6ZaQxjUS9I-Wp-zOaWQqjJo8ECLXBgn3m3bnOVvD2MfPcjsXIICHj6wagAXYHxMOlfJJwAJlzb9RJQAR81vt6xUWQ-Fg6aRAQuSsqYP5x8sYxLeSO9SOlO68IygHNx8lZvEQ5HWbZX7QnaP40sJ3v_qXpjeQiRVNPbwOSyE2BTkIK2o5VM1EMnvAjpJRPw"
+                            alt="3D Model Icon"
+                            class="feature-icon"
+                        />
+                        <h3>3D Model Viewing</h3>
+                        <p>
+                            Visualize detected objects as interactive 3D models to explore every detail and dimension.
+                        </p>
+                    </div>
+
+                    <!-- Feature Card 3 -->
+                    <div class="feature-card">
+                        <img
+                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuA3ZY3hXfiYReiDiXUiy1LqY2gHrykN__3yByrrsnezJcrHQ1MUvsQtq_mC6AgqlpcJYA8dU9fKPe2KrqwweTbPRF70rZZr3kv38SVv4ptjbUfkXnyAd99S-7TkDcVkz9RaBTYcdclqSZzar2IoDsyfEPmiG-rsl8mPqomsQwQP2pu-ScGknzAv-PINPUyMpjZhwvdVVHXKrHb8ZDxx5-PBitPt1OqF4w2Kw7AsW-J22HOtBShOJ5i45Wo-u3yl1256OWXIXpqBwqc"
+                            alt="LLM Icon"
+                            class="feature-icon"
+                        />
+                        <h3>LLM Explanations</h3>
+                        <p>
+                            Receive intelligent, context-aware explanations about detected objects generated by an advanced LLM.
+                        </p>
+                    </div>
+
+                </div>
             </div>
+        </section>
 
-            <!-- Card 2 -->
-            <div class="glassmorphism-card rounded-2xl p-8 text-center flex flex-col items-center transition-transform hover:-translate-y-2">
-                <img
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuBOy7MyltNcYFHNRS2wnxniHM85h3HS7qoq75NdxMmM7yOOkSKSv7BIEXWd-C_3MdySbvS5qpcyjNKoR6ZaQxjUS9I-Wp-zOaWQqjJo8ECLXBgn3m3bnOVvD2MfPcjsXIICHj6wagAXYHxMOlfJJwAJlzb9RJQAR81vt6xUWQ-Fg6aRAQuSsqYP5x8sYxLeSO9SOlO68IygHNx8lZvEQ5HWbZX7QnaP40sJ3v_qXpjeQiRVNPbwOSyE2BTkIK2o5VM1EMnvAjpJRPw"
-                    class="w-16 mb-4"
-                />
-                <h3 class="text-xl font-semibold text-white mb-3">
-                    3D Model Viewing
-                </h3>
-                <p class="text-gray-400">
-                    Visualize detected objects as interactive 3D models to explore every detail and dimension.
-                </p>
-            </div>
-
-            <!-- Card 3 -->
-            <div class="glassmorphism-card rounded-2xl p-8 text-center flex flex-col items-center transition-transform hover:-translate-y-2">
-                <img
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuA3ZY3hXfiYReiDiXUiy1LqY2gHrykN__3yByrrsnezJcrHQ1MUvsQtq_mC6AgqlpcJYA8dU9fKPe2KrqwweTbPRF70rZZr3kv38SVv4ptjbUfkXnyAd99S-7TkDcVkz9RaBTYcdclqSZzar2IoDsyfEPmiG-rsl8mPqomsQwQP2pu-ScGknzAv-PINPUyMpjZhwvdVVHXKrHb8ZDxx5-PBitPt1OqF4w2Kw7AsW-J22HOtBShOJ5i45Wo-u3yl1256OWXIXpqBwqc"
-                    class="w-16 mb-4"
-                />
-                <h3 class="text-xl font-semibold text-white mb-3">
-                    LLM Explanations
-                </h3>
-                <p class="text-gray-400">
-                    Receive intelligent, context-aware explanations about detected objects generated by an advanced LLM.
-                </p>
-            </div>
-
-        </div>
     </div>
-</section>
-</div>
 </body>
 </html>

@@ -359,6 +359,11 @@ def camera_feed(request):
     return render(request, 'camera_feed.html', context)
 
 
+
+@login_required
+def model_viewer(request):
+    """3D Model Viewer page"""
+    return render(request, 'model_viewer.html')
 # ============================================
 # API ENDPOINTS (for AJAX/WebSocket)
 # ============================================
