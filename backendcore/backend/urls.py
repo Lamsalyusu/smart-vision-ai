@@ -11,6 +11,7 @@ urlpatterns = [
     # Protected pages (require login)
     path('dashboard/', views.dashboard, name='dashboard'),
     path('camera/', views.camera_feed, name='camera_feed'),
+    path('model-viewer/', views.model_viewer, name='model_viewer'),
     
     # API endpoints
     path('api/user/stats/', views.get_user_stats, name='user_stats'),

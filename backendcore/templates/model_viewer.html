@@ -8,6 +8,7 @@
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
     
     <!-- Three.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -41,6 +42,10 @@
             border: 2px solid #3b82f6 !important;
             background: rgba(59, 130, 246, 0.1) !important;
         }
+        
+        .material-symbols-outlined {
+            font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+        }
     </style>
 </head>
 
@@ -50,24 +55,22 @@
     <nav class="bg-black/20 backdrop-blur-xl border-b border-white/10">
         <div class="container mx-auto px-6 py-4 flex justify-between items-center">
             <div class="flex items-center gap-3">
-                <a href="{% url 'dashboard' %}" class="flex items-center gap-2 text-gray-400 hover:text-white transition-colors">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
-                    </svg>
-                    <span>Back to Dashboard</span>
+                <!-- UPDATED: Back to Camera Feed -->
+                <a href="{% url 'camera_feed' %}" class="flex items-center gap-2 text-gray-400 hover:text-white transition-colors">
+                    <span class="material-symbols-outlined">arrow_back</span>
+                    <span>Back to Camera</span>
                 </a>
             </div>
             
             <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-                    </svg>
+                    <span class="material-symbols-outlined">view_in_ar</span>
                 </div>
-                <span class="text-xl font-bold">3D Models</span>
+                <span class="text-xl font-bold">3D Model Viewer</span>
             </div>
             
             <div class="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-xl">
+                <span class="material-symbols-outlined text-sm">account_circle</span>
                 <span class="text-sm text-gray-400">{{ user.full_name }}</span>
             </div>
         </div>
@@ -103,14 +106,10 @@
                             <label class="text-sm text-gray-400 block mb-2">Zoom</label>
                             <div class="flex gap-2">
                                 <button id="zoomIn" class="flex-1 px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 rounded-lg transition-colors">
-                                    <svg class="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/>
-                                    </svg>
+                                    <span class="material-symbols-outlined text-sm">zoom_in</span>
                                 </button>
                                 <button id="zoomOut" class="flex-1 px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 rounded-lg transition-colors">
-                                    <svg class="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7"/>
-                                    </svg>
+                                    <span class="material-symbols-outlined text-sm">zoom_out</span>
                                 </button>
                             </div>
                         </div>
@@ -159,9 +158,7 @@
                         <!-- Instructions Overlay -->
                         <div id="instructionsOverlay" class="absolute inset-0 bg-black/60 flex items-center justify-center">
                             <div class="text-center max-w-md p-8">
-                                <svg class="w-20 h-20 text-blue-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-                                </svg>
+                                <span class="material-symbols-outlined text-6xl text-blue-400 mb-4">view_in_ar</span>
                                 <h3 class="text-2xl font-bold mb-2">3D Model Viewer</h3>
                                 <p class="text-gray-400 mb-6">Select an object class from the sidebar to view its 3D model</p>
                                 <div class="text-left space-y-2 text-sm text-gray-500">
@@ -196,6 +193,18 @@
 
     <script>
         // ============================================
+        // GET URL PARAMETER (NEW!)
+        // ============================================
+        
+        function getURLParameter(name) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(name);
+        }
+        
+        // Get the object class from URL
+        const urlObjectClass = getURLParameter('object');
+
+        // ============================================
         // YOUR 10 OBJECT CLASSES DATA
         // ============================================
         
@@ -208,7 +217,6 @@
                 category: 'Safety',
                 priority: 'High',
                 datasetSize: 1070,
-                // For demo: Using placeholder 3D model URL
                 modelUrl: 'https://threejs.org/examples/models/gltf/DamagedHelmet/glTF/DamagedHelmet.gltf'
             },
             {
@@ -314,11 +322,9 @@
         function initViewer() {
             const container = document.getElementById('viewer3d');
             
-            // Scene
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x0a0e1a);
             
-            // Camera
             camera = new THREE.PerspectiveCamera(
                 75,
                 container.clientWidth / container.clientHeight,
@@ -327,13 +333,11 @@
             );
             camera.position.z = 5;
             
-            // Renderer
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(container.clientWidth, container.clientHeight);
             renderer.setPixelRatio(window.devicePixelRatio);
             container.appendChild(renderer.domElement);
             
-            // Lights
             const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
             scene.add(ambientLight);
             
@@ -345,7 +349,6 @@
             directionalLight2.position.set(-5, -5, -5);
             scene.add(directionalLight2);
             
-            // Controls
             controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
             controls.dampingFactor = 0.05;
@@ -353,17 +356,14 @@
             controls.minDistance = 2;
             controls.maxDistance = 10;
             
-            // Handle window resize
             window.addEventListener('resize', onWindowResize);
             
-            // Start animation
             animate();
         }
 
         function animate() {
             requestAnimationFrame(animate);
             
-            // Auto-rotate model
             if (currentModel && autoRotateEnabled) {
                 currentModel.rotation.y += rotationSpeed;
             }
@@ -380,16 +380,13 @@
         }
 
         function loadModel(modelData) {
-            // Show loading overlay
             document.getElementById('loadingOverlay').classList.remove('hidden');
             document.getElementById('instructionsOverlay').classList.add('hidden');
             
-            // Remove previous model
             if (currentModel) {
                 scene.remove(currentModel);
             }
             
-            // Load new model
             const loader = new THREE.GLTFLoader();
             
             loader.load(
@@ -397,12 +394,10 @@
                 (gltf) => {
                     currentModel = gltf.scene;
                     
-                    // Center the model
                     const box = new THREE.Box3().setFromObject(currentModel);
                     const center = box.getCenter(new THREE.Vector3());
                     currentModel.position.sub(center);
                     
-                    // Scale to fit
                     const size = box.getSize(new THREE.Vector3());
                     const maxDim = Math.max(size.x, size.y, size.z);
                     const scale = 2 / maxDim;
@@ -410,10 +405,8 @@
                     
                     scene.add(currentModel);
                     
-                    // Hide loading overlay
                     document.getElementById('loadingOverlay').classList.add('hidden');
                     
-                    // Update info
                     document.getElementById('currentModelName').textContent = modelData.displayName;
                     document.getElementById('currentModelDesc').textContent = modelData.description;
                     document.getElementById('datasetSize').textContent = modelData.datasetSize.toLocaleString();
@@ -421,7 +414,6 @@
                     document.getElementById('category').textContent = modelData.category;
                 },
                 (progress) => {
-                    // Loading progress
                     console.log('Loading: ' + (progress.loaded / progress.total * 100) + '%');
                 },
                 (error) => {
@@ -457,13 +449,11 @@
                 </button>
             `).join('');
             
-            // Add click handlers
             document.querySelectorAll('.model-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
                     const index = btn.dataset.index;
                     selectModel(index);
                     
-                    // Update active state
                     document.querySelectorAll('.model-btn').forEach(b => b.classList.remove('active-model'));
                     btn.classList.add('active-model');
                 });
@@ -473,6 +463,27 @@
         function selectModel(index) {
             const modelData = objectClasses[index];
             loadModel(modelData);
+        }
+
+        // ============================================
+        // AUTO-LOAD MODEL FROM URL (NEW!)
+        // ============================================
+        
+        function autoLoadModelFromURL() {
+            if (urlObjectClass) {
+                const index = objectClasses.findIndex(obj => obj.name === urlObjectClass);
+                if (index !== -1) {
+                    // Load the model
+                    selectModel(index);
+                    
+                    // Highlight in sidebar
+                    const buttons = document.querySelectorAll('.model-btn');
+                    if (buttons[index]) {
+                        buttons[index].classList.add('active-model');
+                        buttons[index].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }
+            }
         }
 
         // ============================================
@@ -507,6 +518,7 @@
         window.addEventListener('DOMContentLoaded', () => {
             initViewer();
             populateModelList();
+            autoLoadModelFromURL(); // NEW: Auto-load if object parameter exists
         });
     </script>
 
