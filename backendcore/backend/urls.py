@@ -15,4 +15,6 @@ urlpatterns = [
     
     # API endpoints
     path('api/user/stats/', views.get_user_stats, name='user_stats'),
+    path('forgot-password/', views.forgot_password, name='forgot_password'),
+    path('reset-password/<str:token>/', views.reset_password, name='reset_password'),
 ]
