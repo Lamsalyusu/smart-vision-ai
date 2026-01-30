@@ -660,10 +660,10 @@
                 <h2 class="logo-text">Smart Vision</h2>
             </div>
             
-            <div class="nav-actions">
-                <span class="nav-label">Already a member?</span>
-                <a href="{% url 'login' %}" class="login-btn">Login</a>
-            </div>
+            {% comment %} <div class="nav-actions">
+                <span class="nav-label"></span>
+                <a href="{% url 'login' %}" class="login-btn"></a>
+            </div> {% endcomment %}
         </header>
 
         <!-- Main Content -->
@@ -679,11 +679,11 @@
                         </div>
                         
                         <h1 class="value-title">
-                            See the world through <span class="gradient-text">AI eyes</span>
+                            See the world through AI eyes
                         </h1>
                         
                         <p class="value-description">
-                            Join thousands of developers and researchers using Smart Vision for advanced object detection, 3D spatial mapping, and LLM-powered scene analysis.
+                            Smart Vision for advanced object detection, 3D spatial mapping, and LLM-powered scene analysis.
                         </p>
                         
                         <div class="features-grid">
