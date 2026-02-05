@@ -434,3 +434,120 @@ def forgot_password(request):
             })
     
     return render(request, 'forgot_password.html')
+
+
+
+    
+# backend/views.py
+
+from django.shortcuts import render
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.core.files.storage import default_storage
+import json
+import base64
+import os
+
+# Import your detector
+from .ml_model.inference import detector
+from .supabase_client import supabase  # You already have this!
+
+# Your existing views...
+
+@csrf_exempt
+def detect_objects(request):
+    """
+    API endpoint for object detection
+    POST /api/detect/
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST method required'}, status=405)
+    
+    try:
+        # Handle file upload
+        if 'image' in request.FILES:
+            image_file = request.FILES['image']
+            
+            # Save temporarily
+            temp_path = default_storage.save(f'temp/{image_file.name}', image_file)
+            full_path = os.path.join(settings.MEDIA_ROOT, temp_path)
+            
+            # Run detection
+            detections = detector.detect_from_file(full_path)
+            
+            # Cleanup
+            os.remove(full_path)
+        
+        # Handle base64 image
+        elif 'image_base64' in request.POST:
+            image_data = request.POST['image_base64']
+            
+            # Decode base64
+            if 'base64,' in image_data:
+                image_data = image_data.split('base64,')[1]
+            
+            image_bytes = base64.b64decode(image_data)
+            detections = detector.detect_from_bytes(image_bytes)
+        
+        else:
+            return JsonResponse({'error': 'No image provided'}, status=400)
+        
+        # Save to Supabase (optional)
+        try:
+            supabase_data = {
+                'detections': detections,
+                'total': len(detections)
+            }
+            supabase.table('detections').insert(supabase_data).execute()
+        except Exception as e:
+            print(f"Supabase error: {e}")
+        
+        return JsonResponse({
+            'success': True,
+            'total_detections': len(detections),
+            'detections': detections
+        })
+    
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+def webcam_feed(request):
+    """Render webcam detection page"""
+    return render(request, 'camera_feed.html')
+
+
+def model_viewer(request):
+    """Render 3D model viewer page"""
+    context = {
+        'detected_class': request.GET.get('class', 'sunglasses')
+    }
+    return render(request, 'model_viewer.html', context)
+
+
+def get_3d_model(request, class_name):
+    """Get 3D model URL for a class"""
+    
+    CLASS_TO_MODEL = {
+        "sunglasses": "sunglasses.glb",
+        "knife": "knife.glb",
+        "water_bottle": "water_bottle.glb",
+        "pen": "pen.glb",
+        "chair": "chair.glb",
+        "human_face": "human_face.glb",
+        "mobile_phone": "mobile_phone.glb",
+        "helmet": "helmet.glb",
+        "fire": "fire.glb",
+        "can": "can.glb"
+    }
+    
+    if class_name not in CLASS_TO_MODEL:
+        return JsonResponse({'error': 'Class not found'}, status=404)
+    
+    model_url = f"/static/models/{CLASS_TO_MODEL[class_name]}"
+    
+    return JsonResponse({
+        'class': class_name,
+        'model_url': model_url,
+        'format': 'glb'
+    })
