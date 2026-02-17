@@ -1,62 +1,3 @@
-# # backend/views.py
-
-# from django.http import JsonResponse
-# from django.shortcuts import render
-# from django.views.decorators.csrf import csrf_exempt
-
-
-# # -----------------------------
-# # API VIEWS (KEEP AS-IS)
-# # -----------------------------
-
-# @csrf_exempt
-# def health_check(request):
-#     return JsonResponse({
-#         "status": "ok",
-#         "message": "SmartVision backend is alive 🔥",
-#     })
-
-
-# @csrf_exempt
-# def detect_object(request):
-
-#     if request.method != "POST":
-#         return JsonResponse(
-#             {"error": "Use POST with an image file under 'image' field."},
-#             status=400
-#         )
-
-#     image_file = request.FILES.get("image", None)
-
-#     if image_file is None:
-#         return JsonResponse(
-#             {"error": "No image uploaded. Send as form-data with key 'image'."},
-#             status=400
-#         )
-
-#     return JsonResponse({
-#         "message": "Image received successfully ✅",
-#         "filename": image_file.name,
-#         "size_bytes": image_file.size,
-#     })
-
-
-# # -----------------------------
-# # HTML PAGE VIEWS (NEW)
-# # -----------------------------
-
-# def landing_page(request):
-#     return render(request, "landingpage.html")
-
-
-# def login_page(request):
-#     return render(request, "loginpage.html")
-
-
-# def signup_page(request):
-#     return render(request, "signuppage.html")
-
-
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -436,8 +377,6 @@ def forgot_password(request):
     return render(request, 'forgot_password.html')
 
 
-
-    
 # backend/views.py
 
 from django.shortcuts import render
@@ -450,7 +389,7 @@ import os
 
 # Import your detector
 from .ml_model.inference import detector
-from .supabase_client import supabase  # You already have this!
+# from .supabase_client import supabase  # You already have this!
 
 # Your existing views...
 
@@ -522,7 +461,7 @@ def model_viewer(request):
     context = {
         'detected_class': request.GET.get('class', 'sunglasses')
     }
-    return render(request, 'model_viewer.html', context)
+    return render(request, 'model_viewer_v2.html', context)
 
 
 def get_3d_model(request, class_name):
@@ -551,3 +490,104 @@ def get_3d_model(request, class_name):
         'model_url': model_url,
         'format': 'glb'
     })
+from django.conf import settings
+
+from groq import Groq
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def llm_chat(request):
+    try:
+        data = json.loads(request.body)
+        user_message = data.get('message', '')
+        detections = data.get('detections', [])
+
+        detection_context = "No objects currently detected."
+        if detections:
+            objects = [f"{d['class']} ({d['confidence']*100:.0f}%)" for d in detections]
+            detection_context = f"Currently detected objects: {', '.join(objects)}."
+
+        client = Groq(api_key=settings.GROQ_API_KEY)
+        response = client.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            messages=[{
+                "role": "user",
+                "content": f"You are SmartVision AI assistant helping users understand objects detected by a real-time camera. {detection_context} Keep responses concise.\n\nUser: {user_message}"
+            }]
+        )
+
+        return JsonResponse({
+            'success': True,
+            'response': response.choices[0].message.content
+        })
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({'error': str(e)}, status=500)
+
+# ============================================
+# ADD THIS TO YOUR views.py
+# ============================================
+# Also add this URL to urls.py:
+#   path('api/generate-3d/', views.generate_3d_view, name='generate_3d'),
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def generate_3d_view(request):
+    """
+    API endpoint: Takes a cropped detected object image,
+    runs MiDaS depth estimation, returns 3D point cloud data.
+    
+    POST /api/generate-3d/
+    Body: FormData with 'image' file OR JSON with 'image_base64'
+    
+    Returns: { positions: [...], colors: [...], point_count: int }
+    """
+    try:
+        # Get image data
+        if 'image' in request.FILES:
+            image_bytes = request.FILES['image'].read()
+        
+        elif request.content_type == 'application/json':
+            data = json.loads(request.body)
+            image_data = data.get('image_base64', '')
+            
+            if 'base64,' in image_data:
+                image_data = image_data.split('base64,')[1]
+            
+            image_bytes = base64.b64decode(image_data)
+        
+        else:
+            return JsonResponse({'error': 'No image provided'}, status=400)
+        
+        if len(image_bytes) == 0:
+            return JsonResponse({'error': 'Empty image data'}, status=400)
+        
+        # Run depth estimation and generate point cloud
+        from backend.ml_model.depth_estimation import depth_estimator
+        
+        result = depth_estimator.generate_point_cloud(
+            image_bytes,
+            max_points=12000,   # Good balance of detail vs performance
+            depth_scale=2.0     # How "deep" the 3D effect is
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'positions': result['positions'],
+            'colors': result['colors'],
+            'point_count': result['point_count'],
+            'width': result['original_width'],
+            'height': result['original_height']
+        })
+    
+    except ImportError as e:
+        return JsonResponse({
+            'error': 'MiDaS not installed. Run: pip install torch torchvision timm',
+            'detail': str(e)
+        }, status=500)
+    
+    except Exception as e:
+        print(f"3D generation error: {e}")
+        return JsonResponse({'error': str(e)}, status=500)
