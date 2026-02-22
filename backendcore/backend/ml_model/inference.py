@@ -163,18 +163,19 @@ class ObjectDetector:
         result = self._apply_nms(all_boxes, all_scores, all_classes)
         
         # Format output
+        # Format output
         detections = []
         for box, score, cls_id in zip(result['boxes'], result['scores'], result['classes']):
             detections.append({
                 'class': self.CLASS_NAMES[cls_id],
                 'class_id': cls_id,
                 'confidence': float(score),
-                'bbox': {
-                    'x1': float(box[0]),
-                    'y1': float(box[1]),
-                    'x2': float(box[2]),
-                    'y2': float(box[3])
-                }
+                'bbox': [
+                    float(box[0] * orig_w),
+                    float(box[1] * orig_h),
+                    float(box[2] * orig_w),
+                    float(box[3] * orig_h)
+                ]
             })
         
         return detections
