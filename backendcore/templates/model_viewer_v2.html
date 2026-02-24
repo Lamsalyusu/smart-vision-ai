@@ -11,132 +11,163 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <style>
-        body { font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #0a0e1a 0%, #1a1f35 100%); }
-        .card { background: rgba(255,255,255,0.03); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); transition: all 0.3s ease; }
-        .card:hover { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.12); transform: translateY(-2px); }
-        #viewer3d { background: radial-gradient(circle at center, rgba(59,130,246,0.1) 0%, rgba(0,0,0,0.5) 100%); }
-        .active-model { border: 2px solid #3b82f6 !important; background: rgba(59,130,246,0.1) !important; }
+        body { font-family: 'Inter', sans-serif; background: #0a0e1a; }
+        .card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; }
+        #viewer3d { background: #0d1117; }
+        .active-model { border-color: #3b82f6 !important; background: rgba(59,130,246,0.08) !important; }
         .material-symbols-outlined { font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24; }
-        .detected-badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; background: rgba(34,197,94,0.15); color: #22c55e; border-radius: 9999px; font-size: 0.7rem; font-weight: 600; animation: badgePulse 2s infinite; }
-        @keyframes badgePulse { 0%,100% { opacity:1; } 50% { opacity:0.7; } }
-        .viewer-info { position: absolute; bottom: 16px; left: 16px; background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); padding: 8px 16px; border-radius: 8px; font-size: 0.75rem; color: #92adc9; border: 1px solid rgba(255,255,255,0.1); }
-        .mode-toggle { display: flex; background: rgba(255,255,255,0.05); border-radius: 0.5rem; padding: 3px; border: 1px solid rgba(255,255,255,0.1); }
-        .mode-toggle button { padding: 6px 14px; border: none; border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: all 0.3s; background: transparent; color: #92adc9; font-family: inherit; }
-        .mode-toggle button.active { background: linear-gradient(135deg, #2563eb, #9333ea); color: #fff; }
+        .detected-badge { display: inline-flex; padding: 2px 8px; background: rgba(34,197,94,0.15); color: #22c55e; border-radius: 9999px; font-size: 0.7rem; font-weight: 600; }
+        .viewer-info { position: absolute; bottom: 12px; left: 12px; background: rgba(0,0,0,0.7); padding: 6px 12px; border-radius: 6px; font-size: 0.75rem; color: #8899aa; }
+        .mode-toggle { display: flex; gap: 4px; }
+        .mode-toggle button { padding: 6px 14px; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; font-size: 0.8rem; cursor: pointer; background: transparent; color: #8899aa; font-family: inherit; }
+        .mode-toggle button.active { background: #2563eb; color: #fff; border-color: #2563eb; }
         .gen-progress { position: absolute; inset: 0; background: rgba(0,0,0,0.85); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10; }
         .gen-progress.hidden { display: none; }
-        .gen-progress-bar { width: 200px; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; margin-top: 16px; }
-        .gen-progress-fill { height: 100%; background: linear-gradient(90deg, #3b82f6, #9333ea); border-radius: 2px; animation: progressAnim 2s ease-in-out infinite; }
-        @keyframes progressAnim { 0% { width:0%; } 50% { width:70%; } 100% { width:100%; } }
+        .crop-preview img { width: 100%; height: auto; display: block; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); }
         input[type="range"] { -webkit-appearance: none; width: 100%; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.1); outline: none; }
-        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #3b82f6; cursor: pointer; }
-        .crop-preview { border: 2px solid rgba(59,130,246,0.3); border-radius: 8px; overflow: hidden; background: #000; }
-        .crop-preview img { width: 100%; height: auto; display: block; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #3b82f6; cursor: pointer; }
     </style>
 </head>
 <body class="min-h-screen text-white">
-    <nav class="bg-black/20 backdrop-blur-xl border-b border-white/10">
+    <!-- NAV -->
+    <nav class="border-b border-white/10 bg-black/30">
         <div class="container mx-auto px-6 py-4 flex justify-between items-center">
-            <a href="{% url 'camera_feed' %}" class="flex items-center gap-2 text-gray-400 hover:text-white transition-colors">
+            <a href="{% url 'camera_feed' %}" class="flex items-center gap-2 text-gray-400 hover:text-white">
                 <span class="material-symbols-outlined">arrow_back</span><span>Back to Camera</span>
             </a>
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                    <span class="material-symbols-outlined">view_in_ar</span>
-                </div>
-                <span class="text-xl font-bold">3D Model Viewer</span>
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-blue-400">view_in_ar</span>
+                <span class="text-lg font-semibold">3D Model Viewer</span>
             </div>
-            <div class="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-xl">
-                <span class="material-symbols-outlined text-sm">account_circle</span>
-                <span class="text-sm text-gray-400">{{ user.full_name }}</span>
-            </div>
+            <div class="text-sm text-gray-500">{{ user.full_name }}</div>
         </div>
     </nav>
 
-    <main class="container mx-auto px-6 py-8">
+    <main class="container mx-auto px-6 py-6">
         <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
 
             <!-- SIDEBAR -->
             <div class="lg:col-span-1 space-y-4">
-                <div class="card rounded-2xl p-6">
-                    <h3 class="text-lg font-bold mb-3">View Mode</h3>
-                    <div class="mode-toggle w-full">
-                        <button id="modeRepresentation" class="flex-1 active" onclick="window.switchMode('representation')">🎨 Representation</button>
-                        <button id="modeDepth3D" class="flex-1" onclick="window.switchMode('depth3d')">🔬 Depth 3D</button>
+                <!-- Mode Switch -->
+                <div class="card p-5">
+                    <h3 class="text-sm font-semibold mb-3 text-gray-300">View Mode</h3>
+                    <div class="mode-toggle">
+                        <button id="modeRepresentation" class="flex-1 active" onclick="window.switchMode('representation')">Representation</button>
+                        <button id="modeDepth3D" class="flex-1" onclick="window.switchMode('depth3d')">Depth 3D</button>
                     </div>
-                    <p class="text-xs text-gray-500 mt-3" id="modeDescription">Showing procedural 3D representation of detected objects.</p>
+                    <p class="text-xs text-gray-500 mt-3" id="modeDescription">Procedural 3D models for each class.</p>
                 </div>
 
-                <div id="cropPreviewCard" class="card rounded-2xl p-6 hidden">
-                    <h3 class="text-lg font-bold mb-3">Detected Object</h3>
+                <!-- Crop Preview (depth mode) -->
+                <div id="cropPreviewCard" class="card p-5 hidden">
+                    <h3 class="text-sm font-semibold mb-3 text-gray-300">Detected Object</h3>
                     <div class="crop-preview"><img id="cropPreviewImg" src="" alt="Cropped detection" /></div>
-                    <p class="text-sm text-gray-400 mt-3" id="cropPreviewLabel">—</p>
-                    <button onclick="window.regenerate3D()" class="w-full mt-3 px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 rounded-lg transition-colors text-sm font-medium">🔄 Regenerate 3D</button>
+                    <p class="text-sm text-gray-400 mt-2" id="cropPreviewLabel">-</p>
+                    <button onclick="window.regenerate3D()" class="w-full mt-3 px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-sm">Regenerate 3D</button>
                 </div>
 
-                <div class="card rounded-2xl p-6">
-                    <h3 class="text-xl font-bold mb-2">Object Classes</h3>
-                    <p class="text-sm text-gray-400 mb-4">Click to view 3D model</p>
-                    <div id="detectedFromCamera" class="hidden mb-4 p-3 rounded-xl bg-green-500/10 border border-green-500/20">
-                        <p class="text-xs text-green-400 font-medium"><span class="material-symbols-outlined text-sm align-middle">videocam</span> Object detected from live camera</p>
+                <!-- Object List -->
+                <div class="card p-5">
+                    <h3 class="text-sm font-semibold mb-1 text-gray-300">Object Classes</h3>
+                    <p class="text-xs text-gray-500 mb-4">Click to view 3D model</p>
+                    <div id="detectedFromCamera" class="hidden mb-3 p-2 rounded-lg bg-green-500/10 border border-green-500/20">
+                        <p class="text-xs text-green-400"><span class="material-symbols-outlined text-sm align-middle">videocam</span> Detected from camera</p>
                     </div>
                     <div class="space-y-2" id="modelList"></div>
                 </div>
 
-                <div class="card rounded-2xl p-6">
-                    <h3 class="text-lg font-bold mb-4">Controls</h3>
+                <!-- Controls -->
+                <div class="card p-5">
+                    <h3 class="text-sm font-semibold mb-4 text-gray-300">Controls</h3>
                     <div class="space-y-4">
-                        <div><label class="text-sm text-gray-400 block mb-2">Rotation Speed</label><input type="range" id="rotationSpeed" min="0" max="0.02" step="0.001" value="0.005"></div>
-                        <div id="pointSizeControl" class="hidden"><label class="text-sm text-gray-400 block mb-2">Point Size</label><input type="range" id="pointSizeSlider" min="0.5" max="5" step="0.1" value="2"></div>
-                        <div id="depthScaleControl" class="hidden"><label class="text-sm text-gray-400 block mb-2">Depth Intensity</label><input type="range" id="depthScaleSlider" min="0.5" max="5" step="0.1" value="2"></div>
-                        <div><label class="text-sm text-gray-400 block mb-2">Zoom</label><div class="flex gap-2"><button id="zoomIn" class="flex-1 px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 rounded-lg transition-colors"><span class="material-symbols-outlined text-sm">zoom_in</span></button><button id="zoomOut" class="flex-1 px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 rounded-lg transition-colors"><span class="material-symbols-outlined text-sm">zoom_out</span></button></div></div>
-                        <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="wireframeToggle" class="w-4 h-4 rounded"><span class="text-sm text-gray-400">Show Wireframe</span></label>
-                        <button id="resetView" class="w-full px-4 py-2 bg-purple-500/20 hover:bg-purple-500/30 rounded-lg transition-colors text-sm font-medium">Reset View</button>
-                        <div class="pt-4 border-t border-white/10"><label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="autoRotate" checked class="w-4 h-4 rounded"><span class="text-sm text-gray-400">Auto Rotate</span></label></div>
+                        <div>
+                            <label class="text-xs text-gray-500 block mb-1">Rotation Speed</label>
+                            <input type="range" id="rotationSpeed" min="0" max="0.02" step="0.001" value="0.005">
+                        </div>
+                        <div id="pointSizeControl" class="hidden">
+                            <label class="text-xs text-gray-500 block mb-1">Point Size</label>
+                            <input type="range" id="pointSizeSlider" min="0.5" max="5" step="0.1" value="2">
+                        </div>
+                        <div id="depthScaleControl" class="hidden">
+                            <label class="text-xs text-gray-500 block mb-1">Depth Intensity</label>
+                            <input type="range" id="depthScaleSlider" min="0.5" max="5" step="0.1" value="2">
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500 block mb-1">Zoom</label>
+                            <div class="flex gap-2">
+                                <button id="zoomIn" class="flex-1 px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-sm">Zoom In</button>
+                                <button id="zoomOut" class="flex-1 px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-sm">Zoom Out</button>
+                            </div>
+                        </div>
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" id="wireframeToggle" class="w-4 h-4 rounded">
+                            <span class="text-xs text-gray-400">Wireframe</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" id="autoRotate" checked class="w-4 h-4 rounded">
+                            <span class="text-xs text-gray-400">Auto Rotate</span>
+                        </label>
+                        <button id="resetView" class="w-full px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-sm">Reset View</button>
                     </div>
                 </div>
             </div>
 
             <!-- 3D VIEWER -->
             <div class="lg:col-span-3">
-                <div class="card rounded-2xl p-6">
-                    <div class="flex items-center justify-between mb-6">
+                <div class="card p-5">
+                    <div class="flex items-center justify-between mb-4">
                         <div>
-                            <h2 class="text-2xl font-bold" id="currentModelName">Select a Model</h2>
-                            <p class="text-sm text-gray-400 mt-1" id="currentModelDesc">Choose an object class to view its 3D representation</p>
+                            <h2 class="text-xl font-semibold" id="currentModelName">Select a Model</h2>
+                            <p class="text-sm text-gray-500 mt-1" id="currentModelDesc">Choose an object class to view its 3D representation</p>
                         </div>
-                        <div class="flex items-center gap-3">
-                            <div id="confidenceBadge" class="hidden px-3 py-1 bg-blue-500/10 rounded-full border border-blue-500/30"><span class="text-sm font-medium text-blue-400" id="confidenceText"></span></div>
-                            <div class="flex items-center gap-2 px-4 py-2 bg-green-500/10 rounded-full border border-green-500/30"><div class="w-2 h-2 rounded-full bg-green-400"></div><span class="text-sm font-medium text-green-400" id="modeBadgeText">Representation Mode</span></div>
+                        <div class="flex items-center gap-2">
+                            <div id="confidenceBadge" class="hidden px-3 py-1 bg-blue-500/10 rounded-full border border-blue-500/20">
+                                <span class="text-xs text-blue-400" id="confidenceText"></span>
+                            </div>
+                            <span class="text-xs px-3 py-1 bg-white/5 rounded-full text-gray-400" id="modeBadgeText">Representation</span>
                         </div>
                     </div>
-                    <div class="relative rounded-xl overflow-hidden" style="height: 600px;">
+                    <div class="relative rounded-xl overflow-hidden" style="height: 560px;">
                         <div id="viewer3d" class="w-full h-full"></div>
                         <div class="viewer-info" id="viewerInfo" style="display:none;"><span id="infoLabel"></span></div>
+                        <!-- Generation progress -->
                         <div id="genProgress" class="gen-progress hidden">
-                            <span class="material-symbols-outlined text-4xl text-blue-400 mb-3">auto_awesome</span>
-                            <p class="text-lg font-bold">Generating 3D from Detection</p>
-                            <p class="text-sm text-gray-400 mt-1" id="genProgressText">Running MiDaS depth estimation...</p>
-                            <div class="gen-progress-bar"><div class="gen-progress-fill"></div></div>
+                            <div class="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+                            <p class="text-sm font-medium">Generating 3D</p>
+                            <p class="text-xs text-gray-500 mt-1" id="genProgressText">Running MiDaS depth estimation...</p>
                         </div>
-                        <div id="loadingOverlay" class="absolute inset-0 bg-black/80 flex items-center justify-center hidden"><div class="text-center"><div class="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div><p class="text-gray-400">Loading 3D Model...</p></div></div>
+                        <!-- Loading spinner -->
+                        <div id="loadingOverlay" class="absolute inset-0 bg-black/80 flex items-center justify-center hidden">
+                            <div class="w-10 h-10 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                        </div>
+                        <!-- Instructions -->
                         <div id="instructionsOverlay" class="absolute inset-0 bg-black/60 flex items-center justify-center">
-                            <div class="text-center max-w-md p-8">
-                                <span class="material-symbols-outlined text-6xl text-blue-400 mb-4">view_in_ar</span>
-                                <h3 class="text-2xl font-bold mb-2">3D Model Viewer</h3>
-                                <p class="text-gray-400 mb-6">Select an object class, or detect objects from camera feed</p>
-                                <div class="text-left space-y-2 text-sm text-gray-500">
-                                    <p><strong>Representation</strong>: Procedural 3D models for each class</p>
-                                    <p> <strong>Depth 3D</strong>: MiDaS converts real detections to 3D point clouds</p>
-                                    <p> Left Drag: Rotate · Right Drag: Pan · Scroll: Zoom</p>
+                            <div class="text-center max-w-sm p-6">
+                                <span class="material-symbols-outlined text-5xl text-blue-400 mb-3">view_in_ar</span>
+                                <h3 class="text-lg font-semibold mb-2">3D Model Viewer</h3>
+                                <p class="text-sm text-gray-400 mb-4">Select an object class or detect from camera</p>
+                                <div class="text-left text-xs text-gray-500 space-y-1">
+                                    <p><b>Representation</b> - Procedural 3D models</p>
+                                    <p><b>Depth 3D</b> - MiDaS depth to point clouds</p>
+                                    <p>Drag: Rotate | Right-drag: Pan | Scroll: Zoom</p>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="mt-6 grid grid-cols-3 gap-4">
-                        <div class="text-center p-4 bg-white/5 rounded-xl"><p class="text-sm text-gray-400 mb-1" id="stat1Label">Dataset Size</p><p class="text-2xl font-bold" id="stat1Value">-</p></div>
-                        <div class="text-center p-4 bg-white/5 rounded-xl"><p class="text-sm text-gray-400 mb-1" id="stat2Label">Priority</p><p class="text-2xl font-bold" id="stat2Value">-</p></div>
-                        <div class="text-center p-4 bg-white/5 rounded-xl"><p class="text-sm text-gray-400 mb-1" id="stat3Label">Category</p><p class="text-2xl font-bold" id="stat3Value">-</p></div>
+                    <!-- Stats -->
+                    <div class="mt-4 grid grid-cols-3 gap-3">
+                        <div class="p-3 bg-white/5 rounded-lg text-center">
+                            <p class="text-xs text-gray-500" id="stat1Label">Dataset Size</p>
+                            <p class="text-lg font-semibold mt-1" id="stat1Value">-</p>
+                        </div>
+                        <div class="p-3 bg-white/5 rounded-lg text-center">
+                            <p class="text-xs text-gray-500" id="stat2Label">Priority</p>
+                            <p class="text-lg font-semibold mt-1" id="stat2Value">-</p>
+                        </div>
+                        <div class="p-3 bg-white/5 rounded-lg text-center">
+                            <p class="text-xs text-gray-500" id="stat3Label">Category</p>
+                            <p class="text-lg font-semibold mt-1" id="stat3Value">-</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -147,313 +178,691 @@
 (function() {
     'use strict';
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const urlObjectClass = urlParams.get('object');
-    const urlConfidence = urlParams.get('confidence');
-    const urlMode = urlParams.get('mode');
-    const croppedImageData = sessionStorage.getItem('smartvision_crop_image');
-    const croppedObjectName = sessionStorage.getItem('smartvision_crop_class');
+    var urlParams = new URLSearchParams(window.location.search);
+    var urlObjectClass = urlParams.get('object');
+    var urlConfidence = urlParams.get('confidence');
+    var urlMode = urlParams.get('mode');
+    var croppedImageData = sessionStorage.getItem('smartvision_crop_image');
+    var croppedObjectName = sessionStorage.getItem('smartvision_crop_class');
 
-    let currentMode = 'representation';
+    var currentMode = 'representation';
 
-    const objectClasses = [
-        { name:'sunglasses', displayName:'Sunglasses', icon:'', description:'Eyewear / Sunglasses detection', color:'#3b82f6', category:'Accessories', priority:'Low', datasetSize:1200 },
-        { name:'knife', displayName:'Knife', icon:'', description:'Sharp cutting tool — Security detection', color:'#ef4444', category:'Safety', priority:'High', datasetSize:1070 },
-        { name:'water_bottle', displayName:'Water Bottle', icon:'', description:'Plastic or glass water bottle', color:'#06b6d4', category:'General', priority:'Low', datasetSize:1000 },
-        { name:'pen', displayName:'Pen', icon:'', description:'Writing instrument', color:'#6366f1', category:'Stationery', priority:'Low', datasetSize:2535 },
-        { name:'chair', displayName:'Chair', icon:'', description:'Furniture — Chair detection', color:'#8b5cf6', category:'Furniture', priority:'Low', datasetSize:1100 },
-        { name:'human_face', displayName:'Human Face', icon:'', description:'Human face detection', color:'#ec4899', category:'Biometric', priority:'Medium', datasetSize:1500 },
-        { name:'mobile_phone', displayName:'Mobile Phone', icon:'', description:'Smartphone / Mobile device', color:'#4169E1', category:'Electronics', priority:'Medium', datasetSize:1414 },
-        { name:'helmet', displayName:'Helmet', icon:'', description:'Safety helmet detection', color:'#f59e0b', category:'Safety', priority:'High', datasetSize:1129 },
-        { name:'fire', displayName:'Fire', icon:'', description:'Fire/Flames — Emergency detection', color:'#FF4500', category:'Emergency', priority:'Critical', datasetSize:2555 },
-        { name:'can', displayName:'Can', icon:'', description:'Aluminum/metal can', color:'#14b8a6', category:'Recycling', priority:'Low', datasetSize:2666 }
+    var objectClasses = [
+        { name:'sunglasses', displayName:'Sunglasses', description:'Eyewear detection', color:'#3b82f6', category:'Accessories', priority:'Low', datasetSize:1200 },
+        { name:'knife', displayName:'Knife', description:'Sharp tool - security risk', color:'#ef4444', category:'Safety', priority:'High', datasetSize:1070 },
+        { name:'water_bottle', displayName:'Water Bottle', description:'Plastic/glass bottle', color:'#06b6d4', category:'General', priority:'Low', datasetSize:1000 },
+        { name:'pen', displayName:'Pen', description:'Writing instrument', color:'#6366f1', category:'Stationery', priority:'Low', datasetSize:2535 },
+        { name:'chair', displayName:'Chair', description:'Furniture detection', color:'#8b5cf6', category:'Furniture', priority:'Low', datasetSize:1100 },
+        { name:'human_face', displayName:'Human Face', description:'Face detection', color:'#ec4899', category:'Biometric', priority:'Medium', datasetSize:1500 },
+        { name:'mobile_phone', displayName:'Mobile Phone', description:'Smartphone device', color:'#4169E1', category:'Electronics', priority:'Medium', datasetSize:1414 },
+        { name:'helmet', displayName:'Helmet', description:'Safety helmet', color:'#f59e0b', category:'Safety', priority:'High', datasetSize:1129 },
+        { name:'fire', displayName:'Fire', description:'Fire/flames - emergency', color:'#FF4500', category:'Emergency', priority:'Critical', datasetSize:2555 },
+        { name:'can', displayName:'Can', description:'Metal can', color:'#14b8a6', category:'Recycling', priority:'Low', datasetSize:2666 }
     ];
 
-    // ── THREE.JS ──
-    let scene, camera, renderer, controls, currentModelGroup, fireAnimFrame = null, pointCloudMaterial = null;
-    let rotationSpeed = 0.005, autoRotateEnabled = true;
+    // Three.js vars
+    var scene, camera, renderer, controls, currentModelGroup;
+    var fireAnimFrame = null, pointCloudMaterial = null;
+    var rotationSpeed = 0.005, autoRotateEnabled = true;
 
     function initViewer() {
-        const c = document.getElementById('viewer3d');
+        var container = document.getElementById('viewer3d');
         scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x0a0e1a);
-        scene.fog = new THREE.Fog(0x0a0e1a, 8, 20);
-        camera = new THREE.PerspectiveCamera(60, c.clientWidth/c.clientHeight, 0.1, 1000);
+        scene.background = new THREE.Color(0x0d1117);
+
+        camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 1000);
         camera.position.set(3, 2.5, 4);
+
         renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(c.clientWidth, c.clientHeight);
+        renderer.setSize(container.clientWidth, container.clientHeight);
         renderer.setPixelRatio(window.devicePixelRatio);
         renderer.shadowMap.enabled = true;
-        c.appendChild(renderer.domElement);
+        container.appendChild(renderer.domElement);
+
+        // Lighting
         scene.add(new THREE.AmbientLight(0xffffff, 0.4));
-        const ml = new THREE.DirectionalLight(0xffffff, 0.8); ml.position.set(5,8,5); ml.castShadow = true; scene.add(ml);
-        const fl = new THREE.DirectionalLight(0x8888ff, 0.3); fl.position.set(-5,3,-5); scene.add(fl);
-        const rl = new THREE.DirectionalLight(0xff8844, 0.2); rl.position.set(0,-2,-5); scene.add(rl);
-        const grid = new THREE.GridHelper(10, 20, 0x1a2a3a, 0x111d2a); grid.position.y = -1.5; scene.add(grid);
+        var mainLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        mainLight.position.set(5, 8, 5);
+        mainLight.castShadow = true;
+        scene.add(mainLight);
+
+        var fillLight = new THREE.DirectionalLight(0x8888ff, 0.3);
+        fillLight.position.set(-5, 3, -5);
+        scene.add(fillLight);
+
+        // Grid
+        var grid = new THREE.GridHelper(10, 20, 0x1a2a3a, 0x111d2a);
+        grid.position.y = -1.5;
+        scene.add(grid);
+
+        // Controls
         controls = new THREE.OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true; controls.dampingFactor = 0.08; controls.minDistance = 1; controls.maxDistance = 15;
-        window.addEventListener('resize', () => { camera.aspect = c.clientWidth/c.clientHeight; camera.updateProjectionMatrix(); renderer.setSize(c.clientWidth, c.clientHeight); });
-        (function anim() { requestAnimationFrame(anim); if (currentModelGroup && autoRotateEnabled) currentModelGroup.rotation.y += rotationSpeed; controls.update(); renderer.render(scene, camera); })();
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.08;
+        controls.minDistance = 1;
+        controls.maxDistance = 15;
+
+        window.addEventListener('resize', function() {
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        });
+
+        // Render loop
+        function animate() {
+            requestAnimationFrame(animate);
+            if (currentModelGroup && autoRotateEnabled) {
+                currentModelGroup.rotation.y += rotationSpeed;
+            }
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        animate();
     }
 
     function clearModel() {
-        if (currentModelGroup) { scene.remove(currentModelGroup); currentModelGroup = null; }
-        if (fireAnimFrame) { cancelAnimationFrame(fireAnimFrame); fireAnimFrame = null; }
+        if (currentModelGroup) {
+            scene.remove(currentModelGroup);
+            currentModelGroup = null;
+        }
+        if (fireAnimFrame) {
+            cancelAnimationFrame(fireAnimFrame);
+            fireAnimFrame = null;
+        }
     }
 
-    // ── MATERIAL HELPERS ──
-    function M(color, e=0.05) { return new THREE.MeshStandardMaterial({ color, roughness:0.4, metalness:0.3, emissive:color, emissiveIntensity:e }); }
-    function GM(color) { return new THREE.MeshStandardMaterial({ color, roughness:0.1, metalness:0.8, transparent:true, opacity:0.6 }); }
-
-    // ── PROCEDURAL BUILDERS ──
-    function buildSunglasses() {
-        const g = new THREE.Group(), fm = M(0x1a1a1a), lm = GM(0x1a3a5a);
-        const lg = new THREE.TorusGeometry(0.45,0.06,16,32), dg = new THREE.CircleGeometry(0.42,32);
-        [[-0.55],[0.55]].forEach(([x])=>{ const l=new THREE.Mesh(lg,fm); l.position.x=x; g.add(l); const d=new THREE.Mesh(dg,lm); d.position.set(x,0,0.01); g.add(d); });
-        const b=new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.03,0.25,8),fm); b.rotation.z=Math.PI/2; b.position.set(0,0.1,0); g.add(b);
-        [[-0.95],[0.95]].forEach(([x])=>{ const a=new THREE.Mesh(new THREE.BoxGeometry(0.04,0.04,1.5),fm); a.position.set(x,0,-0.7); g.add(a); });
-        g.scale.setScalar(1.5); return g;
-    }
-    function buildKnife() {
-        const g=new THREE.Group(), bm=M(0xcccccc,0.02); bm.metalness=0.9; bm.roughness=0.1; const hm=M(0x4a3728);
-        const s=new THREE.Shape(); s.moveTo(0,0); s.lineTo(0.15,1.8); s.lineTo(0.02,2); s.lineTo(-0.02,1.8); s.lineTo(-0.05,0); s.lineTo(0,0);
-        const bl=new THREE.Mesh(new THREE.ExtrudeGeometry(s,{depth:0.03,bevelEnabled:true,bevelThickness:0.005,bevelSize:0.005}),bm); bl.position.set(0,0.4,-0.015); g.add(bl);
-        const h=new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.08,0.9,8),hm); h.position.y=-0.05; g.add(h);
-        const gd=new THREE.Mesh(new THREE.BoxGeometry(0.3,0.06,0.08),bm); gd.position.set(0,0.4,0); g.add(gd);
-        g.rotation.z=-Math.PI/6; g.scale.setScalar(1.2); return g;
-    }
-    function buildWaterBottle() {
-        const g=new THREE.Group();
-        const bm=new THREE.MeshStandardMaterial({color:0x4fc3f7,roughness:0.1,transparent:true,opacity:0.7}), cm=M(0x2196f3), wm=new THREE.MeshStandardMaterial({color:0x1976d2,transparent:true,opacity:0.5});
-        g.add(new THREE.Mesh(new THREE.CylinderGeometry(0.35,0.35,1.8,32),bm));
-        const n=new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.3,0.4,32),bm); n.position.y=1.1; g.add(n);
-        const c=new THREE.Mesh(new THREE.CylinderGeometry(0.17,0.17,0.2,32),cm); c.position.y=1.4; g.add(c);
-        const w=new THREE.Mesh(new THREE.CylinderGeometry(0.32,0.32,1.2,32),wm); w.position.y=-0.2; g.add(w);
-        g.scale.setScalar(1.1); return g;
-    }
-    function buildPen() {
-        const g=new THREE.Group(), bm=M(0x1a237e), cm=M(0xcccccc,0.02); cm.metalness=0.9;
-        g.add(new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,2.5,16),bm));
-        const t=new THREE.Mesh(new THREE.ConeGeometry(0.06,0.3,16),M(0x333333)); t.position.y=-1.4; g.add(t);
-        const c=new THREE.Mesh(new THREE.CylinderGeometry(0.065,0.065,0.8,16),bm); c.position.y=0.9; g.add(c);
-        const cl=new THREE.Mesh(new THREE.BoxGeometry(0.02,0.7,0.04),cm); cl.position.set(0.08,0.85,0); g.add(cl);
-        g.rotation.z=Math.PI/8; g.scale.setScalar(1.4); return g;
-    }
-    function buildChair() {
-        const g=new THREE.Group(), sm=M(0x37474f), lm=M(0x888888,0.02); lm.metalness=0.8;
-        const s=new THREE.Mesh(new THREE.BoxGeometry(1,0.08,1),sm); s.position.y=0.6; g.add(s);
-        const b=new THREE.Mesh(new THREE.BoxGeometry(1,0.8,0.08),sm); b.position.set(0,1.05,-0.46); g.add(b);
-        [[-0.4,0.28,-0.4],[0.4,0.28,-0.4],[-0.4,0.28,0.4],[0.4,0.28,0.4]].forEach(p=>{const l=new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.03,0.6,8),lm);l.position.set(...p);g.add(l);});
-        g.position.y=-0.3; g.scale.setScalar(1.2); return g;
-    }
-    function buildHumanFace() {
-        const g=new THREE.Group(), sk=M(0xe0b89c,0.03); sk.roughness=0.7;
-        const hg=new THREE.SphereGeometry(1,32,32); hg.scale(0.85,1,0.9); g.add(new THREE.Mesh(hg,sk));
-        const em=M(0xffffff,0.01), pm=M(0x2c1810);
-        [[-0.3,0.15],[0.3,0.15]].forEach(([x,y])=>{
-            const e=new THREE.Mesh(new THREE.SphereGeometry(0.14,16,16),em); e.position.set(x,y,0.78); g.add(e);
-            const p=new THREE.Mesh(new THREE.SphereGeometry(0.07,12,12),pm); p.position.set(x,y,0.9); g.add(p);
+    // Materials
+    function makeMat(color, emissiveStrength) {
+        emissiveStrength = emissiveStrength || 0.05;
+        return new THREE.MeshStandardMaterial({
+            color: color, roughness: 0.4, metalness: 0.3,
+            emissive: color, emissiveIntensity: emissiveStrength
         });
-        const n=new THREE.Mesh(new THREE.ConeGeometry(0.08,0.25,8),sk); n.rotation.x=-Math.PI/8; n.position.set(0,-0.05,0.88); g.add(n);
-        const l=new THREE.Mesh(new THREE.TorusGeometry(0.15,0.04,8,16,Math.PI),M(0xc47a6a,0.05)); l.rotation.x=Math.PI; l.position.set(0,-0.3,0.78); g.add(l);
-        g.scale.setScalar(1.1); return g;
     }
-    function buildMobilePhone() {
-        const g=new THREE.Group(), bm=M(0x1a1a2e);
-        const scm=new THREE.MeshStandardMaterial({color:0x1a3a5a,emissive:0x112244,emissiveIntensity:0.3,roughness:0});
-        g.add(new THREE.Mesh(new THREE.BoxGeometry(0.9,1.8,0.1),bm));
-        const sc=new THREE.Mesh(new THREE.BoxGeometry(0.8,1.6,0.01),scm); sc.position.z=0.055; g.add(sc);
-        const cb=new THREE.Mesh(new THREE.BoxGeometry(0.35,0.35,0.05),bm); cb.position.set(-0.2,0.6,-0.075); g.add(cb);
-        [[-0.28,0.68],[-0.12,0.68],[-0.28,0.52]].forEach(([x,y])=>{const l=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,0.03,16),M(0x111111));l.rotation.x=Math.PI/2;l.position.set(x,y,-0.1);g.add(l);});
-        g.rotation.z=Math.PI/12; g.scale.setScalar(1.3); return g;
+    function glassyMat(color) {
+        return new THREE.MeshStandardMaterial({
+            color: color, roughness: 0.1, metalness: 0.8,
+            transparent: true, opacity: 0.6
+        });
     }
-    function buildHelmet() {
-        const g=new THREE.Group(), sm=M(0xf9a825);
-        const sh=new THREE.Mesh(new THREE.SphereGeometry(1,32,32,0,Math.PI*2,0,Math.PI*0.6),sm); sh.position.y=0.1; g.add(sh);
-        const br=new THREE.Mesh(new THREE.TorusGeometry(0.95,0.08,8,32),sm); br.rotation.x=Math.PI/2; br.position.y=-0.15; g.add(br);
-        const inn=new THREE.Mesh(new THREE.SphereGeometry(0.9,32,32,0,Math.PI*2,0,Math.PI*0.55),M(0x333333)); inn.position.y=0.08; g.add(inn);
-        const v=new THREE.Mesh(new THREE.BoxGeometry(0.8,0.05,0.3),sm); v.position.set(0,-0.1,0.85); v.rotation.x=-0.2; g.add(v);
-        const cv=new THREE.QuadraticBezierCurve3(new THREE.Vector3(-0.7,-0.2,0.5),new THREE.Vector3(0,-0.6,0.7),new THREE.Vector3(0.7,-0.2,0.5));
-        g.add(new THREE.Mesh(new THREE.TubeGeometry(cv,20,0.03,8),M(0x222222)));
+
+    // ── Procedural 3D Builders ──
+
+    function buildSunglasses() {
+        var g = new THREE.Group();
+        var frame = makeMat(0x1a1a1a), lens = glassyMat(0x1a3a5a);
+        var lensRing = new THREE.TorusGeometry(0.45, 0.06, 16, 32);
+        var lensFill = new THREE.CircleGeometry(0.42, 32);
+
+        [-0.55, 0.55].forEach(function(x) {
+            var ring = new THREE.Mesh(lensRing, frame);
+            ring.position.x = x;
+            g.add(ring);
+            var fill = new THREE.Mesh(lensFill, lens);
+            fill.position.set(x, 0, 0.01);
+            g.add(fill);
+        });
+
+        var bridge = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.25, 8), frame);
+        bridge.rotation.z = Math.PI / 2;
+        bridge.position.set(0, 0.1, 0);
+        g.add(bridge);
+
+        [-0.95, 0.95].forEach(function(x) {
+            var arm = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.04, 1.5), frame);
+            arm.position.set(x, 0, -0.7);
+            g.add(arm);
+        });
+
+        g.scale.setScalar(1.5);
         return g;
     }
-    function buildFire() {
-        const g=new THREE.Group();
-        [0xff4500,0xff6600,0xff8800,0xffaa00,0xffcc00].forEach((c,i)=>{
-            const m=new THREE.MeshStandardMaterial({color:c,emissive:c,emissiveIntensity:0.6-i*0.08,transparent:true,opacity:0.85-i*0.1});
-            const f=new THREE.Mesh(new THREE.ConeGeometry([0.8,0.65,0.5,0.35,0.2][i],[1.6,1.3,1.0,0.7,0.5][i],8+i*2),m);
-            f.position.y=0.3+i*0.1; f.rotation.y=i*0.5;
-            f.userData={baseY:f.position.y,speed:2+i*0.5,amplitude:0.05+i*0.02,phaseOffset:i*0.8}; g.add(f);
+
+    function buildKnife() {
+        var g = new THREE.Group();
+        var bladeMat = makeMat(0xcccccc, 0.02);
+        bladeMat.metalness = 0.9;
+        bladeMat.roughness = 0.1;
+        var handleMat = makeMat(0x4a3728);
+
+        var shape = new THREE.Shape();
+        shape.moveTo(0, 0);
+        shape.lineTo(0.15, 1.8);
+        shape.lineTo(0.02, 2);
+        shape.lineTo(-0.02, 1.8);
+        shape.lineTo(-0.05, 0);
+        shape.lineTo(0, 0);
+
+        var blade = new THREE.Mesh(
+            new THREE.ExtrudeGeometry(shape, { depth: 0.03, bevelEnabled: true, bevelThickness: 0.005, bevelSize: 0.005 }),
+            bladeMat
+        );
+        blade.position.set(0, 0.4, -0.015);
+        g.add(blade);
+
+        var handle = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.08, 0.9, 8), handleMat);
+        handle.position.y = -0.05;
+        g.add(handle);
+
+        var guard = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.06, 0.08), bladeMat);
+        guard.position.set(0, 0.4, 0);
+        g.add(guard);
+
+        g.rotation.z = -Math.PI / 6;
+        g.scale.setScalar(1.2);
+        return g;
+    }
+
+    function buildWaterBottle() {
+        var g = new THREE.Group();
+        var bodyMat = new THREE.MeshStandardMaterial({ color: 0x4fc3f7, roughness: 0.1, transparent: true, opacity: 0.7 });
+        var capMat = makeMat(0x2196f3);
+        var waterMat = new THREE.MeshStandardMaterial({ color: 0x1976d2, transparent: true, opacity: 0.5 });
+
+        g.add(new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 1.8, 32), bodyMat));
+
+        var neck = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.3, 0.4, 32), bodyMat);
+        neck.position.y = 1.1;
+        g.add(neck);
+
+        var cap = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.17, 0.2, 32), capMat);
+        cap.position.y = 1.4;
+        g.add(cap);
+
+        var water = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 1.2, 32), waterMat);
+        water.position.y = -0.2;
+        g.add(water);
+
+        g.scale.setScalar(1.1);
+        return g;
+    }
+
+    function buildPen() {
+        var g = new THREE.Group();
+        var bodyMat = makeMat(0x1a237e);
+        var metalMat = makeMat(0xcccccc, 0.02);
+        metalMat.metalness = 0.9;
+
+        g.add(new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 2.5, 16), bodyMat));
+
+        var tip = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.3, 16), makeMat(0x333333));
+        tip.position.y = -1.4;
+        g.add(tip);
+
+        var capSection = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.065, 0.8, 16), bodyMat);
+        capSection.position.y = 0.9;
+        g.add(capSection);
+
+        var clip = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.7, 0.04), metalMat);
+        clip.position.set(0.08, 0.85, 0);
+        g.add(clip);
+
+        g.rotation.z = Math.PI / 8;
+        g.scale.setScalar(1.4);
+        return g;
+    }
+
+    function buildChair() {
+        var g = new THREE.Group();
+        var seatMat = makeMat(0x37474f);
+        var legMat = makeMat(0x888888, 0.02);
+        legMat.metalness = 0.8;
+
+        var seat = new THREE.Mesh(new THREE.BoxGeometry(1, 0.08, 1), seatMat);
+        seat.position.y = 0.6;
+        g.add(seat);
+
+        var back = new THREE.Mesh(new THREE.BoxGeometry(1, 0.8, 0.08), seatMat);
+        back.position.set(0, 1.05, -0.46);
+        g.add(back);
+
+        var legPositions = [[-0.4, 0.28, -0.4], [0.4, 0.28, -0.4], [-0.4, 0.28, 0.4], [0.4, 0.28, 0.4]];
+        var legGeo = new THREE.CylinderGeometry(0.03, 0.03, 0.6, 8);
+        legPositions.forEach(function(pos) {
+            var leg = new THREE.Mesh(legGeo, legMat);
+            leg.position.set(pos[0], pos[1], pos[2]);
+            g.add(leg);
         });
-        const lm=M(0x3e2723), lg=new THREE.CylinderGeometry(0.12,0.12,1.2,8);
-        const l1=new THREE.Mesh(lg,lm); l1.rotation.z=Math.PI/2; l1.position.y=-0.55; g.add(l1);
-        const l2=new THREE.Mesh(lg,lm); l2.rotation.z=Math.PI/2; l2.rotation.y=Math.PI/3; l2.position.y=-0.45; g.add(l2);
-        const lt=new THREE.PointLight(0xff6600,1.5,5); lt.position.y=0.5; g.add(lt);
-        g.userData.animate=function(t){g.children.forEach(c=>{if(c.userData&&c.userData.speed){c.position.y=c.userData.baseY+Math.sin(t*c.userData.speed+c.userData.phaseOffset)*c.userData.amplitude;c.rotation.y+=0.01;}});lt.intensity=1.2+Math.sin(t*5)*0.3;};
-        g.scale.setScalar(1.2); return g;
+
+        g.position.y = -0.3;
+        g.scale.setScalar(1.2);
+        return g;
     }
+
+    function buildHumanFace() {
+        var g = new THREE.Group();
+        var skin = makeMat(0xe0b89c, 0.03);
+        skin.roughness = 0.7;
+
+        var headGeo = new THREE.SphereGeometry(1, 32, 32);
+        headGeo.scale(0.85, 1, 0.9);
+        g.add(new THREE.Mesh(headGeo, skin));
+
+        var whiteMat = makeMat(0xffffff, 0.01);
+        var pupilMat = makeMat(0x2c1810);
+
+        [[-0.3, 0.15], [0.3, 0.15]].forEach(function(pos) {
+            var eyeWhite = new THREE.Mesh(new THREE.SphereGeometry(0.14, 16, 16), whiteMat);
+            eyeWhite.position.set(pos[0], pos[1], 0.78);
+            g.add(eyeWhite);
+            var pupil = new THREE.Mesh(new THREE.SphereGeometry(0.07, 12, 12), pupilMat);
+            pupil.position.set(pos[0], pos[1], 0.9);
+            g.add(pupil);
+        });
+
+        var nose = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.25, 8), skin);
+        nose.rotation.x = -Math.PI / 8;
+        nose.position.set(0, -0.05, 0.88);
+        g.add(nose);
+
+        var mouth = new THREE.Mesh(
+            new THREE.TorusGeometry(0.15, 0.04, 8, 16, Math.PI),
+            makeMat(0xc47a6a, 0.05)
+        );
+        mouth.rotation.x = Math.PI;
+        mouth.position.set(0, -0.3, 0.78);
+        g.add(mouth);
+
+        g.scale.setScalar(1.1);
+        return g;
+    }
+
+    function buildMobilePhone() {
+        var g = new THREE.Group();
+        var bodyMat = makeMat(0x1a1a2e);
+        var screenMat = new THREE.MeshStandardMaterial({
+            color: 0x1a3a5a, emissive: 0x112244, emissiveIntensity: 0.3, roughness: 0
+        });
+
+        g.add(new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.8, 0.1), bodyMat));
+
+        var screen = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.6, 0.01), screenMat);
+        screen.position.z = 0.055;
+        g.add(screen);
+
+        var cameraBump = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.35, 0.05), bodyMat);
+        cameraBump.position.set(-0.2, 0.6, -0.075);
+        g.add(cameraBump);
+
+        var lensPositions = [[-0.28, 0.68], [-0.12, 0.68], [-0.28, 0.52]];
+        lensPositions.forEach(function(pos) {
+            var lens = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.03, 16), makeMat(0x111111));
+            lens.rotation.x = Math.PI / 2;
+            lens.position.set(pos[0], pos[1], -0.1);
+            g.add(lens);
+        });
+
+        g.rotation.z = Math.PI / 12;
+        g.scale.setScalar(1.3);
+        return g;
+    }
+
+    function buildHelmet() {
+        var g = new THREE.Group();
+        var shellMat = makeMat(0xf9a825);
+
+        var shell = new THREE.Mesh(
+            new THREE.SphereGeometry(1, 32, 32, 0, Math.PI * 2, 0, Math.PI * 0.6),
+            shellMat
+        );
+        shell.position.y = 0.1;
+        g.add(shell);
+
+        var brim = new THREE.Mesh(new THREE.TorusGeometry(0.95, 0.08, 8, 32), shellMat);
+        brim.rotation.x = Math.PI / 2;
+        brim.position.y = -0.15;
+        g.add(brim);
+
+        var inner = new THREE.Mesh(
+            new THREE.SphereGeometry(0.9, 32, 32, 0, Math.PI * 2, 0, Math.PI * 0.55),
+            makeMat(0x333333)
+        );
+        inner.position.y = 0.08;
+        g.add(inner);
+
+        var visor = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.05, 0.3), shellMat);
+        visor.position.set(0, -0.1, 0.85);
+        visor.rotation.x = -0.2;
+        g.add(visor);
+
+        var chinCurve = new THREE.QuadraticBezierCurve3(
+            new THREE.Vector3(-0.7, -0.2, 0.5),
+            new THREE.Vector3(0, -0.6, 0.7),
+            new THREE.Vector3(0.7, -0.2, 0.5)
+        );
+        g.add(new THREE.Mesh(new THREE.TubeGeometry(chinCurve, 20, 0.03, 8), makeMat(0x222222)));
+
+        return g;
+    }
+
+    function buildFire() {
+        var g = new THREE.Group();
+        var flameColors = [0xff4500, 0xff6600, 0xff8800, 0xffaa00, 0xffcc00];
+        var flameRadii = [0.8, 0.65, 0.5, 0.35, 0.2];
+        var flameHeights = [1.6, 1.3, 1.0, 0.7, 0.5];
+
+        flameColors.forEach(function(color, i) {
+            var mat = new THREE.MeshStandardMaterial({
+                color: color, emissive: color,
+                emissiveIntensity: 0.6 - i * 0.08,
+                transparent: true, opacity: 0.85 - i * 0.1
+            });
+            var cone = new THREE.Mesh(new THREE.ConeGeometry(flameRadii[i], flameHeights[i], 8 + i * 2), mat);
+            cone.position.y = 0.3 + i * 0.1;
+            cone.rotation.y = i * 0.5;
+            cone.userData = { baseY: cone.position.y, speed: 2 + i * 0.5, amplitude: 0.05 + i * 0.02, phase: i * 0.8 };
+            g.add(cone);
+        });
+
+        var logMat = makeMat(0x3e2723);
+        var logGeo = new THREE.CylinderGeometry(0.12, 0.12, 1.2, 8);
+        var log1 = new THREE.Mesh(logGeo, logMat);
+        log1.rotation.z = Math.PI / 2;
+        log1.position.y = -0.55;
+        g.add(log1);
+
+        var log2 = new THREE.Mesh(logGeo, logMat);
+        log2.rotation.z = Math.PI / 2;
+        log2.rotation.y = Math.PI / 3;
+        log2.position.y = -0.45;
+        g.add(log2);
+
+        var fireLight = new THREE.PointLight(0xff6600, 1.5, 5);
+        fireLight.position.y = 0.5;
+        g.add(fireLight);
+
+        g.userData.animate = function(time) {
+            g.children.forEach(function(child) {
+                if (child.userData && child.userData.speed) {
+                    child.position.y = child.userData.baseY + Math.sin(time * child.userData.speed + child.userData.phase) * child.userData.amplitude;
+                    child.rotation.y += 0.01;
+                }
+            });
+            fireLight.intensity = 1.2 + Math.sin(time * 5) * 0.3;
+        };
+
+        g.scale.setScalar(1.2);
+        return g;
+    }
+
     function buildCan() {
-        const g=new THREE.Group(), bm=M(0xd32f2f); bm.metalness=0.7; bm.roughness=0.3; const tm=M(0xc0c0c0,0.02); tm.metalness=0.9; tm.roughness=0.1;
-        g.add(new THREE.Mesh(new THREE.CylinderGeometry(0.4,0.4,1.3,32),bm));
-        const r=new THREE.Mesh(new THREE.TorusGeometry(0.38,0.03,8,32),tm); r.rotation.x=Math.PI/2; r.position.y=0.65; g.add(r);
-        const t=new THREE.Mesh(new THREE.CircleGeometry(0.38,32),tm); t.rotation.x=-Math.PI/2; t.position.y=0.66; g.add(t);
-        const tb=new THREE.Mesh(new THREE.TorusGeometry(0.08,0.015,6,12,Math.PI),tm); tb.position.set(0.1,0.68,0); g.add(tb);
-        const lb=new THREE.Mesh(new THREE.CylinderGeometry(0.405,0.405,0.4,32,1,true),new THREE.MeshStandardMaterial({color:0xffffff,roughness:0.5,metalness:0.3})); lb.position.y=-0.1; g.add(lb);
-        g.scale.setScalar(1.3); return g;
+        var g = new THREE.Group();
+        var bodyMat = makeMat(0xd32f2f);
+        bodyMat.metalness = 0.7;
+        bodyMat.roughness = 0.3;
+        var topMat = makeMat(0xc0c0c0, 0.02);
+        topMat.metalness = 0.9;
+        topMat.roughness = 0.1;
+
+        g.add(new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 1.3, 32), bodyMat));
+
+        var rim = new THREE.Mesh(new THREE.TorusGeometry(0.38, 0.03, 8, 32), topMat);
+        rim.rotation.x = Math.PI / 2;
+        rim.position.y = 0.65;
+        g.add(rim);
+
+        var top = new THREE.Mesh(new THREE.CircleGeometry(0.38, 32), topMat);
+        top.rotation.x = -Math.PI / 2;
+        top.position.y = 0.66;
+        g.add(top);
+
+        var tab = new THREE.Mesh(new THREE.TorusGeometry(0.08, 0.015, 6, 12, Math.PI), topMat);
+        tab.position.set(0.1, 0.68, 0);
+        g.add(tab);
+
+        var label = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.405, 0.405, 0.4, 32, 1, true),
+            new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5, metalness: 0.3 })
+        );
+        label.position.y = -0.1;
+        g.add(label);
+
+        g.scale.setScalar(1.3);
+        return g;
     }
 
-    const builders = { sunglasses:buildSunglasses, knife:buildKnife, water_bottle:buildWaterBottle, pen:buildPen, chair:buildChair, human_face:buildHumanFace, mobile_phone:buildMobilePhone, helmet:buildHelmet, fire:buildFire, can:buildCan };
+    var builders = {
+        sunglasses: buildSunglasses,
+        knife: buildKnife,
+        water_bottle: buildWaterBottle,
+        pen: buildPen,
+        chair: buildChair,
+        human_face: buildHumanFace,
+        mobile_phone: buildMobilePhone,
+        helmet: buildHelmet,
+        fire: buildFire,
+        can: buildCan
+    };
 
-    // ── LOAD PROCEDURAL ──
+    // Load procedural model into scene
     function loadProcedural(data) {
         document.getElementById('loadingOverlay').classList.remove('hidden');
         document.getElementById('instructionsOverlay').classList.add('hidden');
         document.getElementById('genProgress').classList.add('hidden');
         clearModel();
-        setTimeout(()=>{
-            const b=builders[data.name]; if(!b){document.getElementById('loadingOverlay').classList.add('hidden');return;}
-            currentModelGroup=b(); scene.add(currentModelGroup);
-            if(data.name==='fire'&&currentModelGroup.userData.animate)(function af(){fireAnimFrame=requestAnimationFrame(af);currentModelGroup.userData.animate(performance.now()/1000);})();
-            let v=0,f=0; currentModelGroup.traverse(c=>{if(c.isMesh&&c.geometry){v+=c.geometry.attributes.position?.count||0;f+=c.geometry.index?c.geometry.index.count/3:(c.geometry.attributes.position?.count||0)/3;}});
-            document.getElementById('infoLabel').textContent=`${v.toLocaleString()} vertices · ${Math.floor(f).toLocaleString()} faces · Procedural 3D`;
-            document.getElementById('viewerInfo').style.display='block';
+
+        setTimeout(function() {
+            var builder = builders[data.name];
+            if (!builder) {
+                document.getElementById('loadingOverlay').classList.add('hidden');
+                return;
+            }
+
+            currentModelGroup = builder();
+            scene.add(currentModelGroup);
+
+            // Fire needs continuous animation
+            if (data.name === 'fire' && currentModelGroup.userData.animate) {
+                (function animateFire() {
+                    fireAnimFrame = requestAnimationFrame(animateFire);
+                    currentModelGroup.userData.animate(performance.now() / 1000);
+                })();
+            }
+
+            // Count mesh stats
+            var verts = 0, faces = 0;
+            currentModelGroup.traverse(function(child) {
+                if (child.isMesh && child.geometry) {
+                    verts += child.geometry.attributes.position ? child.geometry.attributes.position.count : 0;
+                    faces += child.geometry.index ? child.geometry.index.count / 3 : (child.geometry.attributes.position ? child.geometry.attributes.position.count / 3 : 0);
+                }
+            });
+
+            document.getElementById('infoLabel').textContent = verts.toLocaleString() + ' vertices, ' + Math.floor(faces).toLocaleString() + ' faces';
+            document.getElementById('viewerInfo').style.display = 'block';
             document.getElementById('loadingOverlay').classList.add('hidden');
-            document.getElementById('currentModelName').textContent=data.icon+' '+data.displayName;
-            document.getElementById('currentModelDesc').textContent=data.description;
-            document.getElementById('stat1Label').textContent='Dataset Size'; document.getElementById('stat1Value').textContent=data.datasetSize.toLocaleString();
-            document.getElementById('stat2Label').textContent='Priority'; document.getElementById('stat2Value').textContent=data.priority;
-            document.getElementById('stat3Label').textContent='Category'; document.getElementById('stat3Value').textContent=data.category;
-            camera.position.set(3,2.5,4); controls.reset();
-        },300);
+
+            document.getElementById('currentModelName').textContent = data.displayName;
+            document.getElementById('currentModelDesc').textContent = data.description;
+            document.getElementById('stat1Label').textContent = 'Dataset Size';
+            document.getElementById('stat1Value').textContent = data.datasetSize.toLocaleString();
+            document.getElementById('stat2Label').textContent = 'Priority';
+            document.getElementById('stat2Value').textContent = data.priority;
+            document.getElementById('stat3Label').textContent = 'Category';
+            document.getElementById('stat3Value').textContent = data.category;
+
+            camera.position.set(3, 2.5, 4);
+            controls.reset();
+        }, 200);
     }
 
-    // ── POINT CLOUD FROM MIDAS ──
-    function getCookie(n){let v=null;if(document.cookie)document.cookie.split(';').forEach(c=>{c=c.trim();if(c.substring(0,n.length+1)===(n+'='))v=decodeURIComponent(c.substring(n.length+1));});return v;}
+    // ── MiDaS Point Cloud ──
+    function getCookie(name) {
+        var value = null;
+        if (document.cookie) {
+            document.cookie.split(';').forEach(function(c) {
+                c = c.trim();
+                if (c.substring(0, name.length + 1) === (name + '='))
+                    value = decodeURIComponent(c.substring(name.length + 1));
+            });
+        }
+        return value;
+    }
 
     async function generatePointCloud(imageBase64, className) {
         document.getElementById('instructionsOverlay').classList.add('hidden');
         document.getElementById('genProgress').classList.remove('hidden');
-        document.getElementById('genProgressText').textContent='Running MiDaS depth estimation on detected ' + (className||'object').replace('_',' ') + '...';
+        document.getElementById('genProgressText').textContent = 'Running MiDaS on ' + (className || 'object').replace('_', ' ') + '...';
         clearModel();
 
         try {
-            const resp = await fetch('/api/generate-3d/', {
+            var resp = await fetch('/api/generate-3d/', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
                 body: JSON.stringify({ image_base64: imageBase64 })
             });
-            const data = await resp.json();
+            var data = await resp.json();
             document.getElementById('genProgress').classList.add('hidden');
 
             if (data.success) {
                 renderPointCloud(data.positions, data.colors, data.point_count);
-                document.getElementById('infoLabel').textContent = `${data.point_count.toLocaleString()} points · MiDaS Depth Estimation · ${data.width}×${data.height}`;
+                document.getElementById('infoLabel').textContent = data.point_count.toLocaleString() + ' points, MiDaS, ' + data.width + 'x' + data.height;
                 document.getElementById('viewerInfo').style.display = 'block';
-                const cd = objectClasses.find(c=>c.name===className);
-                document.getElementById('currentModelName').textContent = (cd ? cd.icon+' '+cd.displayName : className) + ' — 3D Point Cloud';
-                document.getElementById('currentModelDesc').textContent = 'Real-time depth estimation of detected object using MiDaS v3';
-                document.getElementById('stat1Label').textContent='Points'; document.getElementById('stat1Value').textContent=data.point_count.toLocaleString();
-                document.getElementById('stat2Label').textContent='Resolution'; document.getElementById('stat2Value').textContent=`${data.width}×${data.height}`;
-                document.getElementById('stat3Label').textContent='Method'; document.getElementById('stat3Value').textContent='MiDaS v3';
+
+                var classData = objectClasses.find(function(c) { return c.name === className; });
+                document.getElementById('currentModelName').textContent = (classData ? classData.displayName : className) + ' - Point Cloud';
+                document.getElementById('currentModelDesc').textContent = 'Depth estimation using MiDaS v3';
+                document.getElementById('stat1Label').textContent = 'Points';
+                document.getElementById('stat1Value').textContent = data.point_count.toLocaleString();
+                document.getElementById('stat2Label').textContent = 'Resolution';
+                document.getElementById('stat2Value').textContent = data.width + 'x' + data.height;
+                document.getElementById('stat3Label').textContent = 'Method';
+                document.getElementById('stat3Value').textContent = 'MiDaS v3';
             } else {
-                alert('3D generation failed: ' + (data.error||'Unknown error'));
+                alert('3D generation failed: ' + (data.error || 'Unknown'));
             }
-        } catch(err) {
+        } catch (err) {
             document.getElementById('genProgress').classList.add('hidden');
-            console.error('3D gen error:', err);
-            alert('Failed to generate 3D view.\n\nMake sure MiDaS dependencies are installed:\npip install torch torchvision timm');
+            console.error(err);
+            alert('Failed to generate 3D. Check MiDaS dependencies.');
         }
     }
 
     function renderPointCloud(positions, colors, count) {
-        const geo = new THREE.BufferGeometry();
+        var geo = new THREE.BufferGeometry();
         geo.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(positions), 3));
         geo.setAttribute('color', new THREE.Float32BufferAttribute(new Float32Array(colors), 3));
-        pointCloudMaterial = new THREE.PointsMaterial({ size: 2, vertexColors: true, sizeAttenuation: true, transparent: true, opacity: 0.9 });
+        pointCloudMaterial = new THREE.PointsMaterial({
+            size: 2, vertexColors: true, sizeAttenuation: true,
+            transparent: true, opacity: 0.9
+        });
         currentModelGroup = new THREE.Points(geo, pointCloudMaterial);
         scene.add(currentModelGroup);
         document.getElementById('pointSizeControl').classList.remove('hidden');
         document.getElementById('depthScaleControl').classList.remove('hidden');
-        camera.position.set(0, 0, 4); controls.reset();
+        camera.position.set(0, 0, 4);
+        controls.reset();
     }
 
-    window.regenerate3D = function() { if(croppedImageData && croppedObjectName) generatePointCloud(croppedImageData, croppedObjectName); };
+    window.regenerate3D = function() {
+        if (croppedImageData && croppedObjectName) {
+            generatePointCloud(croppedImageData, croppedObjectName);
+        }
+    };
 
-    // ── MODE SWITCH ──
+    // Mode switching
     window.switchMode = function(mode) {
         currentMode = mode;
-        document.getElementById('modeRepresentation').classList.toggle('active', mode==='representation');
-        document.getElementById('modeDepth3D').classList.toggle('active', mode==='depth3d');
+        document.getElementById('modeRepresentation').classList.toggle('active', mode === 'representation');
+        document.getElementById('modeDepth3D').classList.toggle('active', mode === 'depth3d');
         document.getElementById('pointSizeControl').classList.add('hidden');
         document.getElementById('depthScaleControl').classList.add('hidden');
 
         if (mode === 'representation') {
-            document.getElementById('modeDescription').textContent='Showing procedural 3D representation of detected objects.';
-            document.getElementById('modeBadgeText').textContent='Representation Mode';
+            document.getElementById('modeDescription').textContent = 'Procedural 3D models for each class.';
+            document.getElementById('modeBadgeText').textContent = 'Representation';
             document.getElementById('cropPreviewCard').classList.add('hidden');
-            if (urlObjectClass) { const i=objectClasses.findIndex(c=>c.name===urlObjectClass); if(i!==-1)loadProcedural(objectClasses[i]); }
+            if (urlObjectClass) {
+                var idx = objectClasses.findIndex(function(c) { return c.name === urlObjectClass; });
+                if (idx !== -1) loadProcedural(objectClasses[idx]);
+            }
         } else {
-            document.getElementById('modeDescription').textContent='MiDaS depth estimation converts detected object images into 3D point clouds.';
-            document.getElementById('modeBadgeText').textContent='Depth 3D Mode';
+            document.getElementById('modeDescription').textContent = 'MiDaS converts detected images to 3D point clouds.';
+            document.getElementById('modeBadgeText').textContent = 'Depth 3D';
             if (croppedImageData) {
                 document.getElementById('cropPreviewCard').classList.remove('hidden');
                 document.getElementById('cropPreviewImg').src = croppedImageData;
-                document.getElementById('cropPreviewLabel').textContent = (croppedObjectName||'Unknown').replace('_',' ') + ' — from live camera';
+                document.getElementById('cropPreviewLabel').textContent = (croppedObjectName || 'Unknown').replace('_', ' ') + ' - from camera';
                 generatePointCloud(croppedImageData, croppedObjectName);
             } else {
-                alert('No cropped detection found.\n\nGo back to Camera Feed → detect an object → click "View 3D" to capture the detected object for Depth 3D conversion.');
+                alert('No cropped detection found. Go to Camera Feed, detect an object, and click View 3D.');
             }
         }
     };
 
-    // ── MODEL LIST ──
+    // Build the sidebar model list
     function populateModelList() {
-        const c = document.getElementById('modelList');
-        c.innerHTML = objectClasses.map((o,i)=>`
-            <button class="model-btn w-full text-left p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors border border-white/10" data-index="${i}" data-name="${o.name}" style="border-left:4px solid ${o.color};">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-2"><span class="text-lg">${o.icon}</span><div><p class="font-medium text-white text-sm">${o.displayName}</p><p class="text-xs text-gray-500">${o.category}</p></div></div>
-                    <div class="text-right"><div class="text-xs text-gray-500">${o.datasetSize}</div>${o.name===urlObjectClass?'<span class="detected-badge">DETECTED</span>':''}</div>
-                </div>
-            </button>`).join('');
-        document.querySelectorAll('.model-btn').forEach(b=>{
-            b.addEventListener('click',()=>{
-                const i=parseInt(b.dataset.index);
-                if(currentMode==='representation') loadProcedural(objectClasses[i]);
-                document.querySelectorAll('.model-btn').forEach(x=>x.classList.remove('active-model'));
-                b.classList.add('active-model');
+        var container = document.getElementById('modelList');
+        var html = '';
+        objectClasses.forEach(function(obj, i) {
+            html += '<button class="model-btn w-full text-left p-3 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10" ' +
+                'data-index="' + i + '" data-name="' + obj.name + '" style="border-left:3px solid ' + obj.color + ';">' +
+                '<div class="flex items-center justify-between">' +
+                '<div><p class="text-sm font-medium text-white">' + obj.displayName + '</p>' +
+                '<p class="text-xs text-gray-500">' + obj.category + '</p></div>' +
+                '<div class="text-right"><span class="text-xs text-gray-600">' + obj.datasetSize + '</span>' +
+                (obj.name === urlObjectClass ? '<br><span class="detected-badge">DETECTED</span>' : '') +
+                '</div></div></button>';
+        });
+        container.innerHTML = html;
+
+        document.querySelectorAll('.model-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var i = parseInt(btn.dataset.index);
+                if (currentMode === 'representation') loadProcedural(objectClasses[i]);
+                document.querySelectorAll('.model-btn').forEach(function(b) { b.classList.remove('active-model'); });
+                btn.classList.add('active-model');
             });
         });
     }
 
-    // ── CONTROLS ──
-    document.getElementById('rotationSpeed').addEventListener('input',e=>{rotationSpeed=parseFloat(e.target.value);});
-    document.getElementById('autoRotate').addEventListener('change',e=>{autoRotateEnabled=e.target.checked;});
-    document.getElementById('zoomIn').addEventListener('click',()=>{camera.position.multiplyScalar(0.85);});
-    document.getElementById('zoomOut').addEventListener('click',()=>{camera.position.multiplyScalar(1.15);});
-    document.getElementById('resetView').addEventListener('click',()=>{camera.position.set(3,2.5,4);controls.reset();});
-    document.getElementById('wireframeToggle').addEventListener('change',e=>{if(currentModelGroup)currentModelGroup.traverse(c=>{if(c.isMesh&&c.material)c.material.wireframe=e.target.checked;});});
-    document.getElementById('pointSizeSlider').addEventListener('input',e=>{if(pointCloudMaterial)pointCloudMaterial.size=parseFloat(e.target.value);});
-    document.getElementById('depthScaleSlider').addEventListener('input',e=>{if(currentModelGroup&&currentModelGroup.isPoints)currentModelGroup.scale.z=parseFloat(e.target.value)/2;});
+    // Control bindings
+    document.getElementById('rotationSpeed').addEventListener('input', function(e) { rotationSpeed = parseFloat(e.target.value); });
+    document.getElementById('autoRotate').addEventListener('change', function(e) { autoRotateEnabled = e.target.checked; });
+    document.getElementById('zoomIn').addEventListener('click', function() { camera.position.multiplyScalar(0.85); });
+    document.getElementById('zoomOut').addEventListener('click', function() { camera.position.multiplyScalar(1.15); });
+    document.getElementById('resetView').addEventListener('click', function() { camera.position.set(3, 2.5, 4); controls.reset(); });
+    document.getElementById('wireframeToggle').addEventListener('change', function(e) {
+        if (currentModelGroup) currentModelGroup.traverse(function(c) {
+            if (c.isMesh && c.material) c.material.wireframe = e.target.checked;
+        });
+    });
+    document.getElementById('pointSizeSlider').addEventListener('input', function(e) {
+        if (pointCloudMaterial) pointCloudMaterial.size = parseFloat(e.target.value);
+    });
+    document.getElementById('depthScaleSlider').addEventListener('input', function(e) {
+        if (currentModelGroup && currentModelGroup.isPoints) currentModelGroup.scale.z = parseFloat(e.target.value) / 2;
+    });
 
-    // ── AUTO-LOAD ──
+    // Auto-load if coming from camera with a detection
     function autoLoad() {
-        if (urlMode==='depth' && croppedImageData) { switchMode('depth3d'); return; }
+        if (urlMode === 'depth' && croppedImageData) {
+            window.switchMode('depth3d');
+            return;
+        }
         if (urlObjectClass) {
-            const i=objectClasses.findIndex(c=>c.name===urlObjectClass);
-            if(i!==-1){
-                loadProcedural(objectClasses[i]);
-                const btns=document.querySelectorAll('.model-btn');
-                if(btns[i]){btns[i].classList.add('active-model');btns[i].scrollIntoView({behavior:'smooth',block:'center'});}
+            var idx = objectClasses.findIndex(function(c) { return c.name === urlObjectClass; });
+            if (idx !== -1) {
+                loadProcedural(objectClasses[idx]);
+                var btns = document.querySelectorAll('.model-btn');
+                if (btns[idx]) {
+                    btns[idx].classList.add('active-model');
+                    btns[idx].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
                 document.getElementById('detectedFromCamera').classList.remove('hidden');
-                if(urlConfidence){document.getElementById('confidenceBadge').classList.remove('hidden');document.getElementById('confidenceText').textContent=parseFloat(urlConfidence).toFixed(0)+'% confidence';}
-                if(croppedImageData)document.getElementById('modeDescription').textContent='Representation mode. Switch to "Depth 3D" to see real 3D from your detection!';
+                if (urlConfidence) {
+                    document.getElementById('confidenceBadge').classList.remove('hidden');
+                    document.getElementById('confidenceText').textContent = parseFloat(urlConfidence).toFixed(0) + '% confidence';
+                }
             }
         }
     }
 
-    // ── INIT ──
-    window.addEventListener('DOMContentLoaded',()=>{ initViewer(); populateModelList(); autoLoad(); });
+    window.addEventListener('DOMContentLoaded', function() {
+        initViewer();
+        populateModelList();
+        autoLoad();
+    });
 })();
 </script>
 </body>
