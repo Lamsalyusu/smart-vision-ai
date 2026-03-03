@@ -348,33 +348,33 @@ from django.contrib import messages
 import secrets
 from datetime import datetime, timedelta
 
-def forgot_password(request):
-    if request.method == 'POST':
-        email = request.POST.get('email')
+# def forgot_password(request):
+#     if request.method == 'POST':
+#         email = request.POST.get('email')
         
-        # Check if user exists
-        try:
-            user = User.objects.get(email=email)
+#         # Check if user exists
+#         try:
+#             user = User.objects.get(email=email)
             
-            # Generate reset token
-            token = secrets.token_urlsafe(32)
-            expiry = datetime.now() + timedelta(hours=1)
+#             # Generate reset token
+#             token = secrets.token_urlsafe(32)
+#             expiry = datetime.now() + timedelta(hours=1)
             
-            # Save token to database (you'll need a PasswordReset model)
-            # PasswordReset.objects.create(user=user, token=token, expiry=expiry)
+#             # Save token to database (you'll need a PasswordReset model)
+#             # PasswordReset.objects.create(user=user, token=token, expiry=expiry)
             
-            # Send email (implement this later)
-            # send_password_reset_email(user.email, token)
+#             # Send email (implement this later)
+#             # send_password_reset_email(user.email, token)
             
-            # Redirect with success
-            return redirect('/forgot-password/?success=true')
+#             # Redirect with success
+#             return redirect('/forgot-password/?success=true')
             
-        except User.DoesNotExist:
-            return render(request, 'forgot_password.html', {
-                'error': 'No account found with this email address.'
-            })
+#         except User.DoesNotExist:
+#             return render(request, 'forgot_password.html', {
+#                 'error': 'No account found with this email address.'
+#             })
     
-    return render(request, 'forgot_password.html')
+#     return render(request, 'forgot_password.html')
 
 
 # backend/views.py
@@ -591,3 +591,356 @@ def generate_3d_view(request):
     except Exception as e:
         print(f"3D generation error: {e}")
         return JsonResponse({'error': str(e)}, status=500)
+    
+
+
+# Add these imports at the top of views.py
+import requests as http_requests   # rename to avoid clash with django request
+from django.core.mail import send_mail
+from django.conf import settings
+from urllib.parse import urlencode
+
+
+# ============================================
+# OAUTH: GOOGLE
+# ============================================
+
+def google_login(request):
+    """Redirect user to Google OAuth consent screen"""
+    params = urlencode({
+        'client_id': settings.GOOGLE_CLIENT_ID,
+        'redirect_uri': settings.GOOGLE_REDIRECT_URI,
+        'response_type': 'code',
+        'scope': 'email profile',
+        'access_type': 'offline',
+        'prompt': 'select_account',
+    })
+    return redirect('https://accounts.google.com/o/oauth2/v2/auth?' + params)
+
+
+def google_callback(request):
+    """Handle Google OAuth callback"""
+    code = request.GET.get('code')
+    error = request.GET.get('error')
+
+    if error or not code:
+        return render(request, 'loginpage.html', {
+            'error': 'Google login was cancelled or failed.'
+        })
+
+    # Exchange code for access token
+    token_resp = http_requests.post('https://oauth2.googleapis.com/token', data={
+        'code': code,
+        'client_id': settings.GOOGLE_CLIENT_ID,
+        'client_secret': settings.GOOGLE_CLIENT_SECRET,
+        'redirect_uri': settings.GOOGLE_REDIRECT_URI,
+        'grant_type': 'authorization_code',
+    })
+
+    if token_resp.status_code != 200:
+        return render(request, 'loginpage.html', {
+            'error': 'Failed to get token from Google.'
+        })
+
+    access_token = token_resp.json().get('access_token')
+
+    # Get user info from Google
+    user_resp = http_requests.get('https://www.googleapis.com/oauth2/v2/userinfo', headers={
+        'Authorization': 'Bearer ' + access_token
+    })
+
+    if user_resp.status_code != 200:
+        return render(request, 'loginpage.html', {
+            'error': 'Failed to get user info from Google.'
+        })
+
+    google_user = user_resp.json()
+    email = google_user.get('email')
+    name = google_user.get('name', email.split('@')[0])
+
+    # Find or create user in Supabase
+    user = _find_or_create_oauth_user(email, name, 'google')
+    if not user:
+        return render(request, 'loginpage.html', {
+            'error': 'Failed to create account.'
+        })
+
+    # Create session and redirect
+    session_token = create_session(user['id'], request)
+    request.session['session_token'] = session_token
+    return redirect('dashboard')
+
+
+# ============================================
+# OAUTH: GITHUB
+# ============================================
+
+def github_login(request):
+    """Redirect user to GitHub OAuth"""
+    params = urlencode({
+        'client_id': settings.GITHUB_CLIENT_ID,
+        'redirect_uri': settings.GITHUB_REDIRECT_URI,
+        'scope': 'user:email',
+    })
+    return redirect('https://github.com/login/oauth/authorize?' + params)
+
+
+def github_callback(request):
+    """Handle GitHub OAuth callback"""
+    code = request.GET.get('code')
+    error = request.GET.get('error')
+
+    if error or not code:
+        return render(request, 'loginpage.html', {
+            'error': 'GitHub login was cancelled or failed.'
+        })
+
+    # Exchange code for access token
+    token_resp = http_requests.post('https://github.com/login/oauth/access_token', data={
+        'code': code,
+        'client_id': settings.GITHUB_CLIENT_ID,
+        'client_secret': settings.GITHUB_CLIENT_SECRET,
+        'redirect_uri': settings.GITHUB_REDIRECT_URI,
+    }, headers={
+        'Accept': 'application/json'
+    })
+
+    if token_resp.status_code != 200:
+        return render(request, 'loginpage.html', {
+            'error': 'Failed to get token from GitHub.'
+        })
+
+    access_token = token_resp.json().get('access_token')
+
+    # Get user info
+    user_resp = http_requests.get('https://api.github.com/user', headers={
+        'Authorization': 'Bearer ' + access_token
+    })
+
+    if user_resp.status_code != 200:
+        return render(request, 'loginpage.html', {
+            'error': 'Failed to get user info from GitHub.'
+        })
+
+    github_user = user_resp.json()
+
+    # GitHub might not return email in profile, fetch from emails endpoint
+    email = github_user.get('email')
+    if not email:
+        emails_resp = http_requests.get('https://api.github.com/user/emails', headers={
+            'Authorization': 'Bearer ' + access_token
+        })
+        if emails_resp.status_code == 200:
+            for e in emails_resp.json():
+                if e.get('primary') and e.get('verified'):
+                    email = e.get('email')
+                    break
+
+    if not email:
+        return render(request, 'loginpage.html', {
+            'error': 'Could not get email from GitHub. Make sure your email is public or verified.'
+        })
+
+    name = github_user.get('name') or github_user.get('login', email.split('@')[0])
+
+    # Find or create user
+    user = _find_or_create_oauth_user(email, name, 'github')
+    if not user:
+        return render(request, 'loginpage.html', {
+            'error': 'Failed to create account.'
+        })
+
+    session_token = create_session(user['id'], request)
+    request.session['session_token'] = session_token
+    return redirect('dashboard')
+
+
+# ============================================
+# OAUTH HELPER
+# ============================================
+
+def _find_or_create_oauth_user(email, full_name, provider):
+    """Find existing user by email or create a new one for OAuth login"""
+    try:
+        # Check if user exists
+        existing = supabase_admin.table('users')\
+            .select('*')\
+            .eq('email', email)\
+            .execute()
+
+        if existing.data and len(existing.data) > 0:
+            return existing.data[0]
+
+        # Create new user (no password needed for OAuth)
+        username = email.split('@')[0]
+        user_data = {
+            'full_name': full_name,
+            'email': email,
+            'username': username,
+            'password_hash': '',  # OAuth users don't have a password
+            'is_active': True,
+            'is_verified': True,  # OAuth emails are already verified
+            'auth_provider': provider,
+        }
+
+        resp = supabase_admin.table('users').insert(user_data).execute()
+        if resp.data and len(resp.data) > 0:
+            return resp.data[0]
+        return None
+
+    except Exception as e:
+        print(f"OAuth user error: {e}")
+        return None
+
+
+# ============================================
+# FORGOT PASSWORD (FIXED - uses Supabase)
+# ============================================
+
+def forgot_password(request):
+    """Forgot password - sends reset email"""
+    if request.method == 'GET':
+        return render(request, 'forgot_password.html')
+
+    email = request.POST.get('email', '').strip()
+
+    if not email:
+        return render(request, 'forgot_password.html', {
+            'error': 'Please enter your email address.'
+        })
+
+    # Check if user exists in Supabase
+    user_resp = supabase_admin.table('users')\
+        .select('id, email, full_name')\
+        .eq('email', email)\
+        .execute()
+
+    if not user_resp.data or len(user_resp.data) == 0:
+        # Don't reveal if email exists or not (security)
+        return redirect('/forgot-password/?success=true')
+
+    user = user_resp.data[0]
+
+    # Generate reset token
+    token = secrets.token_urlsafe(32)
+    expires_at = (datetime.now() + timedelta(hours=1)).isoformat()
+
+    # Save token to Supabase
+    try:
+        supabase_admin.table('password_resets').insert({
+            'user_id': str(user['id']),
+            'token': token,
+            'expires_at': expires_at,
+            'used': False,
+        }).execute()
+    except Exception as e:
+        print(f"Error saving reset token: {e}")
+        return render(request, 'forgot_password.html', {
+            'error': 'Something went wrong. Please try again.'
+        })
+
+    # Send reset email
+    reset_url = request.build_absolute_uri(f'/reset-password/{token}/')
+
+    try:
+        send_mail(
+            subject='Smart Vision - Password Reset',
+            message=f'Hi {user["full_name"]},\n\n'
+                    f'You requested a password reset. Click the link below:\n\n'
+                    f'{reset_url}\n\n'
+                    f'This link expires in 1 hour.\n\n'
+                    f'If you did not request this, ignore this email.\n\n'
+                    f'- Smart Vision AI',
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[email],
+            fail_silently=False,
+        )
+    except Exception as e:
+        print(f"Email send error: {e}")
+        return render(request, 'forgot_password.html', {
+            'error': 'Could not send email. Please try again later.'
+        })
+
+    return redirect('/forgot-password/?success=true')
+
+
+# ============================================
+# RESET PASSWORD
+# ============================================
+
+def reset_password(request, token):
+    """Reset password using token from email"""
+    # Verify token
+    token_resp = supabase_admin.table('password_resets')\
+        .select('*, users(id, email, full_name)')\
+        .eq('token', token)\
+        .eq('used', False)\
+        .execute()
+
+    if not token_resp.data or len(token_resp.data) == 0:
+        return render(request, 'reset_password.html', {
+            'error': 'Invalid or expired reset link.',
+            'token_valid': False,
+        })
+
+    reset_data = token_resp.data[0]
+
+    # Check expiry
+    expires_at = datetime.fromisoformat(reset_data['expires_at'].replace('Z', '+00:00'))
+    if datetime.now(expires_at.tzinfo) > expires_at:
+        return render(request, 'reset_password.html', {
+            'error': 'This reset link has expired. Please request a new one.',
+            'token_valid': False,
+        })
+
+    if request.method == 'GET':
+        return render(request, 'reset_password.html', {
+            'token': token,
+            'token_valid': True,
+            'email': reset_data['users']['email'],
+        })
+
+    # Handle POST - update password
+    password = request.POST.get('password', '')
+    confirm_password = request.POST.get('confirm_password', '')
+
+    if not password or len(password) < 8:
+        return render(request, 'reset_password.html', {
+            'token': token,
+            'token_valid': True,
+            'error': 'Password must be at least 8 characters.',
+        })
+
+    if password != confirm_password:
+        return render(request, 'reset_password.html', {
+            'token': token,
+            'token_valid': True,
+            'error': 'Passwords do not match.',
+        })
+
+    # Update password in Supabase
+    user_id = reset_data['user_id']
+    try:
+        supabase_admin.table('users')\
+            .update({'password_hash': make_password(password)})\
+            .eq('id', user_id)\
+            .execute()
+
+        # Mark token as used
+        supabase_admin.table('password_resets')\
+            .update({'used': True})\
+            .eq('token', token)\
+            .execute()
+
+    except Exception as e:
+        print(f"Password update error: {e}")
+        return render(request, 'reset_password.html', {
+            'token': token,
+            'token_valid': True,
+            'error': 'Something went wrong. Please try again.',
+        })
+
+    return render(request, 'reset_password.html', {
+        'success': True,
+        'token_valid': False,
+    })
