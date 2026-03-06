@@ -314,3 +314,39 @@ SESSION_SAVE_EVERY_REQUEST = False
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 print("SUPABASE_URL =", SUPABASE_URL)
 print("SERVICE_ROLE_KEY exists =", bool(SUPABASE_SERVICE_ROLE_KEY))
+
+# import os
+# GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
+
+# OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY')
+GROQ_API_KEY = os.getenv('GROQ_API_KEY')
+
+
+
+# ==================================================
+# EMAIL CONFIGURATION (Gmail SMTP)
+# ==================================================
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+# ==================================================
+# GOOGLE OAUTH
+# ==================================================
+GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
+GOOGLE_CLIENT_SECRET = os.getenv('GOOGLE_CLIENT_SECRET')
+GOOGLE_REDIRECT_URI = 'http://localhost:8000/auth/google/callback/'
+
+# ==================================================
+# GITHUB OAUTH
+# ==================================================
+GITHUB_CLIENT_ID = os.getenv('GITHUB_CLIENT_ID')
+GITHUB_CLIENT_SECRET = os.getenv('GITHUB_CLIENT_SECRET')
+GITHUB_REDIRECT_URI = 'http://localhost:8000/auth/github/callback/'
+
+GOOGLE_REDIRECT_URI = 'http://127.0.0.1:8000/auth/google/callback/'
+GITHUB_REDIRECT_URI = 'http://127.0.0.1:8000/auth/github/callback/'
