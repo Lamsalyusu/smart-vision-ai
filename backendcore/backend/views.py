@@ -381,15 +381,9 @@ def get_user_stats(request):
 #     return render(request, 'forgot_password.html')
 
 
-# backend/views.py
-
-
-
-# Import your detector
 from .ml_model.inference import detector
-# from .supabase_client import supabase  # You already have this!
+# from .supabase_client import supabase 
 
-# Your existing views...
 
 @csrf_exempt
 def detect_objects(request):
