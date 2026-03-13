@@ -8,11 +8,20 @@ import uuid
 import secrets
 from datetime import datetime, timedelta
 import json
-
-
-# ============================================
-# HELPER FUNCTIONS
-# ============================================
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.core.files.storage import default_storage
+import json
+import base64
+import os
+import requests as http_requests   
+from django.core.mail import send_mail
+from django.conf import settings
+from urllib.parse import urlencode
+from django.shortcuts import render, redirect
+from django.contrib import messages
+import secrets
+from datetime import datetime, timedelta
 
 def get_client_ip(request):
     """Get client IP address"""
@@ -80,10 +89,8 @@ def login_required(view_func):
         return view_func(request, *args, **kwargs)
     return wrapper
 
-
-# ============================================
 # PUBLIC VIEWS
-# ============================================
+
 
 def landing_page(request):
     """Landing page view"""
@@ -305,9 +312,9 @@ def camera_feed(request):
 def model_viewer(request):
     """3D Model Viewer page"""
     return render(request, 'model_viewer.html')
-# ============================================
+
 # API ENDPOINTS (for AJAX/WebSocket)
-# ============================================
+
 
 @csrf_exempt
 @require_http_methods(["GET"])
@@ -343,10 +350,7 @@ def get_user_stats(request):
     })
 
 
-from django.shortcuts import render, redirect
-from django.contrib import messages
-import secrets
-from datetime import datetime, timedelta
+
 
 # def forgot_password(request):
 #     if request.method == 'POST':
@@ -379,13 +383,7 @@ from datetime import datetime, timedelta
 
 # backend/views.py
 
-from django.shortcuts import render
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from django.core.files.storage import default_storage
-import json
-import base64
-import os
+
 
 # Import your detector
 from .ml_model.inference import detector
@@ -525,11 +523,6 @@ def llm_chat(request):
         traceback.print_exc()
         return JsonResponse({'error': str(e)}, status=500)
 
-# ============================================
-# ADD THIS TO YOUR views.py
-# ============================================
-# Also add this URL to urls.py:
-#   path('api/generate-3d/', views.generate_3d_view, name='generate_3d'),
 
 
 @csrf_exempt
@@ -592,18 +585,7 @@ def generate_3d_view(request):
         print(f"3D generation error: {e}")
         return JsonResponse({'error': str(e)}, status=500)
     
-
-
-# Add these imports at the top of views.py
-import requests as http_requests   # rename to avoid clash with django request
-from django.core.mail import send_mail
-from django.conf import settings
-from urllib.parse import urlencode
-
-
-# ============================================
 # OAUTH: GOOGLE
-# ============================================
 
 def google_login(request):
     """Redirect user to Google OAuth consent screen"""
@@ -754,10 +736,7 @@ def github_callback(request):
     request.session['session_token'] = session_token
     return redirect('dashboard')
 
-
-# ============================================
 # OAUTH HELPER
-# ============================================
 
 def _find_or_create_oauth_user(email, full_name, provider):
     """Find existing user by email or create a new one for OAuth login"""
@@ -792,10 +771,7 @@ def _find_or_create_oauth_user(email, full_name, provider):
         print(f"OAuth user error: {e}")
         return None
 
-
-# ============================================
 # FORGOT PASSWORD (FIXED - uses Supabase)
-# ============================================
 
 def forgot_password(request):
     """Forgot password - sends reset email"""
@@ -863,10 +839,8 @@ def forgot_password(request):
 
     return redirect('/forgot-password/?success=true')
 
-
-# ============================================
 # RESET PASSWORD
-# ============================================
+
 
 def reset_password(request, token):
     """Reset password using token from email"""
