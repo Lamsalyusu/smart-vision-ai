@@ -34,16 +34,16 @@ class ObjectDetector:
         ]
         
         self.CLASS_THRESHOLDS = {
-            "sunglasses": 0.20,
-            "knife": 0.20,
-            "water_bottle": 0.20,
+            "sunglasses": 0.35,
+            "knife": 0.35,
+            "water_bottle": 0.35,
             "pen": 0.60,
-            "chair": 0.20,
-            "human_face": 0.15,
-            "mobile_phone": 0.10,
-            "helmet": 0.20,
+            "chair": 0.35,
+            "human_face": 0.40,
+            "mobile_phone": 0.35,
+            "helmet": 0.35,
             "fire": 0.60,
-            "can": 0.20
+            "can": 0.35
         }
         
         self.ANCHORS = [
@@ -208,8 +208,8 @@ class ObjectDetector:
             keep = tf.image.non_max_suppression(
                 cls_boxes,
                 cls_scores,
-                20,
-                iou_threshold=iou_threshold
+                5,
+                iou_threshold=0.3
             ).numpy()
             
             for i in keep:
