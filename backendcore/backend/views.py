@@ -508,15 +508,29 @@ def llm_chat(request):
             }]
         )
 
+        ai_response = response.choices[0].message.content
+
+        # Save query to Supabase
+        user_session = get_user_from_session(request)
+        if user_session:
+            try:
+                supabase_admin.table('llm_queries').insert({
+                    'user_id': str(user_session['users']['id']),
+                    'message': user_message[:1000],
+                    'response': ai_response[:2000],
+                    'detection_context': detection_context[:500],
+                }).execute()
+            except Exception as e:
+                print(f"Save query error: {e}")
+
         return JsonResponse({
             'success': True,
-            'response': response.choices[0].message.content
+            'response': ai_response
         })
     except Exception as e:
         import traceback
         traceback.print_exc()
         return JsonResponse({'error': str(e)}, status=500)
-
 
 
 @csrf_exempt
@@ -578,6 +592,7 @@ def generate_3d_view(request):
     except Exception as e:
         print(f"3D generation error: {e}")
         return JsonResponse({'error': str(e)}, status=500)
+
     
 # OAUTH: GOOGLE
 
@@ -912,3 +927,165 @@ def reset_password(request, token):
         'success': True,
         'token_valid': False,
     })
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def save_crop(request):
+    """Save a cropped detection image for later 3D viewing"""
+    user_session = get_user_from_session(request)
+    if not user_session:
+        return JsonResponse({'error': 'Unauthorized'}, status=401)
+
+    try:
+        data = json.loads(request.body)
+        object_class = data.get('object_class', '')
+        confidence = data.get('confidence', 0)
+        crop_image = data.get('crop_image', '')
+
+        if not object_class or not crop_image:
+            return JsonResponse({'error': 'Missing data'}, status=400)
+
+        resp = supabase_admin.table('detection_crops').insert({
+            'user_id': str(user_session['users']['id']),
+            'object_class': object_class,
+            'confidence': confidence,
+            'crop_image': crop_image,
+        }).execute()
+
+        return JsonResponse({'success': True})
+    except Exception as e:
+        print(f"Save crop error: {e}")
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def get_latest_crop(request):
+    """Get the latest saved crop for a given object class"""
+    user_session = get_user_from_session(request)
+    if not user_session:
+        return JsonResponse({'error': 'Unauthorized'}, status=401)
+
+    object_class = request.GET.get('object_class', '')
+    if not object_class:
+        return JsonResponse({'error': 'Missing object_class'}, status=400)
+
+    try:
+        resp = supabase_admin.table('detection_crops')\
+            .select('object_class, confidence, crop_image')\
+            .eq('user_id', str(user_session['users']['id']))\
+            .eq('object_class', object_class)\
+            .order('created_at', desc=True)\
+            .limit(1)\
+            .execute()
+
+        if resp.data and len(resp.data) > 0:
+            return JsonResponse({
+                'success': True,
+                'object_class': resp.data[0]['object_class'],
+                'confidence': resp.data[0]['confidence'],
+                'crop_image': resp.data[0]['crop_image'],
+            })
+        else:
+            return JsonResponse({'success': False, 'error': 'No crop found for this class'})
+    except Exception as e:
+        print(f"Get crop error: {e}")
+        return JsonResponse({'error': str(e)}, status=500)
+    
+@csrf_exempt
+@require_http_methods(["POST"])
+def clear_detection_history(request):
+    user_session = get_user_from_session(request)
+    if not user_session:
+        return JsonResponse({'error': 'Unauthorized'}, status=401)
+
+    user_id = user_session['users']['id']
+
+    try:
+        supabase_admin.table('detection_history')\
+            .delete()\
+            .eq('user_id', str(user_id))\
+            .execute()
+
+        return JsonResponse({'success': True})
+    except Exception as e:
+        print(f"Clear history error: {e}")
+        return JsonResponse({'error': str(e)}, status=500)
+    
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def generate_3d_mesh(request):
+    """Generate 3D mesh using TripoSR via AIML API"""
+    try:
+        data = json.loads(request.body)
+        image_base64 = data.get('image_base64', '')
+
+        if not image_base64:
+            return JsonResponse({'error': 'No image provided'}, status=400)
+
+        # Strip data URI prefix if present
+        if 'base64,' in image_base64:
+            image_base64 = image_base64.split('base64,')[1]
+
+        # Upload to imgbb to get a public URL (free, no key needed for basic)
+        imgbb_resp = http_requests.post('https://api.imgbb.com/1/upload', data={
+            'key': settings.IMGBB_API_KEY,
+            'image': image_base64,
+        }, timeout=30)
+
+        if imgbb_resp.status_code != 200:
+            return JsonResponse({'error': 'Image upload failed'}, status=500)
+
+        imgbb_data = imgbb_resp.json()
+        public_url = imgbb_data.get('data', {}).get('url', '')
+
+        if not public_url:
+            return JsonResponse({'error': 'Could not get image URL'}, status=500)
+
+        # Call AIML API for TripoSR
+        aiml_response = http_requests.post(
+            'https://api.aimlapi.com/v1/images/generations',
+            headers={
+                'Authorization': 'Bearer ' + settings.AIML_API_KEY,
+                'Content-Type': 'application/json',
+            },
+            json={
+                'model': 'triposr',
+                'image_url': public_url,
+                'output_format': 'glb',
+                'do_remove_background': True,
+                'foreground_ratio': 0.9,
+                'mc_resolution': 256,
+            },
+            timeout=60
+        )
+
+        if aiml_response.status_code != 200:
+            return JsonResponse({
+                'error': 'TripoSR API error: ' + str(aiml_response.status_code),
+                'detail': aiml_response.text[:500]
+            }, status=500)
+
+        result = aiml_response.json()
+
+        glb_url = None
+        if 'model_mesh' in result and 'url' in result['model_mesh']:
+            glb_url = result['model_mesh']['url']
+
+        if not glb_url:
+            return JsonResponse({'error': 'No 3D model returned from API'}, status=500)
+
+        return JsonResponse({
+            'success': True,
+            'glb_url': glb_url,
+            'method': 'triposr'
+        })
+
+    except Exception as e:
+        print(f"3D mesh generation error: {e}")
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({'error': str(e)}, status=500)
