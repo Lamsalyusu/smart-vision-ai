@@ -33,17 +33,30 @@ class ObjectDetector:
             "human_face", "mobile_phone", "helmet", "fire", "can"
         ]
         
+        # self.CLASS_THRESHOLDS = {
+        #     "sunglasses": 0.35,
+        #     "knife": 0.35,
+        #     "water_bottle": 0.35,
+        #     "pen": 0.60,
+        #     "chair": 0.35,
+        #     "human_face": 0.40,
+        #     "mobile_phone": 0.35,
+        #     "helmet": 0.35,
+        #     "fire": 0.60,
+        #     "can": 0.35
+        # }
+
         self.CLASS_THRESHOLDS = {
-            "sunglasses": 0.35,
-            "knife": 0.35,
-            "water_bottle": 0.35,
-            "pen": 0.60,
-            "chair": 0.35,
+            "sunglasses": 0.40,
+            "knife": 0.40,
+            "water_bottle": 0.40,
+            "pen": 0.40,
+            "chair": 0.40,
             "human_face": 0.40,
-            "mobile_phone": 0.35,
-            "helmet": 0.35,
-            "fire": 0.60,
-            "can": 0.35
+            "mobile_phone": 0.40,
+            "helmet": 0.40,
+            "fire": 0.40,
+            "can": 0.40
         }
         
         self.ANCHORS = [
@@ -123,7 +136,7 @@ class ObjectDetector:
                     for a in range(3):
                         # Objectness
                         obj = self._sigmoid(pred[r, c, a, 4])
-                        if obj < 0.10:
+                        if obj < 0.15:
                             continue
                         
                         # Class prediction
@@ -208,7 +221,7 @@ class ObjectDetector:
             keep = tf.image.non_max_suppression(
                 cls_boxes,
                 cls_scores,
-                5,
+                3,
                 iou_threshold=0.3
             ).numpy()
             
