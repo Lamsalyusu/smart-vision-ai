@@ -2,18 +2,21 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <script>
-    if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/static/sw.js');
-    }
+<link rel="manifest" href="/static/manifest.json">
+<meta name="theme-color" content="#2563eb">
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/static/sw.js');
+}
+</script>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>3D Depth Viewer - Smart Vision</title>
+    <title>3D Viewer - Smart Vision</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
     <style>
         body { font-family: 'Inter', sans-serif; background: #0a0e1a; }
         .card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; }
@@ -59,13 +62,10 @@
 </head>
 <body class="min-h-screen text-white">
 
-    <!-- NAV -->
     <nav class="border-b border-white/10 bg-black/30">
         <div class="container mx-auto px-6 py-4 flex justify-between items-center">
-            <a href="{% url 'camera_feed' %}" class="flex items-center gap-2 text-gray-400 hover:text-white text-sm">
-                &larr; Back to Camera
-            </a>
-                <span class="text-lg font-semibold">3D Depth Viewer</span>
+            <a href="{% url 'camera_feed' %}" class="text-gray-400 hover:text-white text-sm">&larr; Back to Camera</a>
+            <span class="text-lg font-semibold">3D Object Viewer</span>
             <span class="text-sm text-gray-500">{{ user.full_name }}</span>
         </div>
     </nav>
@@ -79,21 +79,28 @@
                 <!-- Detected Object Preview -->
                 <div class="card p-5">
                     <h3 class="text-sm font-semibold mb-3 text-gray-300">Detected Object</h3>
-                    <div id="cropSection">
-                        <div id="noCropMsg" class="text-center py-6">
-                            <p class="text-xs text-gray-500">No detection yet.</p>
-                            <p class="text-xs text-gray-600 mt-1">Go to Camera Feed, detect an object, then click "View 3D".</p>
-                        </div>
-                        <div id="cropPreview" class="hidden">
-                            <div class="crop-preview"><img id="cropPreviewImg" src="" alt="Detected object crop" /></div>
-                            <div class="flex items-center justify-between mt-3">
-                                <p class="text-sm text-gray-300 font-medium" id="cropLabel"></p>
-                                <span class="detected-badge">DETECTED</span>
-                            </div>
-                            <p class="text-xs text-gray-500 mt-1" id="cropConfidence"></p>
-                            <button onclick="window.regenerate3D()" class="w-full mt-3 px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-sm">Regenerate 3D</button>
-                        </div>
+                    <div id="noCropMsg" class="text-center py-6">
+                        <p class="text-xs text-gray-500">No detection yet.</p>
+                        <p class="text-xs text-gray-600 mt-1">Go to Camera Feed, detect an object, then click "View 3D".</p>
                     </div>
+                    <div id="cropPreview" class="hidden">
+                        <div class="crop-preview"><img id="cropPreviewImg" src="" alt="Detected object crop" /></div>
+                        <div class="flex items-center justify-between mt-3">
+                            <p class="text-sm text-gray-300 font-medium" id="cropLabel"></p>
+                            <span class="detected-badge">DETECTED</span>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1" id="cropConfidence"></p>
+                    </div>
+                </div>
+
+                <!-- View Mode -->
+                <div class="card p-5">
+                    <h3 class="text-sm font-semibold mb-3 text-gray-300">View Mode</h3>
+                    <div class="mode-toggle">
+                        <button id="modeMesh" class="active" onclick="switchMode('mesh')">3D Mesh</button>
+                        <button id="modePointCloud" onclick="switchMode('pointcloud')">Point Cloud</button>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-3" id="modeDesc">TripoSR generates a full 3D mesh from the detected object.</p>
                 </div>
 
                 <!-- Controls -->
@@ -104,11 +111,11 @@
                             <label class="text-xs text-gray-500 block mb-1">Rotation Speed</label>
                             <input type="range" id="rotationSpeed" min="0" max="0.02" step="0.001" value="0.005">
                         </div>
-                        <div>
+                        <div id="pointSizeControl" class="hidden">
                             <label class="text-xs text-gray-500 block mb-1">Point Size</label>
                             <input type="range" id="pointSizeSlider" min="0.5" max="5" step="0.1" value="2">
                         </div>
-                        <div>
+                        <div id="depthScaleControl" class="hidden">
                             <label class="text-xs text-gray-500 block mb-1">Depth Intensity</label>
                             <input type="range" id="depthScaleSlider" min="0.5" max="5" step="0.1" value="2">
                         </div>
@@ -120,6 +127,10 @@
                             </div>
                         </div>
                         <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" id="wireframeToggle" class="w-4 h-4 rounded">
+                            <span class="text-xs text-gray-400">Wireframe</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer">
                             <input type="checkbox" id="autoRotate" checked class="w-4 h-4 rounded">
                             <span class="text-xs text-gray-400">Auto Rotate</span>
                         </label>
@@ -128,11 +139,11 @@
                 </div>
 
                 <!-- Detectable Classes -->
-                <div class="card p-5">
+                {% comment %} <div class="card p-5">
                     <h3 class="text-sm font-semibold mb-1 text-gray-300">Detectable Classes</h3>
                     <p class="text-xs text-gray-500 mb-3">10 classes the model can detect</p>
                     <div class="space-y-1" id="classList"></div>
-                </div>
+                </div> {% endcomment %}
             </div>
 
             <!-- 3D VIEWER -->
@@ -140,35 +151,31 @@
                 <div class="card p-5">
                     <div class="flex items-center justify-between mb-4">
                         <div>
-                            <h2 class="text-xl font-semibold" id="viewerTitle">3D Depth Viewer</h2>
-                            <p class="text-sm text-gray-500 mt-1" id="viewerDesc">MiDaS depth estimation converts detected objects into 3D point clouds</p>
+                            <h2 class="text-xl font-semibold" id="viewerTitle">3D Object Viewer</h2>
+                            <p class="text-sm text-gray-500 mt-1" id="viewerDesc">Detect an object to generate its 3D model</p>
                         </div>
-                        <span class="text-xs px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-full text-blue-400">MiDaS v3</span>
+                        <span class="text-xs px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-full text-blue-400" id="methodBadge">-</span>
                     </div>
 
                     <div class="relative rounded-xl overflow-hidden" style="height: 560px;">
                         <div id="viewer3d" class="w-full h-full"></div>
                         <div class="viewer-info" id="viewerInfo" style="display:none;"><span id="infoLabel"></span></div>
 
-                        <!-- Generation progress -->
                         <div id="genProgress" class="gen-progress hidden">
                             <div class="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-                            <p class="text-sm font-medium">Generating 3D Point Cloud</p>
-                            <p class="text-xs text-gray-500 mt-1" id="genProgressText">Running MiDaS depth estimation...</p>
+                            <p class="text-sm font-medium" id="genTitle">Generating 3D Model</p>
+                            <p class="text-xs text-gray-500 mt-1" id="genProgressText">Processing...</p>
                         </div>
 
-                        <!-- Empty state -->
                         <div id="emptyState" class="absolute inset-0 bg-black/60 flex items-center justify-center">
                             <div class="text-center max-w-sm p-6">
-                                <h3 class="text-lg font-semibold mb-2">MiDaS 3D Depth Viewer</h3>
-                                <p class="text-sm text-gray-400 mb-4">Detect an object from the camera feed to generate its 3D point cloud.</p>
-                                <div class="text-left text-xs text-gray-500 space-y-1">
-                                    <p><b>How it works:</b></p>
-                                    <p>1. Camera detects and crops the object</p>
-                                    <p>2. MiDaS estimates per-pixel depth</p>
-                                    <p>3. Depth map is projected into 3D space</p>
-                                    <p>4. Result displayed as a colored point cloud</p>
-                                </div>
+                                <h3 class="text-lg font-semibold mb-2">3D Object Viewer</h3>
+                                <p class="text-sm text-gray-400 mb-4">Detect an object from the camera feed to generate its 3D model.</p>
+                                {% comment %} <div class="text-left text-xs text-gray-500 space-y-1">
+                                    <p><b>Two visualization modes:</b></p>
+                                    <p>1. 3D Mesh - TripoSR reconstructs a full textured model</p>
+                                    <p>2. Point Cloud - MiDaS depth estimation to 3D points</p>
+                                </div> {% endcomment %}
                                 <a href="{% url 'camera_feed' %}" class="inline-block mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium">Go to Camera Feed</a>
                             </div>
                         </div>
@@ -177,28 +184,17 @@
                     <!-- Stats -->
                     <div class="mt-4 grid grid-cols-3 gap-3">
                         <div class="p-3 bg-white/5 rounded-lg text-center">
-                            <p class="text-xs text-gray-500" id="stat1Label">Points</p>
+                            <p class="text-xs text-gray-500" id="stat1Label">-</p>
                             <p class="text-lg font-semibold mt-1" id="stat1Value">-</p>
                         </div>
                         <div class="p-3 bg-white/5 rounded-lg text-center">
-                            <p class="text-xs text-gray-500" id="stat2Label">Resolution</p>
+                            <p class="text-xs text-gray-500" id="stat2Label">-</p>
                             <p class="text-lg font-semibold mt-1" id="stat2Value">-</p>
                         </div>
                         <div class="p-3 bg-white/5 rounded-lg text-center">
                             <p class="text-xs text-gray-500" id="stat3Label">Method</p>
-                            <p class="text-lg font-semibold mt-1" id="stat3Value">MiDaS v3</p>
+                            <p class="text-lg font-semibold mt-1" id="stat3Value">-</p>
                         </div>
-                    </div>
-
-                    <!-- Pipeline explanation -->
-                    <div class="mt-4 p-4 bg-white/5 rounded-lg">
-                        <h4 class="text-sm font-semibold text-gray-300 mb-2">About MiDaS Depth Estimation</h4>
-                        <p class="text-xs text-gray-500 leading-relaxed">
-                            MiDaS (Monocular Depth Estimation in the Wild) predicts relative depth from a single RGB image.
-                            The cropped detection is fed through the MiDaS v3 DPT-Large model, producing a depth map where each pixel
-                            gets a depth value. This depth map is then back-projected into 3D coordinates using the camera intrinsics,
-                            creating a colored point cloud that can be viewed and rotated in 3D space.
-                        </p>
                     </div>
                 </div>
             </div>
@@ -215,6 +211,10 @@
     var croppedImage = sessionStorage.getItem('smartvision_crop_image');
     var croppedClass = sessionStorage.getItem('smartvision_crop_class');
 
+    var currentMode = 'mesh'; // 'mesh' or 'pointcloud'
+    var currentImageData = null;
+    var currentClassName = null;
+
     var objectClasses = [
         { name:'sunglasses', label:'Sunglasses', color:'#3b82f6', cat:'Accessories', count:1200 },
         { name:'knife', label:'Knife', color:'#ef4444', cat:'Safety', count:1070 },
@@ -229,27 +229,34 @@
     ];
 
     // Three.js
-    var scene, camera, renderer, controls, pointCloud, pcMaterial;
+    var scene, camera, renderer, controls, currentModel;
+    var pcMaterial = null;
     var rotSpeed = 0.005, autoRotateOn = true;
 
     function initViewer() {
         var container = document.getElementById('viewer3d');
-
         scene = new THREE.Scene();
         scene.background = new THREE.Color(0x0d1117);
 
         camera = new THREE.PerspectiveCamera(55, container.clientWidth / container.clientHeight, 0.1, 100);
-        camera.position.set(0, 0, 4);
+        camera.position.set(0, 1, 4);
 
         renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(container.clientWidth, container.clientHeight);
         renderer.setPixelRatio(window.devicePixelRatio);
         container.appendChild(renderer.domElement);
 
-        scene.add(new THREE.AmbientLight(0xffffff, 0.3));
+        // Lighting for mesh rendering
+        scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+        var dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        dirLight.position.set(5, 8, 5);
+        scene.add(dirLight);
+        var fillLight = new THREE.DirectionalLight(0x8888ff, 0.3);
+        fillLight.position.set(-5, 3, -5);
+        scene.add(fillLight);
 
         var grid = new THREE.GridHelper(10, 20, 0x1a2a3a, 0x111d2a);
-        grid.position.y = -2;
+        grid.position.y = -1.5;
         scene.add(grid);
 
         controls = new THREE.OrbitControls(camera, renderer.domElement);
@@ -266,20 +273,22 @@
 
         (function animate() {
             requestAnimationFrame(animate);
-            if (pointCloud && autoRotateOn) pointCloud.rotation.y += rotSpeed;
+            if (currentModel && autoRotateOn) currentModel.rotation.y += rotSpeed;
             controls.update();
             renderer.render(scene, camera);
         })();
     }
 
-    function clearPointCloud() {
-        if (pointCloud) {
-            scene.remove(pointCloud);
-            pointCloud = null;
+    function clearModel() {
+        if (currentModel) {
+            scene.remove(currentModel);
+            currentModel = null;
         }
+        pcMaterial = null;
+        document.getElementById('pointSizeControl').classList.add('hidden');
+        document.getElementById('depthScaleControl').classList.add('hidden');
     }
 
-    // CSRF cookie for Django POST
     function getCookie(name) {
         var value = null;
         if (document.cookie) {
@@ -292,13 +301,101 @@
         return value;
     }
 
-    // Send cropped detection to MiDaS backend, render the returned point cloud
+    function getClassLabel(className) {
+        for (var i = 0; i < objectClasses.length; i++) {
+            if (objectClasses[i].name === className) return objectClasses[i].label;
+        }
+        return className;
+    }
+
+    // ── TripoSR 3D Mesh Generation ──
+    function generateMesh(imageBase64, className) {
+        document.getElementById('emptyState').style.display = 'none';
+        document.getElementById('genProgress').classList.remove('hidden');
+        document.getElementById('genTitle').textContent = 'Generating 3D Mesh';
+        document.getElementById('genProgressText').textContent =
+            'TripoSR is reconstructing ' + (className || 'object').replace('_', ' ') + ' in 3D... (10-30 seconds)';
+        clearModel();
+
+        fetch('/api/generate-3d-mesh/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ image_base64: imageBase64 })
+        })
+        .then(function(resp) { return resp.json(); })
+        .then(function(data) {
+            document.getElementById('genProgress').classList.add('hidden');
+
+            if (data.success && data.glb_url) {
+                // Load GLB with Three.js
+                var loader = new THREE.GLTFLoader();
+                loader.load(data.glb_url, function(gltf) {
+                    currentModel = gltf.scene;
+
+                    // Center and scale the model
+                    var box = new THREE.Box3().setFromObject(currentModel);
+                    var center = box.getCenter(new THREE.Vector3());
+                    var size = box.getSize(new THREE.Vector3());
+                    var maxDim = Math.max(size.x, size.y, size.z);
+                    var scale = 2.5 / maxDim;
+                    currentModel.scale.setScalar(scale);
+                    currentModel.position.sub(center.multiplyScalar(scale));
+
+                    scene.add(currentModel);
+
+                    // Count vertices and faces
+                    var verts = 0, faces = 0;
+                    currentModel.traverse(function(child) {
+                        if (child.isMesh && child.geometry) {
+                            verts += child.geometry.attributes.position ? child.geometry.attributes.position.count : 0;
+                            faces += child.geometry.index ? child.geometry.index.count / 3 : 0;
+                        }
+                    });
+
+                    document.getElementById('viewerTitle').textContent = getClassLabel(className) + ' - 3D Mesh';
+                    document.getElementById('viewerDesc').textContent = 'Reconstructed using TripoSR AI model';
+                    document.getElementById('methodBadge').textContent = 'TripoSR';
+                    document.getElementById('infoLabel').textContent = verts.toLocaleString() + ' vertices | ' + Math.floor(faces).toLocaleString() + ' faces | GLB';
+                    document.getElementById('viewerInfo').style.display = 'block';
+                    document.getElementById('stat1Label').textContent = 'Vertices';
+                    document.getElementById('stat1Value').textContent = verts.toLocaleString();
+                    document.getElementById('stat2Label').textContent = 'Faces';
+                    document.getElementById('stat2Value').textContent = Math.floor(faces).toLocaleString();
+                    document.getElementById('stat3Label').textContent = 'Method';
+                    document.getElementById('stat3Value').textContent = 'TripoSR';
+
+                    camera.position.set(0, 1, 4);
+                    controls.reset();
+
+                }, undefined, function(err) {
+                    console.error('GLB load error:', err);
+                    alert('Failed to load 3D model. Switching to Point Cloud mode.');
+                    switchMode('pointcloud');
+                });
+            } else {
+                alert('3D mesh generation failed: ' + (data.error || 'Unknown error') + '\nSwitching to Point Cloud mode.');
+                switchMode('pointcloud');
+            }
+        })
+        .catch(function(err) {
+            document.getElementById('genProgress').classList.add('hidden');
+            console.error('Mesh generation error:', err);
+            alert('TripoSR failed. Switching to MiDaS Point Cloud.');
+            switchMode('pointcloud');
+        });
+    }
+
+    // ── MiDaS Point Cloud (fallback) ──
     function generatePointCloud(imageBase64, className) {
         document.getElementById('emptyState').style.display = 'none';
         document.getElementById('genProgress').classList.remove('hidden');
+        document.getElementById('genTitle').textContent = 'Generating Point Cloud';
         document.getElementById('genProgressText').textContent =
-            'Running MiDaS on ' + (className || 'object').replace('_', ' ') + '...';
-        clearPointCloud();
+            'Running MiDaS depth estimation on ' + (className || 'object').replace('_', ' ') + '...';
+        clearModel();
 
         fetch('/api/generate-3d/', {
             method: 'POST',
@@ -313,65 +410,91 @@
             document.getElementById('genProgress').classList.add('hidden');
 
             if (data.success) {
-                // build point cloud from returned arrays
                 var geo = new THREE.BufferGeometry();
-                geo.setAttribute('position',
-                    new THREE.Float32BufferAttribute(new Float32Array(data.positions), 3));
-                geo.setAttribute('color',
-                    new THREE.Float32BufferAttribute(new Float32Array(data.colors), 3));
+                geo.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(data.positions), 3));
+                geo.setAttribute('color', new THREE.Float32BufferAttribute(new Float32Array(data.colors), 3));
 
                 pcMaterial = new THREE.PointsMaterial({
-                    size: 2, vertexColors: true,
-                    sizeAttenuation: true, transparent: true, opacity: 0.9
+                    size: 2, vertexColors: true, sizeAttenuation: true, transparent: true, opacity: 0.9
                 });
 
-                pointCloud = new THREE.Points(geo, pcMaterial);
-                scene.add(pointCloud);
+                currentModel = new THREE.Points(geo, pcMaterial);
+                scene.add(currentModel);
 
-                // update viewer info
-                document.getElementById('infoLabel').textContent =
-                    data.point_count.toLocaleString() + ' points | MiDaS | ' +
-                    data.width + 'x' + data.height;
+                document.getElementById('pointSizeControl').classList.remove('hidden');
+                document.getElementById('depthScaleControl').classList.remove('hidden');
+
+                document.getElementById('viewerTitle').textContent = getClassLabel(className) + ' - Point Cloud';
+                document.getElementById('viewerDesc').textContent = 'Generated using MiDaS monocular depth estimation';
+                document.getElementById('methodBadge').textContent = 'MiDaS v3';
+                document.getElementById('infoLabel').textContent = data.point_count.toLocaleString() + ' points | MiDaS | ' + data.width + 'x' + data.height;
                 document.getElementById('viewerInfo').style.display = 'block';
-
-                // find display name
-                var classInfo = null;
-                for (var i = 0; i < objectClasses.length; i++) {
-                    if (objectClasses[i].name === className) {
-                        classInfo = objectClasses[i]; break;
-                    }
-                }
-
-                document.getElementById('viewerTitle').textContent =
-                    (classInfo ? classInfo.label : className) + ' - 3D Point Cloud';
-                document.getElementById('viewerDesc').textContent =
-                    'Generated using MiDaS monocular depth estimation';
-
-                document.getElementById('stat1Value').textContent =
-                    data.point_count.toLocaleString();
-                document.getElementById('stat2Value').textContent =
-                    data.width + 'x' + data.height;
+                document.getElementById('stat1Label').textContent = 'Points';
+                document.getElementById('stat1Value').textContent = data.point_count.toLocaleString();
+                document.getElementById('stat2Label').textContent = 'Resolution';
+                document.getElementById('stat2Value').textContent = data.width + 'x' + data.height;
+                document.getElementById('stat3Label').textContent = 'Method';
+                document.getElementById('stat3Value').textContent = 'MiDaS v3';
 
                 camera.position.set(0, 0, 4);
                 controls.reset();
             } else {
-                alert('3D generation failed: ' + (data.error || 'Unknown error'));
+                alert('Point cloud generation failed: ' + (data.error || 'Unknown'));
             }
         })
         .catch(function(err) {
             document.getElementById('genProgress').classList.add('hidden');
             console.error('MiDaS error:', err);
-            alert('Failed to generate 3D.\nCheck MiDaS dependencies: pip install torch torchvision timm');
+            alert('Failed to generate point cloud.\nCheck MiDaS dependencies: pip install torch torchvision timm');
         });
     }
 
-    window.regenerate3D = function() {
-        if (croppedImage && croppedClass) {
-            generatePointCloud(croppedImage, croppedClass);
+    // ── Generate based on current mode ──
+    function generate(imageData, className) {
+        currentImageData = imageData;
+        currentClassName = className;
+
+        if (currentMode === 'mesh') {
+            generateMesh(imageData, className);
+        } else {
+            generatePointCloud(imageData, className);
+        }
+    }
+
+    // ── Mode switching ──
+    window.switchMode = function(mode) {
+        currentMode = mode;
+        document.getElementById('modeMesh').classList.toggle('active', mode === 'mesh');
+        document.getElementById('modePointCloud').classList.toggle('active', mode === 'pointcloud');
+
+        if (mode === 'mesh') {
+            document.getElementById('modeDesc').textContent = 'TripoSR generates a full 3D mesh from the detected object.';
+        } else {
+            document.getElementById('modeDesc').textContent = 'MiDaS estimates depth and creates a 3D point cloud.';
+        }
+
+        // Re-generate if we have image data
+        if (currentImageData && currentClassName) {
+            generate(currentImageData, currentClassName);
         }
     };
 
-    // Build the class reference list in sidebar
+    // ── Show crop and generate ──
+    function showCropAndGenerate(imageData, className, confidence) {
+        document.getElementById('noCropMsg').classList.add('hidden');
+        document.getElementById('cropPreview').classList.remove('hidden');
+        document.getElementById('cropPreviewImg').src = imageData;
+        document.getElementById('cropLabel').textContent = className.replace('_', ' ');
+
+        if (confidence) {
+            document.getElementById('cropConfidence').textContent =
+                parseFloat(confidence).toFixed(1) + '% confidence';
+        }
+
+        generate(imageData, className);
+    }
+
+    // ── Class list ──
     function buildClassList() {
         var container = document.getElementById('classList');
         var html = '';
@@ -390,50 +513,40 @@
         container.innerHTML = html;
     }
 
-    // Control handlers
-    document.getElementById('rotationSpeed').addEventListener('input', function(e) {
-        rotSpeed = parseFloat(e.target.value);
-    });
-    document.getElementById('autoRotate').addEventListener('change', function(e) {
-        autoRotateOn = e.target.checked;
-    });
-    document.getElementById('zoomIn').addEventListener('click', function() {
-        camera.position.multiplyScalar(0.85);
-    });
-    document.getElementById('zoomOut').addEventListener('click', function() {
-        camera.position.multiplyScalar(1.15);
-    });
-    document.getElementById('resetView').addEventListener('click', function() {
-        camera.position.set(0, 0, 4);
-        controls.reset();
+    // ── Controls ──
+    document.getElementById('rotationSpeed').addEventListener('input', function(e) { rotSpeed = parseFloat(e.target.value); });
+    document.getElementById('autoRotate').addEventListener('change', function(e) { autoRotateOn = e.target.checked; });
+    document.getElementById('zoomIn').addEventListener('click', function() { camera.position.multiplyScalar(0.85); });
+    document.getElementById('zoomOut').addEventListener('click', function() { camera.position.multiplyScalar(1.15); });
+    document.getElementById('resetView').addEventListener('click', function() { camera.position.set(0, 1, 4); controls.reset(); });
+    document.getElementById('wireframeToggle').addEventListener('change', function(e) {
+        if (currentModel) currentModel.traverse(function(c) {
+            if (c.isMesh && c.material) c.material.wireframe = e.target.checked;
+        });
     });
     document.getElementById('pointSizeSlider').addEventListener('input', function(e) {
         if (pcMaterial) pcMaterial.size = parseFloat(e.target.value);
     });
     document.getElementById('depthScaleSlider').addEventListener('input', function(e) {
-        if (pointCloud) pointCloud.scale.z = parseFloat(e.target.value) / 2;
+        if (currentModel && currentModel.isPoints) currentModel.scale.z = parseFloat(e.target.value) / 2;
     });
 
-    // On load: check for cropped detection from camera feed
+    // ── Init ──
     function init() {
         initViewer();
         buildClassList();
 
         if (croppedImage && croppedClass) {
-            // show the crop preview
-            document.getElementById('noCropMsg').classList.add('hidden');
-            document.getElementById('cropPreview').classList.remove('hidden');
-            document.getElementById('cropPreviewImg').src = croppedImage;
-            document.getElementById('cropLabel').textContent =
-                croppedClass.replace('_', ' ');
-
-            if (urlConfidence) {
-                document.getElementById('cropConfidence').textContent =
-                    parseFloat(urlConfidence).toFixed(1) + '% confidence';
-            }
-
-            // auto-generate the point cloud
-            generatePointCloud(croppedImage, croppedClass);
+            showCropAndGenerate(croppedImage, croppedClass, urlConfidence);
+        } else if (urlObject) {
+            fetch('/api/get-crop/?object_class=' + urlObject)
+                .then(function(resp) { return resp.json(); })
+                .then(function(data) {
+                    if (data.success && data.crop_image) {
+                        showCropAndGenerate(data.crop_image, data.object_class, data.confidence);
+                    }
+                })
+                .catch(function(err) { console.error('Fetch crop error:', err); });
         }
     }
 
