@@ -249,10 +249,7 @@ def logout_view(request):
     
     return redirect('login')
 
-
-# ============================================
 # PROTECTED VIEWS (Require Login)
-# ============================================
 
 @login_required
 def dashboard(request):
@@ -260,8 +257,7 @@ def dashboard(request):
     user_data = request.user_session['users']
     user_id = user_data['id']
     
-    # Get user statistics
-    # Total detection sessions
+    # Get user statistics for total detection sessions
     sessions_response = supabase_admin.table('detection_sessions')\
         .select('id, session_type, started_at, total_detections')\
         .eq('user_id', user_id)\
@@ -313,7 +309,6 @@ def model_viewer(request):
     """3D Model Viewer page"""
     return render(request, 'model_viewer.html')
 
-# API ENDPOINTS (for AJAX/WebSocket)
 
 
 @csrf_exempt
@@ -661,10 +656,7 @@ def google_callback(request):
     request.session['session_token'] = session_token
     return redirect('dashboard')
 
-
-# ============================================
 # OAUTH: GITHUB
-# ============================================
 
 def github_login(request):
     """Redirect user to GitHub OAuth"""
