@@ -194,8 +194,6 @@
 
     <!-- Snapshot Flash Overlay -->
     <div id="snapshotFlash" class="hidden"></div>
-
-    <!-- ════════════════ NAVBAR ════════════════ -->
     <nav>
         <div class="nav-container">
             <a href="{% url 'dashboard' %}" class="nav-back">
@@ -218,14 +216,9 @@
             </div>
         </div>
     </nav>
-
-    <!-- ════════════════ MAIN CONTENT ════════════════ -->
     <main>
         <div class="content-grid">
-
-            <!-- ──────── LEFT COLUMN ──────── -->
             <div>
-
                 <!-- Camera Feed Card -->
                 <div class="glass-card">
                     <div class="camera-header">
@@ -388,8 +381,6 @@
 
         </div>
     </main>
-
-    <!-- ════════════════ JAVASCRIPT ════════════════ -->
     <script>
     (function() {
         'use strict';
@@ -422,7 +413,7 @@
         const clearChatBtn       = document.getElementById('clearChatBtn');
         const typingIndicator    = document.getElementById('typingIndicator');
 
-        // ── State ──
+        // State
         let cameraStream     = null;
         let detectionActive  = false;
         let detectionInterval= null;
@@ -446,10 +437,7 @@
             'fire':        '#dc2626',
             'can':         '#14b8a6'
         };
-
-        // ═══════════════════════════════════════
         // CSRF HELPER
-        // ═══════════════════════════════════════
         function getCookie(name) {
             let cookieValue = null;
             if (document.cookie && document.cookie !== '') {
@@ -464,10 +452,7 @@
             }
             return cookieValue;
         }
-
-        // ═══════════════════════════════════════
         // CAMERA CONTROLS
-        // ═══════════════════════════════════════
         startCameraBtn.addEventListener('click', async () => {
             try {
                 cameraStream = await navigator.mediaDevices.getUserMedia({
@@ -511,10 +496,7 @@
                 addChatMessage('system', 'Camera stopped.');
             }
         });
-
-        // ═══════════════════════════════════════
         // DETECTION LOOP
-        // ═══════════════════════════════════════
         toggleDetectionBtn.addEventListener('click', () => toggleDetection());
 
         function toggleDetection() {
@@ -541,13 +523,6 @@
                 addChatMessage('system', 'Object detection stopped.');
             }
         }
-
-        //function startDetectionLoop() {
-            // Send a frame every 500ms to avoid overwhelming the server
-          //  detectionInterval = setInterval(() => {
-           //     if (!isProcessing) processFrame();
-           // }, 500);
-        //}
             function startDetectionLoop() {
                 // Send a frame every 300ms for more real-time detection
                 detectionInterval = setInterval(() => {
@@ -619,10 +594,7 @@
                 isProcessing = false;
             }
         }
-
-        // ═══════════════════════════════════════
         // DRAW BOUNDING BOXES
-        // ═══════════════════════════════════════
         function drawDetections(detections) {
     ctx.clearRect(0, 0, detectionCanvas.width, detectionCanvas.height);
 
