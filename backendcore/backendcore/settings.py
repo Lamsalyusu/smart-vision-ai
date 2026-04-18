@@ -35,7 +35,7 @@ SECRET_KEY = '<redacted-django-secret-key>'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -176,3 +176,5 @@ GITHUB_REDIRECT_URI = 'http://localhost:8000/auth/github/callback/'
 
 GOOGLE_REDIRECT_URI = 'http://127.0.0.1:8000/auth/google/callback/'
 GITHUB_REDIRECT_URI = 'http://127.0.0.1:8000/auth/github/callback/'
+
+TRIPOSR_API_URL = os.getenv('TRIPOSR_API_URL', '')
