@@ -21,8 +21,8 @@
         body { font-family: 'Space Grotesk', sans-serif; background: #101922; color: #fff; min-height: 100vh; }
         .material-symbols-outlined { font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24; }
 
-        /* ── Navbar ── */
-        nav { background: rgba(25,38,51,0.5); backdrop-filter: blur(12px); border-bottom: 1px solid #324d67; position: sticky; top: 0; z-index: 40; }
+       
+         nav { background: rgba(25,38,51,0.5); backdrop-filter: blur(12px); border-bottom: 1px solid #324d67; position: sticky; top: 0; z-index: 40; }
         .nav-container { max-width: 1400px; margin: 0 auto; padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; }
         .nav-back { display: flex; align-items: center; gap: 0.5rem; color: #92adc9; text-decoration: none; transition: color 0.3s; }
         .nav-back:hover { color: #fff; }
@@ -37,16 +37,13 @@
         .nav-logout:hover { background: rgba(220,38,38,0.2); }
         .nav-logout .material-symbols-outlined { font-size: 1rem; }
 
-        /* ── Layout ── */
         main { max-width: 1400px; margin: 0 auto; padding: 2rem 1.5rem; }
         .content-grid { display: grid; grid-template-columns: 1fr; gap: 1.5rem; }
 
         @media (min-width: 1024px) { .content-grid { grid-template-columns: 2fr 1fr; } }
 
-        /* ── Glass Card ── */
         .glass-card { background: rgba(28,37,50,0.6); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 1.5rem; }
 
-        /* ── Camera ── */
         .camera-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
         .camera-title { font-size: 1.5rem; font-weight: 700; }
         .status-indicator { display: flex; align-items: center; gap: 0.5rem; }
@@ -60,7 +57,6 @@
         .camera-placeholder { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #1c2532; }
         .camera-placeholder.hidden { display: none; }
 
-        /* ── Buttons ── */
         .camera-controls { display: flex; justify-content: space-between; margin-top: 1rem; gap: 1rem; flex-wrap: wrap; }
         .controls-left, .controls-right { display: flex; gap: 0.5rem; flex-wrap: wrap; }
         .btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; border-radius: 0.5rem; font-weight: 600; border: none; cursor: pointer; transition: all 0.3s; font-family: inherit; font-size: 0.875rem; }
@@ -78,7 +74,7 @@
         .btn-gradient { background: linear-gradient(135deg, #2563eb 0%, #9333ea 100%); color: #fff; }
         .btn-gradient:hover:not(:disabled) { opacity: 0.9; }
 
-        /* ── Detected Objects ── */
+    
         .objects-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem; }
         .section-title { display: flex; align-items: center; gap: 0.5rem; font-size: 1.25rem; font-weight: 700; }
         .objects-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0.75rem; }
@@ -88,7 +84,6 @@
         .selected-info { margin-top: 1rem; padding: 1rem; background: linear-gradient(135deg, rgba(59,130,246,0.1), rgba(147,51,234,0.1)); border: 1px solid rgba(59,130,246,0.3); border-radius: 0.5rem; }
         .selected-info.hidden { display: none; }
 
-        /* ── Snapshots ── */
         .snapshot-gallery { display: flex; gap: 0.75rem; overflow-x: auto; padding-bottom: 0.5rem; }
         .snapshot-gallery::-webkit-scrollbar { height: 6px; }
         .snapshot-gallery::-webkit-scrollbar-thumb { background: rgba(146,173,201,0.3); border-radius: 3px; }
@@ -98,13 +93,11 @@
         .snapshot-container:hover .snapshot-overlay { opacity: 1; }
         .snap-action-btn { padding: 0.5rem; border: none; border-radius: 0.5rem; cursor: pointer; color: #fff; }
 
-        /* ── Snapshot Flash ── */
         #snapshotFlash { position: fixed; inset: 0; background: #fff; pointer-events: none; z-index: 50; }
         #snapshotFlash.hidden { display: none; }
         @keyframes flash { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
         .snapshot-flash { animation: flash 0.3s; }
 
-        /* ── Chat Sidebar ── */
         .chat-sidebar { display: flex; flex-direction: column; height: calc(100vh - 200px); position: sticky; top: 6rem; }
         .chat-messages { flex: 1; overflow-y: auto; margin-bottom: 1rem; display: flex; flex-direction: column; gap: 0.75rem; }
         .chat-messages::-webkit-scrollbar { width: 6px; }
@@ -126,7 +119,6 @@
         .quick-action-btn { padding: 0.375rem 0.75rem; background: #192633; border: 1px solid #324d67; border-radius: 0.5rem; color: #92adc9; font-size: 0.75rem; cursor: pointer; transition: all 0.3s; font-family: inherit; }
         .quick-action-btn:hover { background: #2a3442; color: #fff; border-color: #92adc9; }
 
-        /* ── Typing Indicator ── */
         .typing-indicator { display: flex; gap: 0.75rem; align-items: flex-start; }
         .typing-indicator.hidden { display: none; }
         .typing-dots { background: #192633; border-radius: 0.5rem; padding: 0.75rem; display: flex; gap: 0.25rem; }
@@ -135,11 +127,9 @@
         .typing-dot:nth-child(3) { animation-delay: 0.4s; }
         @keyframes typing { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
 
-        /* ── FPS Counter ── */
         .fps-badge { font-size: 0.75rem; padding: 0.25rem 0.5rem; background: rgba(34,197,94,0.15); color: #22c55e; border-radius: 0.25rem; font-weight: 600; }
 
-        /* ── Responsive ── */
-        @media (max-width: 768px) {
+    @media (max-width: 768px) {
     .nav-container { flex-wrap: wrap; gap: 0.5rem; justify-content: center; }
     .nav-brand { order: -1; width: 100%; justify-content: center; }
     .nav-back { font-size: 0.8rem; }
@@ -192,18 +182,20 @@
 </head>
 <body>
 
-    <!-- Snapshot Flash Overlay -->
+
     <div id="snapshotFlash" class="hidden"></div>
+
+    <!-- ════════════════ NAVBAR ════════════════ -->
     <nav>
         <div class="nav-container">
             <a href="{% url 'dashboard' %}" class="nav-back">
                 <span class="material-symbols-outlined">arrow_back</span>
                 <span>Back to Dashboard</span>
             </a>
-            <div class="nav-brand">
+            {% comment %} <div class="nav-brand">
                 <div class="brand-icon"><span class="material-symbols-outlined">visibility</span></div>
                 <span class="brand-text">Smart Vision</span>
-            </div>
+            </div> {% endcomment %}
             <div class="nav-user-group">
                 <div class="nav-profile">
                     <div class="nav-avatar">{{ user.full_name|slice:":1"|upper }}</div>
@@ -216,11 +208,12 @@
             </div>
         </div>
     </nav>
+
     <main>
         <div class="content-grid">
             <div>
                 <!-- Camera Feed Card -->
-                <div class="glass-card">
+                <div class="glass-card">    
                     <div class="camera-header">
                         <h2 class="camera-title">Live Camera Feed</h2>
                         <div class="status-indicator">
@@ -233,7 +226,7 @@
                         <video id="videoElement" autoplay playsinline></video>
                         <canvas id="detectionCanvas"></canvas>
                         <div id="cameraPlaceholder" class="camera-placeholder">
-                            <span class="material-symbols-outlined" style="font-size: 4rem; color: #324d67; margin-bottom: 1rem;">videocam_off</span>
+                            {% comment %} <span class="material-symbols-outlined" style="font-size: 4rem; color: #324d67; margin-bottom: 1rem;">videocam_off</span> {% endcomment %}
                             <p style="color: #92adc9; margin-bottom: 1rem;">Camera is not active</p>
                             <button id="startCameraBtn" class="btn btn-primary">
                                 <span class="material-symbols-outlined">videocam</span>Start Camera
@@ -303,7 +296,7 @@
 
                 <!-- Session Statistics Card -->
                 <div class="glass-card" style="margin-bottom: 0;">
-                    <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 1rem;">Session Statistics</h3>
+                    <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 1rem;">Statistics</h3>
                     <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
                         <div style="text-align: center; padding: 1rem; background: #192633; border-radius: 0.5rem;">
                             <p style="font-size: 0.875rem; color: #92adc9;">Objects Detected</p>
@@ -381,11 +374,10 @@
 
         </div>
     </main>
+
     <script>
     (function() {
         'use strict';
-
-        // ── DOM Elements ──
         const videoElement       = document.getElementById('videoElement');
         const detectionCanvas    = document.getElementById('detectionCanvas');
         const ctx                = detectionCanvas.getContext('2d');
@@ -412,8 +404,6 @@
         const sendChatBtn        = document.getElementById('sendChatBtn');
         const clearChatBtn       = document.getElementById('clearChatBtn');
         const typingIndicator    = document.getElementById('typingIndicator');
-
-        // State
         let cameraStream     = null;
         let detectionActive  = false;
         let detectionInterval= null;
@@ -424,7 +414,6 @@
         let totalObjectsEver = 0;
         let isProcessing     = false;  // prevent overlapping API calls
 
-        // ── Bounding Box Colors ──
         const CLASS_COLORS = {
             'sunglasses':  '#3b82f6',
             'knife':       '#ef4444',
@@ -437,7 +426,7 @@
             'fire':        '#dc2626',
             'can':         '#14b8a6'
         };
-        // CSRF HELPER
+
         function getCookie(name) {
             let cookieValue = null;
             if (document.cookie && document.cookie !== '') {
@@ -452,7 +441,10 @@
             }
             return cookieValue;
         }
+
+        // ═══════════════════════════════════════
         // CAMERA CONTROLS
+        // ═══════════════════════════════════════
         startCameraBtn.addEventListener('click', async () => {
             try {
                 cameraStream = await navigator.mediaDevices.getUserMedia({
@@ -496,7 +488,10 @@
                 addChatMessage('system', 'Camera stopped.');
             }
         });
+
+        // ═══════════════════════════════════════
         // DETECTION LOOP
+        // ═══════════════════════════════════════
         toggleDetectionBtn.addEventListener('click', () => toggleDetection());
 
         function toggleDetection() {
@@ -523,6 +518,13 @@
                 addChatMessage('system', 'Object detection stopped.');
             }
         }
+
+        //function startDetectionLoop() {
+            // Send a frame every 500ms to avoid overwhelming the server
+          //  detectionInterval = setInterval(() => {
+           //     if (!isProcessing) processFrame();
+           // }, 500);
+        //}
             function startDetectionLoop() {
                 // Send a frame every 300ms for more real-time detection
                 detectionInterval = setInterval(() => {
@@ -564,23 +566,43 @@
 
                 const data = await response.json();
 
+                // if (data.success && data.detections) {
+                 //   currentDetections = data.detections;
+                   // frameCount++;
+                    //totalObjectsEver += currentDetections.length;
+
+  //                  sessionFrameCount.textContent  = frameCount;
+//                    sessionObjectCount.textContent = totalObjectsEver;
+    //                fpsBadge.textContent = `${currentDetections.length} obj`;
+
+             
+      //              drawDetections(currentDetections);
+
+                
+        //            updateDetectedObjectsList();
+          //      } else {
+                
+            //        currentDetections = [];
+              //      ctx.clearRect(0, 0, detectionCanvas.width, detectionCanvas.height);
+                //    updateDetectedObjectsList();
+                  //  frameCount++;
+                    //sessionFrameCount.textContent = frameCount;
+                //}
                 if (data.success && data.detections) {
                     currentDetections = data.detections;
                     frameCount++;
                     totalObjectsEver += currentDetections.length;
 
-                    // Update stats
                     sessionFrameCount.textContent  = frameCount;
                     sessionObjectCount.textContent = totalObjectsEver;
                     fpsBadge.textContent = `${currentDetections.length} obj`;
 
-                    // Draw bounding boxes
                     drawDetections(currentDetections);
-
-                    // Update objects list UI
                     updateDetectedObjectsList();
+
+                    // ── NEW: Auto-save crops for dashboard "View 3D" support ──
+                    autoSaveCrops(currentDetections);
                 } else {
-                    // No detections or error
                     currentDetections = [];
                     ctx.clearRect(0, 0, detectionCanvas.width, detectionCanvas.height);
                     updateDetectedObjectsList();
@@ -594,7 +616,105 @@
                 isProcessing = false;
             }
         }
+
+        // ═══════════════════════════════════════
+// AUTO-SAVE CROPS (throttled — once per class per 30s)
+// ═══════════════════════════════════════
+        const lastSavedAt = {}; // { class_name: timestamp }
+        const SAVE_THROTTLE_MS = 30000; // 30 seconds per class
+
+        function autoSaveCrops(detections) {
+            if (!detections || detections.length === 0) return;
+
+            // Pick highest-confidence detection per class
+            const bestPerClass = {};
+            detections.forEach(d => {
+                if (!bestPerClass[d.class] || d.confidence > bestPerClass[d.class].confidence) {
+                    bestPerClass[d.class] = d;
+                }
+            });
+
+            Object.values(bestPerClass).forEach(det => {
+                const now = Date.now();
+                if (lastSavedAt[det.class] && (now - lastSavedAt[det.class] < SAVE_THROTTLE_MS)) {
+                    return; // throttled
+                }
+                // Only save high-confidence detections to avoid junk crops
+                if (det.confidence < 0.4) return;
+
+                const cropDataUrl = cropDetectionFromVideo(det);
+                if (!cropDataUrl) return;
+
+                lastSavedAt[det.class] = now;
+
+                fetch('/api/save-crop/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        object_class: det.class,
+                        confidence: det.confidence,
+                        crop_image: cropDataUrl
+                    })
+                }).catch(err => console.warn('Crop save failed:', err));
+            });
+        }
+
+        function cropDetectionFromVideo(det) {
+            try {
+                if (!videoElement.videoWidth) return null;
+
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = videoElement.videoWidth;
+                tempCanvas.height = videoElement.videoHeight;
+                const tempCtx = tempCanvas.getContext('2d');
+
+                // Draw mirrored frame (matches what user sees)
+                tempCtx.save();
+                tempCtx.scale(-1, 1);
+                tempCtx.drawImage(videoElement, -tempCanvas.width, 0, tempCanvas.width, tempCanvas.height);
+                tempCtx.restore();
+
+                if (!det.bbox) {
+                    return tempCanvas.toDataURL('image/jpeg', 0.85);
+                }
+
+                const bbox = det.bbox;
+                const x1 = Array.isArray(bbox) ? bbox[0] : bbox.x1;
+                const y1 = Array.isArray(bbox) ? bbox[1] : bbox.y1;
+                const x2 = Array.isArray(bbox) ? bbox[2] : bbox.x2;
+                const y2 = Array.isArray(bbox) ? bbox[3] : bbox.y2;
+
+                // Mirror x for mirrored video
+                const mx1 = tempCanvas.width - x2;
+                const mx2 = tempCanvas.width - x1;
+
+                const padX = (mx2 - mx1) * 0.15;
+                const padY = (y2 - y1) * 0.15;
+                const cropX = Math.max(0, Math.floor(mx1 - padX));
+                const cropY = Math.max(0, Math.floor(y1 - padY));
+                const cropW = Math.min(tempCanvas.width - cropX, Math.ceil((mx2 - mx1) + padX * 2));
+                const cropH = Math.min(tempCanvas.height - cropY, Math.ceil((y2 - y1) + padY * 2));
+
+                if (cropW < 20 || cropH < 20) return null;
+
+                const cropCanvas = document.createElement('canvas');
+                cropCanvas.width = cropW;
+                cropCanvas.height = cropH;
+                cropCanvas.getContext('2d').drawImage(tempCanvas, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+
+                return cropCanvas.toDataURL('image/jpeg', 0.85);
+            } catch (e) {
+                console.warn('Crop error:', e);
+                return null;
+            }
+        }
+
+        // ═══════════════════════════════════════
         // DRAW BOUNDING BOXES
+        // ═══════════════════════════════════════
         function drawDetections(detections) {
     ctx.clearRect(0, 0, detectionCanvas.width, detectionCanvas.height);
 
@@ -993,4 +1113,4 @@ view3DBtn.addEventListener('click', () => {
     })();
     </script>
 </body>
-</html>
+</html> 
