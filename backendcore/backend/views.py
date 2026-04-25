@@ -307,7 +307,7 @@ def camera_feed(request):
 @login_required
 def model_viewer(request):
     """3D Model Viewer page"""
-    return render(request, 'model_viewer.html')
+    return render(request, 'model_viewer_v2.html')
 
 
 
@@ -443,12 +443,12 @@ def webcam_feed(request):
     return render(request, 'camera_feed.html')
 
 
-def model_viewer(request):
-    """Render 3D model viewer page"""
-    context = {
-        'detected_class': request.GET.get('class', 'sunglasses')
-    }
-    return render(request, 'model_viewer_v2.html', context)
+# def model_viewer(request):
+#     """Render 3D model viewer page"""
+#     context = {
+#         'detected_class': request.GET.get('class', 'sunglasses')
+#     }
+#     return render(request, 'model_viewer_v2.html', context)
 
 
 def get_3d_model(request, class_name):
