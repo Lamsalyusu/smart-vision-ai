@@ -494,7 +494,7 @@ if ('serviceWorker' in navigator) {
         generate(imageData, className);
     }
 
-    //Class list 
+    // ── Class list ──
     function buildClassList() {
         var container = document.getElementById('classList');
         var html = '';
@@ -532,26 +532,76 @@ if ('serviceWorker' in navigator) {
     });
 
     // ── Init ──
-    function init() {
-        initViewer();
-        buildClassList();
+    //function init() {
+      //  initViewer();
+        //buildClassList();
 
-        if (croppedImage && croppedClass) {
-            showCropAndGenerate(croppedImage, croppedClass, urlConfidence);
-        } else if (urlObject) {
-            fetch('/api/get-crop/?object_class=' + urlObject)
-                .then(function(resp) { return resp.json(); })
-                .then(function(data) {
-                    if (data.success && data.crop_image) {
-                        showCropAndGenerate(data.crop_image, data.object_class, data.confidence);
-                    }
-                })
-                .catch(function(err) { console.error('Fetch crop error:', err); });
-        }
+        i//f (croppedImage && croppedClass) {
+           // showCropAndGenerate(croppedImage, croppedClass, urlConfidence);
+       // } else if (urlObject) {
+        //    fetch('/api/get-crop/?object_class=' + urlObject)
+          //      .then(function(resp) { return resp.json(); })
+            //    .then(function(data) {
+              //      if (data.success && data.crop_image) {
+                //        showCropAndGenerate(data.crop_image, data.object_class, data.confidence);
+                  //  }
+                //})
+                //.catch(function(err) { console.error('Fetch crop error:', err); });
+        //}
+    //}
+
+    //indow.addEventListener('DOMContentLoaded', init);
+// })();
+function init() {
+    initViewer();
+    buildClassList();
+
+    if (croppedImage && croppedClass) {
+        showCropAndGenerate(croppedImage, croppedClass, urlConfidence);
+    } else if (urlObject) {
+        // Show loading state on viewer
+        document.getElementById('viewerTitle').textContent = 'Loading ' + urlObject.replace('_', ' ') + '...';
+        document.getElementById('viewerDesc').textContent = 'Fetching saved crop from database';
+
+        fetch('/api/get-crop/?object_class=' + encodeURIComponent(urlObject))
+            .then(function(resp) { return resp.json(); })
+            .then(function(data) {
+                if (data.success && data.crop_image) {
+                    showCropAndGenerate(data.crop_image, data.object_class, data.confidence);
+                } else {
+                    showNoCropMessage(urlObject, data.error || 'No saved crop found');
+                }
+            })
+            .catch(function(err) {
+                console.error('Fetch crop error:', err);
+                showNoCropMessage(urlObject, 'Network error: ' + err.message);
+            });
     }
+}
 
-    window.addEventListener('DOMContentLoaded', init);
-})();
+function showNoCropMessage(className, reason) {
+    var displayName = className.replace('_', ' ');
+    document.getElementById('emptyState').style.display = 'flex';
+    document.getElementById('emptyState').innerHTML =
+        '<div class="text-center max-w-sm p-6">' +
+            '<div class="w-16 h-16 mx-auto mb-4 rounded-full bg-yellow-500/10 flex items-center justify-center">' +
+                '<svg class="w-8 h-8 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
+                    '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>' +
+                '</svg>' +
+            '</div>' +
+            '<h3 class="text-lg font-semibold mb-2">No saved image for ' + displayName + '</h3>' +
+            '<p class="text-sm text-gray-400 mb-4">' +
+                'This detection was logged before image saving was enabled, or the crop expired. ' +
+                'Detect this object live to generate its 3D model.' +
+            '</p>' +
+            '<a href="/camera/" class="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium">' +
+                'Go to Camera Feed' +
+            '</a>' +
+            '<p class="text-xs text-gray-600 mt-4">Reason: ' + reason + '</p>' +
+        '</div>';
+    document.getElementById('viewerTitle').textContent = 'No image available';
+    document.getElementById('viewerDesc').textContent = 'Detect this object from the camera feed';
+}
 </script>
 </body>
 </html>
