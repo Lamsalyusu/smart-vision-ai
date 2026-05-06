@@ -16,25 +16,15 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from django.contrib import admin
-from django.urls import path, include
-from django.http import JsonResponse   # 👈 IMPORTANT
+from django.shortcuts import render
 
-# 👇 ADD THIS FUNCTION (you forgot it)
 def home(request):
-    return JsonResponse({
-        "message": "Backend running successfully 🚀",
-        "api_base": "/api/"
-    })
-
+    return render(request, "landingpage.html")
 
 urlpatterns = [
-    path('', home, name="home"), 
+    path('', home, name='home'),
     path('admin/', admin.site.urls),
-
-    # All API endpoints from your app will start with /api/
-    path('api/', include('backend.urls')),
-    # path('api/', include('backend.urls')),
-
+    path('', include('backend.urls')),  # keep if needed
 ]
+
 
