@@ -26,4 +26,11 @@ urlpatterns = [
     path('api/detect/', views.detect_objects, name='detect'),
     path('api/3d-model/<str:class_name>/', views.get_3d_model, name='get_3d_model'),
     path('api/chat/', views.llm_chat, name='llm_chat'),
+
+    path('api/save-crop/', views.save_crop, name='save_crop'),
+    path('api/get-crop/', views.get_latest_crop, name='get_latest_crop'),
+    path('api/clear-history/', views.clear_detection_history, name='clear_history'),
+
+    path('api/generate-3d-mesh/', views.generate_3d_mesh, name='generate_3d_mesh'),
+
 ]
