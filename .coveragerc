@@ -1,0 +1,13 @@
+[run]
+source = backend
+omit =
+    */migrations/*
+    */tests.py
+    */admin.py
+    */apps.py
+    */wsgi.py
+    */asgi.py
+
+[report]
+show_missing = True
+precision = 2
