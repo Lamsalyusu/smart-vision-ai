@@ -6,7 +6,7 @@ help:
 	@echo "SmartVision AI Developer & Evaluation Commands:"
 	@echo "  make install     - Install requirements and setup environment"
 	@echo "  make run         - Start the local development server (port 8000)"
-	@echo "  make test        - Run the test suite (19 tests)"
+	@echo "  make test        - Run the unit test suite (33 tests)"
 	@echo "  make coverage    - Run tests with coverage and print report"
 	@echo "  make benchmark   - Run latency and throughput profiler"
 	@echo "  make docker-up   - Build and start containerized application"
@@ -26,6 +26,20 @@ coverage:
 	$(PYTHON) -m coverage run manage.py test
 	$(PYTHON) -m coverage report
 	$(PYTHON) -m coverage report > model_evaluation/test_coverage_report.txt
+
+coverage-html:
+	$(PYTHON) -m coverage run manage.py test
+	$(PYTHON) -m coverage html
+	$(PYTHON) -m coverage report > model_evaluation/test_coverage_report.txt
+
+badge:
+	./.venv/bin/coverage-badge -o coverage-badge.svg -f
+
+lint:
+	$(PYTHON) -m ruff check .
+
+type-check:
+	$(PYTHON) -m mypy .
 
 benchmark:
 	$(PYTHON) model_evaluation/benchmark_pipeline.py

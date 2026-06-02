@@ -62,7 +62,7 @@ Open `http://127.0.0.1:8000` in your browser.
 Standardized development and evaluation commands:
 
 ```bash
-make test        # Run unit test suite (19 tests)
+make test        # Run unit test suite (33 tests)
 make coverage    # Run tests and generate coverage report
 make benchmark   # Run latency percentiles and throughput profiler
 make run         # Start Django development server

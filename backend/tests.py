@@ -3,7 +3,7 @@ from unittest.mock import patch, MagicMock
 import numpy as np
 
 from django.core.cache import cache
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from backend.ml_model.tracker import SortTracker, calculate_iou, bbox_to_z, x_to_bbox
@@ -119,6 +119,7 @@ class ChatEndpointTests(BaseTestCase):
         )
         self.assertEqual(response.status_code, 400)
 
+    @override_settings(OFFLINE_MODE=False, GROQ_API_KEY="gsk_test_mock_key")
     @patch("backend.services.chat_service.Groq")
     def test_valid_chat_call_succeeds(self, mock_groq_class):
         mock_client = MagicMock()
@@ -362,3 +363,44 @@ class ViewsExtendedEndpointsTests(BaseTestCase):
             content_type="application/json"
         )
         self.assertEqual(resp.status_code, 400)
+
+
+class LocalOrmAuthAndDataTests(TestCase):
+    def test_local_signup_login_and_telemetry_flow(self):
+        import json
+        signup_data = {
+            "full_name": "Test Engineer",
+            "email": "engineer@test.local",
+            "password": "SecurePassword123!",
+            "confirm_password": "SecurePassword123!",
+        }
+        resp = self.client.post(reverse("signup"), data=signup_data)
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn("dashboard", resp["Location"])
+
+        # Authenticated dashboard access
+        resp_dash = self.client.get(reverse("dashboard"))
+        self.assertEqual(resp_dash.status_code, 200)
+
+        # Authenticated stats endpoint
+        resp_stats = self.client.get(reverse("user_stats"))
+        self.assertEqual(resp_stats.status_code, 200)
+        body = resp_stats.json()
+        self.assertEqual(body["total_detections"], 0)
+
+        # Save and retrieve crop
+        crop_payload = {
+            "object_class": "knife",
+            "confidence": 0.94,
+            "crop_image": "data:image/png;base64,fakecropdata",
+        }
+        resp_crop = self.client.post("/api/save-crop/", data=json.dumps(crop_payload), content_type="application/json")
+        self.assertEqual(resp_crop.status_code, 200)
+
+        resp_get = self.client.get("/api/get-crop/?object_class=knife")
+        self.assertEqual(resp_get.status_code, 200)
+        self.assertEqual(resp_get.json()["object_class"], "knife")
+
+        # Clear history
+        resp_clear = self.client.post("/api/clear-history/")
+        self.assertEqual(resp_clear.status_code, 200)
