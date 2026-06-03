@@ -143,12 +143,16 @@ class KalmanBoxTracker:
         """Kalman measurement update step using residual innovation."""
         z = bbox_to_z(bbox)
         y = z - np.dot(self.H, self.x)
-        S = np.dot(np.dot(self.H, self.P), self.H.T) + self.R
+        # Adaptive measurement noise covariance scaled by detection confidence
+        meas_conf = max(0.1, min(1.0, float(confidence))) if confidence is not None else 0.8
+        R_adaptive = self.R * (1.0 / meas_conf)
+
+        S = np.dot(np.dot(self.H, self.P), self.H.T) + R_adaptive
         K = np.dot(np.dot(self.P, self.H.T), np.linalg.inv(S))
 
         self.x = self.x + np.dot(K, y)
-        I = np.eye(7, dtype=np.float32)
-        self.P = np.dot(I - np.dot(K, self.H), self.P)
+        eye7 = np.eye(7, dtype=np.float32)
+        self.P = np.dot(eye7 - np.dot(K, self.H), self.P)
 
         self.time_since_update = 0
         self.hits += 1
@@ -188,12 +192,13 @@ class KalmanBoxTracker:
 
 
 class SortTracker:
-    """Multi-object tracker with Kalman prediction and bipartite spatial matching."""
+    """Multi-object tracker with Kalman prediction, Mahalanobis gating, and bipartite matching."""
 
-    def __init__(self, max_age=15, min_hits=2, iou_threshold=0.3):
+    def __init__(self, max_age=15, min_hits=2, iou_threshold=0.3, gating_threshold=14.0):
         self.max_age = max_age
         self.min_hits = min_hits
         self.iou_threshold = iou_threshold
+        self.gating_threshold = gating_threshold
         self.trackers = []
         self.frame_count = 0
 
@@ -226,7 +231,10 @@ class SortTracker:
                     class_weight = 1.0 if same_class else 0.3
                     iou = calculate_iou(predicted_boxes[t_idx], det["bbox"])
                     if iou > 0:
-                        cost_matrix[t_idx, d_idx] = 1.0 - (iou * class_weight)
+                        # Spatial Mahalanobis validation gate
+                        gate_dist = trk.gating_distance(det["bbox"])
+                        if gate_dist <= self.gating_threshold:
+                            cost_matrix[t_idx, d_idx] = 1.0 - (iou * class_weight)
 
             assigned = linear_assignment(cost_matrix)
             for t_idx, d_idx in assigned:

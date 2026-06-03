@@ -29,16 +29,16 @@ class ObjectDetector:
     )
 
     CLASS_THRESHOLDS = {
-        "sunglasses": 0.25,
-        "knife": 0.25,
+        "sunglasses": 0.22,
+        "knife": 0.28,
         "water_bottle": 0.25,
-        "pen": 0.25,
-        "chair": 0.25,
-        "human_face": 0.25,
-        "mobile_phone": 0.25,
-        "helmet": 0.25,
-        "fire": 0.25,
-        "can": 0.25,
+        "pen": 0.18,
+        "chair": 0.35,
+        "human_face": 0.30,
+        "mobile_phone": 0.24,
+        "helmet": 0.26,
+        "fire": 0.28,
+        "can": 0.22,
     }
 
     ANCHORS = (

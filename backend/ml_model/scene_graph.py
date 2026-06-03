@@ -67,12 +67,25 @@ class SpatialSceneGraph:
                             "distance_m": round(dist_3d, 2),
                         })
 
+        # Calculate topological node degree centrality
+        node_degrees = {n_item["track_id"]: 0 for n_item in nodes}
+        for edge in edges:
+            node_degrees[edge["source_id"]] += 1
+            node_degrees[edge["target_id"]] += 1
+
+        for n_item in nodes:
+            t_id = n_item["track_id"]
+            n_item["degree_centrality"] = (
+                round(float(node_degrees[t_id]) / float(n - 1), 2) if n > 1 else 0.0
+            )
+
         summary_prompt = self._generate_prompt_context(nodes, edges)
 
         graph_metrics = {
             "node_count": n,
             "edge_count": len(edges),
             "density": round(2.0 * len(edges) / (n * (n - 1)), 2) if n > 1 else 0.0,
+            "max_degree": max(node_degrees.values()) if node_degrees else 0,
         }
 
         return {
