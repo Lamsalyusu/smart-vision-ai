@@ -359,11 +359,6 @@ def camera_feed(request):
     return render(request, 'camera_feed.html', context)
 
 
-
-@login_required
-def model_viewer(request):
-    """3D Model Viewer page"""
-    return render(request, 'model_viewer.html')
 # ============================================
 # API ENDPOINTS (for AJAX/WebSocket)
 # ============================================
@@ -400,37 +395,3 @@ def get_user_stats(request):
         'total_detections': detections_count.count if hasattr(detections_count, 'count') else 0,
         'total_queries': queries_count.count if hasattr(queries_count, 'count') else 0
     })
-
-
-from django.shortcuts import render, redirect
-from django.contrib import messages
-import secrets
-from datetime import datetime, timedelta
-
-def forgot_password(request):
-    if request.method == 'POST':
-        email = request.POST.get('email')
-        
-        # Check if user exists
-        try:
-            user = User.objects.get(email=email)
-            
-            # Generate reset token
-            token = secrets.token_urlsafe(32)
-            expiry = datetime.now() + timedelta(hours=1)
-            
-            # Save token to database (you'll need a PasswordReset model)
-            # PasswordReset.objects.create(user=user, token=token, expiry=expiry)
-            
-            # Send email (implement this later)
-            # send_password_reset_email(user.email, token)
-            
-            # Redirect with success
-            return redirect('/forgot-password/?success=true')
-            
-        except User.DoesNotExist:
-            return render(request, 'forgot_password.html', {
-                'error': 'No account found with this email address.'
-            })
-    
-    return render(request, 'forgot_password.html')
