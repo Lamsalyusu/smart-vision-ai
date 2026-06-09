@@ -1,394 +1,828 @@
-{% comment %} {% load static %}
-<!DOCTYPE html>
-
-<html class="dark" lang="en"><head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Smart Vision - Sign Up</title>
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Noto+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-<script id="tailwind-config">
-      tailwind.config = {
-        darkMode: "class",
-        theme: {
-          extend: {
-            colors: {
-              "primary": "#135bec",
-              "primary-hover": "#0e4bce",
-              "background-light": "#f6f6f8",
-              "background-dark": "#101622",
-              "surface-dark": "#1c1f27",
-            },
-            fontFamily: {
-              "display": ["Space Grotesk", "sans-serif"],
-              "body": ["Noto Sans", "sans-serif"],
-            },
-            borderRadius: {
-                "DEFAULT": "0.25rem",
-                "lg": "0.5rem",
-                "xl": "0.75rem", 
-                "full": "9999px"
-            },
-          },
-        },
-      }
-    </script>
-<style>
-        /* Custom scrollbar for webkit browsers */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #101622;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #282e39;
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #3b4354;
-        }
-        
-        .glass-panel {
-            background: rgba(28, 31, 39, 0.7);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-        }
-    </style>
-</head>
-<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display overflow-x-hidden antialiased">
-<div class="relative min-h-screen w-full flex flex-col">
-<!-- Background Decorative Elements -->
-<div class="absolute top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
-<div class="absolute top-[-10%] right-[-5%] w-[600px] h-[600px] bg-primary/20 rounded-full blur-[120px]"></div>
-<div class="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] bg-indigo-900/20 rounded-full blur-[100px]"></div>
-<!-- Grid Pattern Overlay -->
-<div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTTAgNDBMMCAwTDQwIDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgyNTUsIDI1NSwgMjU1LCAwLjAzKSIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyaWQpIiAvPjwvc3ZnPg==')] opacity-30"></div>
-</div>
-<!-- Navigation -->
-<header class="flex items-center justify-between border-b border-solid border-slate-200 dark:border-[#282e39] px-6 lg:px-10 py-4 glass-panel sticky top-0 z-50">
-<div class="flex items-center gap-3 text-white">
-<div class="size-8 text-primary">
-<svg class="w-full h-full" fill="none" viewbox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-<path clip-rule="evenodd" d="M24 18.4228L42 11.475V34.3663C42 34.7796 41.7457 35.1504 41.3601 35.2992L24 42V18.4228Z" fill="currentColor" fill-rule="evenodd"></path>
-<path clip-rule="evenodd" d="M24 8.18819L33.4123 11.574L24 15.2071L14.5877 11.574L24 8.18819ZM9 15.8487L21 20.4805V37.6263L9 32.9945V15.8487ZM27 37.6263V20.4805L39 15.8487V32.9945L27 37.6263ZM25.354 2.29885C24.4788 1.98402 23.5212 1.98402 22.646 2.29885L4.98454 8.65208C3.7939 9.08038 3 10.2097 3 11.475V34.3663C3 36.0196 4.01719 37.5026 5.55962 38.098L22.9197 44.7987C23.6149 45.0671 24.3851 45.0671 25.0803 44.7987L42.4404 38.098C43.9828 37.5026 45 36.0196 45 34.3663V11.475C45 10.2097 44.2061 9.08038 43.0155 8.65208L25.354 2.29885Z" fill="currentColor" fill-rule="evenodd"></path>
-</svg>
-</div>
-<h2 class="text-slate-900 dark:text-white text-xl font-bold tracking-tight">Smart Vision</h2>
-</div>
-<div class="flex items-center gap-4">
-<span class="hidden sm:inline-block text-sm font-medium text-slate-500 dark:text-[#9da6b9]">Already a member?</span>
-<a  href = "{% url 'login' %}" class="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-9 px-4 bg-transparent border border-slate-300 dark:border-[#3b4354] hover:bg-slate-100 dark:hover:bg-[#282e39] text-slate-900 dark:text-white text-sm font-bold leading-normal transition-colors duration-200" href="#">
-<span class="truncate">Login</span>
-</a>
-</div>
-</header>
-<!-- Main Content -->
-<main class="flex-grow flex flex-col lg:flex-row items-center justify-center p-4 lg:p-0 relative z-10">
-<!-- Left Side: Visual / Value Prop (Desktop) -->
-<div class="hidden lg:flex flex-1 h-full flex-col justify-center px-20 py-12 relative">
-<div class="max-w-xl z-20">
-<div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold uppercase tracking-wider mb-6">
-<span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
-                        Real-time Intelligence
-                    </div>
-<h1 class="text-5xl font-bold text-slate-900 dark:text-white leading-[1.1] mb-6 tracking-tight">
-                        See the world through <span class="text-transparent bg-clip-text bg-gradient-to-r from-primary to-purple-400">AI eyes</span>
-</h1>
-<p class="text-lg text-slate-600 dark:text-[#9da6b9] mb-10 leading-relaxed max-w-md">
-                        Join thousands of developers and researchers using Smart Vision for advanced object detection, 3D spatial mapping, and LLM-powered scene analysis.
-                    </p>
-<div class="grid grid-cols-2 gap-6">
-<div class="flex flex-col gap-2 p-4 rounded-xl bg-slate-100 dark:bg-[#1c1f27] border border-slate-200 dark:border-[#282e39]">
-<span class="material-symbols-outlined text-primary text-3xl">view_in_ar</span>
-<h3 class="text-slate-900 dark:text-white font-bold">3D Modeling</h3>
-<p class="text-sm text-slate-500 dark:text-[#9da6b9]">Instant point cloud generation from video feeds.</p>
-</div>
-<div class="flex flex-col gap-2 p-4 rounded-xl bg-slate-100 dark:bg-[#1c1f27] border border-slate-200 dark:border-[#282e39]">
-<span class="material-symbols-outlined text-primary text-3xl">psychology</span>
-<h3 class="text-slate-900 dark:text-white font-bold">LLM Context</h3>
-<p class="text-sm text-slate-500 dark:text-[#9da6b9]">Ask questions about what your camera sees.</p>
-</div>
-</div>
-</div>
-<!-- Abstract 3D shape decoration -->
-<div class="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/4 w-[600px] h-[600px] opacity-30 pointer-events-none">
-<img alt="Abstract 3D wireframe mesh representing computer vision scanning" class="w-full h-full object-contain mix-blend-screen" data-alt="Abstract 3D wireframe mesh representing computer vision scanning" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDz8uzedjoslLJRHEKSxb_tU9RrEZhTCTkhMPz0SrNAZY4lb4RXd1lhawgkzSXqXuRVFa0bBDlWOjoBlEqVZM_GRCipONKkVWsqJzI4PNw8O2hASmia1Q83etON-spoR4oZ6dA88m7F0Jlohy-Yds3RH7Zq5Y38sX6sefxNL2ifBf62acV21gTPj8m9qlqD5lWVgRdz7uuQ69sTnyR_bxCeSih2TSFOGfB78L3PSuvKdv9YppsKsQKFaIbl_VubO7Jcv_WLtx34Lzg"/>
-</div>
-</div>
-<!-- Right Side: Sign Up Form -->
-<div class="w-full lg:w-[540px] flex flex-col justify-center lg:min-h-[calc(100vh-80px)] py-8 lg:py-12">
-<div class="w-full max-w-md mx-auto bg-white dark:bg-[#1c1f27] rounded-2xl shadow-2xl shadow-black/20 border border-slate-200 dark:border-[#282e39] p-8 relative overflow-hidden">
-<!-- Decorative top gradient line -->
-<div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-purple-500 to-primary"></div>
-<div class="mb-8 text-center lg:text-left">
-<h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-2">Create your account</h2>
-<p class="text-slate-500 dark:text-[#9da6b9] text-sm">Start your 14-day free trial. No credit card required.</p>
-</div>
-<!-- Social Sign Up -->
-<div class="flex gap-3 mb-6">
-<button class="flex-1 flex items-center justify-center gap-2 h-10 bg-slate-50 dark:bg-[#282e39] border border-slate-200 dark:border-[#3b4354] rounded-lg hover:bg-slate-100 dark:hover:bg-[#323945] transition-colors text-slate-700 dark:text-white text-sm font-medium">
-<img alt="Google" class="w-5 h-5" data-alt="Google logo icon" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAHHf5Sv_GjAKow_fhfIoB1WUAVqZq6r9xu5BDLP6sq11dSu3qbDCiEg25RtVFFwdhVdH1N6Wamvs1XobrAvenrgUXINsYhwL7FxJvPxW4ChogBBH7ONIZLRNAB6EyiHTif-YOeUY3zzJwjCCtI97PRtddtntdmML1gR5Rzjau0rJ0Q-OTKFogbmzHmkF1d2NX6isSoLyJ8SGphSzFQer2LH60DKyv3AmgA0PIk2m4xkQg0TaG8x6snEJg6d3WqJ1CEJXy-o3oolvM"/>
-                            Google
-                        </button>
-<button class="flex-1 flex items-center justify-center gap-2 h-10 bg-slate-50 dark:bg-[#282e39] border border-slate-200 dark:border-[#3b4354] rounded-lg hover:bg-slate-100 dark:hover:bg-[#323945] transition-colors text-slate-700 dark:text-white text-sm font-medium">
-<img alt="GitHub" class="w-5 h-5 dark:invert" data-alt="GitHub logo icon" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA3SWGB7TU7wjyAEOIUt8ypLoslVyesmRUSjMJC4viGTUM47X5ehoo8I3jvzNU81rZ_zmsKxNkcilyJFFsSguVhOSKEiRi49ilU0PpTY_5aHCXOfJM1iZoCuDHIruKWS-uc4X3jRrjZOrpiPRzpqcgGl_aW4aLjpyj-6cgz1-AVkGRKX3_4HyIIap_P3nLE53mIV8a_Aly7L1mF5frxs0NixcqDooPoxHhjFSuyT7akMi8Q3TYJLdKyOq2UOLu20WpV8r_0jLb3ykg"/>
-                            GitHub
-                        </button>
-</div>
-<div class="relative flex py-2 items-center mb-6">
-<div class="flex-grow border-t border-slate-200 dark:border-[#3b4354]"></div>
-<span class="flex-shrink-0 mx-4 text-slate-400 dark:text-[#636b7e] text-xs font-medium uppercase tracking-wider">Or continue with</span>
-<div class="flex-grow border-t border-slate-200 dark:border-[#3b4354]"></div>
-</div>
-<form class="flex flex-col gap-5">
-<label class="flex flex-col gap-2">
-<span class="text-sm font-medium text-slate-700 dark:text-white">Full Name</span>
-<div class="relative group">
-<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-[#9da6b9] group-focus-within:text-primary transition-colors text-xl">person</span>
-<input class="w-full h-11 pl-10 pr-4 rounded-lg border border-slate-300 dark:border-[#3b4354] bg-white dark:bg-[#111318] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-[#636b7e] focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-sm font-body" placeholder="John Doe" required="" type="text"/>
-</div>
-</label>
-<label class="flex flex-col gap-2">
-<span class="text-sm font-medium text-slate-700 dark:text-white">Email Address</span>
-<div class="relative group">
-<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-[#9da6b9] group-focus-within:text-primary transition-colors text-xl">mail</span>
-<input class="w-full h-11 pl-10 pr-4 rounded-lg border border-slate-300 dark:border-[#3b4354] bg-white dark:bg-[#111318] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-[#636b7e] focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-sm font-body" placeholder="name@company.com" required="" type="email"/>
-</div>
-</label>
-<div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-<label class="flex flex-col gap-2">
-<span class="text-sm font-medium text-slate-700 dark:text-white">Password</span>
-<div class="relative group">
-<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-[#9da6b9] group-focus-within:text-primary transition-colors text-xl">lock</span>
-<input class="w-full h-11 pl-10 pr-4 rounded-lg border border-slate-300 dark:border-[#3b4354] bg-white dark:bg-[#111318] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-[#636b7e] focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-sm font-body" placeholder="••••••••" required="" type="password"/>
-</div>
-</label>
-<label class="flex flex-col gap-2">
-<span class="text-sm font-medium text-slate-700 dark:text-white">Confirm Password</span>
-<div class="relative group">
-<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-[#9da6b9] group-focus-within:text-primary transition-colors text-xl">lock_reset</span>
-<input class="w-full h-11 pl-10 pr-4 rounded-lg border border-slate-300 dark:border-[#3b4354] bg-white dark:bg-[#111318] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-[#636b7e] focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-sm font-body" placeholder="••••••••" required="" type="password"/>
-</div>
-</label>
-</div>
-<div class="flex items-center gap-3 my-1">
-<input class="w-4 h-4 rounded border-slate-300 dark:border-[#3b4354] bg-white dark:bg-[#111318] text-primary focus:ring-primary" id="terms" type="checkbox"/>
-<label class="text-xs text-slate-500 dark:text-[#9da6b9]" for="terms">
-                                I agree to the <a class="text-primary hover:text-primary-hover underline" href="#">Terms of Service</a> and <a class="text-primary hover:text-primary-hover underline" href="#">Privacy Policy</a>
-</label>
-</div>
-<button class="group relative w-full h-12 bg-primary hover:bg-primary-hover text-white text-base font-bold rounded-lg transition-all duration-200 shadow-lg shadow-primary/25 overflow-hidden" type="submit">
-<span class="relative z-10 flex items-center justify-center gap-2">
-                                Sign Up Now
-                                <span class="material-symbols-outlined text-lg group-hover:translate-x-1 transition-transform">arrow_forward</span>
-</span>
-</button>
-</form>
-<div class="mt-8 pt-6 border-t border-slate-100 dark:border-[#282e39] text-center">
-<p class="text-sm text-slate-500 dark:text-[#9da6b9]">
-                            Having trouble? <a class="text-primary hover:text-primary-hover font-medium" href="#">Contact Support</a>
-</p>
-</div>
-</div>
-</div>
-</main>
-</div>
-</body></html> {% endcomment %}
-
-
 {% load static %}
 <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Smart Vision - Sign Up</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Noto+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
 
-<html class="dark" lang="en"><head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Smart Vision - Sign Up</title>
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Noto+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
-<script id="tailwind-config">
-      tailwind.config = {
-        darkMode: "class",
-        theme: {
-          extend: {
-            colors: {
-              "primary": "#135bec",
-              "primary-hover": "#0e4bce",
-              "background-light": "#f6f6f8",
-              "background-dark": "#101622",
-              "surface-dark": "#1c1f27",
-            },
-            fontFamily: {
-              "display": ["Space Grotesk", "sans-serif"],
-              "body": ["Noto Sans", "sans-serif"],
-            },
-            borderRadius: {
-                "DEFAULT": "0.25rem",
-                "lg": "0.5rem",
-                "xl": "0.75rem", 
-                "full": "9999px"
-            },
-          },
-        },
-      }
-    </script>
-<style>
-        /* Custom scrollbar for webkit browsers */
+    <style>
+        /* ============================================
+           RESET & BASE STYLES
+           ============================================ */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background-color: #101622;
+            color: #ffffff;
+            min-height: 100vh;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .material-symbols-outlined {
+            font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+        }
+
+        /* ============================================
+           CUSTOM SCROLLBAR
+           ============================================ */
         ::-webkit-scrollbar {
             width: 8px;
         }
+        
         ::-webkit-scrollbar-track {
             background: #101622;
         }
+        
         ::-webkit-scrollbar-thumb {
             background: #282e39;
             border-radius: 4px;
         }
+        
         ::-webkit-scrollbar-thumb:hover {
             background: #3b4354;
         }
-        
-        .glass-panel {
+
+        /* ============================================
+           BACKGROUND DECORATIONS
+           ============================================ */
+        .page-wrapper {
+            position: relative;
+            min-height: 100vh;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .bg-decoration {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .blob-1 {
+            position: absolute;
+            top: -10%;
+            right: -5%;
+            width: 600px;
+            height: 600px;
+            background: rgba(19, 91, 236, 0.2);
+            border-radius: 50%;
+            filter: blur(120px);
+        }
+
+        .blob-2 {
+            position: absolute;
+            bottom: -10%;
+            left: -10%;
+            width: 500px;
+            height: 500px;
+            background: rgba(99, 102, 241, 0.2);
+            border-radius: 50%;
+            filter: blur(100px);
+        }
+
+        .grid-overlay {
+            position: absolute;
+            inset: 0;
+            background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTTAgNDBMMCAwTDQwIDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgyNTUsIDI1NSwgMjU1LCAwLjAzKSIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyaWQpIiAvPjwvc3ZnPg==');
+            opacity: 0.3;
+        }
+
+        /* ============================================
+           HEADER / NAVIGATION
+           ============================================ */
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #282e39;
             background: rgba(28, 31, 39, 0.7);
             backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: white;
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            color: #135bec;
+        }
+
+        .logo-text {
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+        }
+
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .nav-label {
+            display: none;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #9da6b9;
+        }
+
+        .login-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 84px;
+            height: 36px;
+            padding: 0 1rem;
+            background: transparent;
+            border: 1px solid #3b4354;
+            border-radius: 0.5rem;
+            color: white;
+            font-size: 0.875rem;
+            font-weight: 700;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .login-btn:hover {
+            background: #282e39;
+        }
+
+        /* ============================================
+           MAIN CONTENT LAYOUT
+           ============================================ */
+        main {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            position: relative;
+            z-index: 10;
+        }
+
+        .content-wrapper {
+            display: flex;
+            width: 100%;
+            max-width: 1400px;
+            gap: 2rem;
+        }
+
+        /* ============================================
+           LEFT SIDE - VALUE PROPOSITION
+           ============================================ */
+        .left-panel {
+            display: none;
+            flex: 1;
+            flex-direction: column;
+            justify-content: center;
+            padding: 3rem 5rem;
+            position: relative;
+        }
+
+        .value-content {
+            max-width: 600px;
+            z-index: 20;
+            position: relative;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            background: rgba(19, 91, 236, 0.1);
+            border: 1px solid rgba(19, 91, 236, 0.2);
+            color: #135bec;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 1.5rem;
+        }
+
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #135bec;
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .value-title {
+            font-size: 3rem;
+            font-weight: 700;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+            letter-spacing: -0.02em;
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #135bec 0%, #a78bfa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .value-description {
+            font-size: 1.125rem;
+            color: #9da6b9;
+            margin-bottom: 2.5rem;
+            line-height: 1.6;
+            max-width: 450px;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+        }
+
+        .feature-card {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            padding: 1rem;
+            border-radius: 0.75rem;
+            background: #1c1f27;
+            border: 1px solid #282e39;
+        }
+
+        .feature-icon {
+            color: #135bec;
+            font-size: 2rem;
+        }
+
+        .feature-title {
+            font-weight: 700;
+            color: white;
+        }
+
+        .feature-desc {
+            font-size: 0.875rem;
+            color: #9da6b9;
+        }
+
+        .decoration-image {
+            position: absolute;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%) translateX(25%);
+            width: 600px;
+            height: 600px;
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        .decoration-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            mix-blend-mode: screen;
+        }
+
+        /* ============================================
+           RIGHT SIDE - SIGNUP FORM
+           ============================================ */
+        .right-panel {
+            width: 100%;
+            max-width: 540px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 2rem 0;
+        }
+
+        .form-card {
+            width: 100%;
+            max-width: 450px;
+            margin: 0 auto;
+            background: #1c1f27;
+            border-radius: 1rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            border: 1px solid #282e39;
+            padding: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .form-card::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, #135bec 0%, #9333ea 50%, #135bec 100%);
+        }
+
+        .form-header {
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .form-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-subtitle {
+            font-size: 0.875rem;
+            color: #9da6b9;
+        }
+
+        /* ============================================
+           ERROR MESSAGE
+           ============================================ */
+        .error-message {
+            margin-bottom: 1.5rem;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.5);
+            border-radius: 0.5rem;
+            padding: 1rem;
+        }
+
+        .error-message p {
+            color: #f87171;
+            font-size: 0.875rem;
+        }
+
+        /* ============================================
+           FORM STYLES
+           ============================================ */
+        .signup-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.25rem;
+        }
+
+        .form-label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: white;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #9da6b9;
+            font-size: 1.25rem;
+            transition: color 0.3s ease;
+            pointer-events: none;
+        }
+
+        .form-input {
+            width: 100%;
+            height: 44px;
+            padding: 0 1rem 0 2.5rem;
+            background: #111318;
+            border: 1px solid #3b4354;
+            border-radius: 0.5rem;
+            color: white;
+            font-size: 0.875rem;
+            font-family: 'Noto Sans', sans-serif;
+            transition: all 0.3s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #135bec;
+            box-shadow: 0 0 0 1px #135bec;
+        }
+
+        .form-input:focus + .input-icon {
+            color: #135bec;
+        }
+
+        .input-wrapper:focus-within .input-icon {
+            color: #135bec;
+        }
+
+        .form-input::placeholder {
+            color: #636b7e;
+        }
+
+        /* ============================================
+           TERMS CHECKBOX
+           ============================================ */
+        .terms-group {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin: 0.25rem 0;
+        }
+
+        .terms-checkbox {
+            width: 16px;
+            height: 16px;
+            border-radius: 0.25rem;
+            border: 1px solid #3b4354;
+            background: #111318;
+            cursor: pointer;
+        }
+
+        .terms-checkbox:checked {
+            background: #135bec;
+            border-color: #135bec;
+        }
+
+        .terms-label {
+            font-size: 0.75rem;
+            color: #9da6b9;
+        }
+
+        .terms-label a {
+            color: #135bec;
+            text-decoration: underline;
+        }
+
+        .terms-label a:hover {
+            color: #0e4bce;
+        }
+
+        /* ============================================
+           SUBMIT BUTTON
+           ============================================ */
+        .submit-button {
+            position: relative;
+            width: 100%;
+            height: 48px;
+            background: #135bec;
+            color: white;
+            font-size: 1rem;
+            font-weight: 700;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 10px 15px -3px rgba(19, 91, 236, 0.25);
+            overflow: hidden;
+        }
+
+        .submit-button:hover {
+            background: #0e4bce;
+            transform: translateY(-2px);
+            box-shadow: 0 15px 20px -3px rgba(19, 91, 236, 0.35);
+        }
+
+        .submit-button:active {
+            transform: translateY(0);
+        }
+
+        .button-content {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .button-arrow {
+            transition: transform 0.2s ease;
+        }
+
+        .submit-button:hover .button-arrow {
+            transform: translateX(4px);
+        }
+
+        /* ============================================
+           FOOTER LINK
+           ============================================ */
+        .form-footer {
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #282e39;
+            text-align: center;
+        }
+
+        .footer-text {
+            font-size: 0.875rem;
+            color: #9da6b9;
+        }
+
+        .footer-link {
+            color: #135bec;
+            font-weight: 500;
+            text-decoration: none;
+        }
+
+        .footer-link:hover {
+            color: #0e4bce;
+        }
+
+        /* ============================================
+           RESPONSIVE DESIGN
+           ============================================ */
+        @media (min-width: 640px) {
+            .nav-label {
+                display: inline-block;
+            }
+
+            .form-header {
+                text-align: left;
+            }
+        }
+
+        @media (min-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            header {
+                padding: 1rem 2.5rem;
+            }
+
+            main {
+                padding: 0;
+            }
+
+            .content-wrapper {
+                flex-direction: row;
+            }
+
+            .left-panel {
+                display: flex;
+            }
+
+            .right-panel {
+                min-height: calc(100vh - 80px);
+            }
+        }
+
+        @media (max-width: 1024px) {
+            .value-title {
+                font-size: 2.5rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .value-title {
+                font-size: 2rem;
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .form-card {
+                padding: 1.5rem;
+            }
+
+            .form-title {
+                font-size: 1.25rem;
+            }
         }
     </style>
 </head>
-<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display overflow-x-hidden antialiased">
-<div class="relative min-h-screen w-full flex flex-col">
-<!-- Background Decorative Elements -->
-<div class="absolute top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
-<div class="absolute top-[-10%] right-[-5%] w-[600px] h-[600px] bg-primary/20 rounded-full blur-[120px]"></div>
-<div class="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] bg-indigo-900/20 rounded-full blur-[100px]"></div>
-<!-- Grid Pattern Overlay -->
-<div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTTAgNDBMMCAwTDQwIDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgyNTUsIDI1NSwgMjU1LCAwLjAzKSIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyaWQpIiAvPjwvc3ZnPg==')] opacity-30"></div>
-</div>
-<!-- Navigation -->
-<header class="flex items-center justify-between border-b border-solid border-slate-200 dark:border-[#282e39] px-6 lg:px-10 py-4 glass-panel sticky top-0 z-50">
-<div class="flex items-center gap-3 text-white">
-<div class="size-8 text-primary">
-<svg class="w-full h-full" fill="none" viewbox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-<path clip-rule="evenodd" d="M24 18.4228L42 11.475V34.3663C42 34.7796 41.7457 35.1504 41.3601 35.2992L24 42V18.4228Z" fill="currentColor" fill-rule="evenodd"></path>
-<path clip-rule="evenodd" d="M24 8.18819L33.4123 11.574L24 15.2071L14.5877 11.574L24 8.18819ZM9 15.8487L21 20.4805V37.6263L9 32.9945V15.8487ZM27 37.6263V20.4805L39 15.8487V32.9945L27 37.6263ZM25.354 2.29885C24.4788 1.98402 23.5212 1.98402 22.646 2.29885L4.98454 8.65208C3.7939 9.08038 3 10.2097 3 11.475V34.3663C3 36.0196 4.01719 37.5026 5.55962 38.098L22.9197 44.7987C23.6149 45.0671 24.3851 45.0671 25.0803 44.7987L42.4404 38.098C43.9828 37.5026 45 36.0196 45 34.3663V11.475C45 10.2097 44.2061 9.08038 43.0155 8.65208L25.354 2.29885Z" fill="currentColor" fill-rule="evenodd"></path>
-</svg>
-</div>
-<h2 class="text-slate-900 dark:text-white text-xl font-bold tracking-tight">Smart Vision</h2>
-</div>
-<div class="flex items-center gap-4">
-<span class="hidden sm:inline-block text-sm font-medium text-slate-500 dark:text-[#9da6b9]">Already a member?</span>
-<a href="{% url 'login' %}" class="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-9 px-4 bg-transparent border border-slate-300 dark:border-[#3b4354] hover:bg-slate-100 dark:hover:bg-[#282e39] text-slate-900 dark:text-white text-sm font-bold leading-normal transition-colors duration-200">
-<span class="truncate">Login</span>
-</a>
-</div>
-</header>
-<!-- Main Content -->
-<main class="flex-grow flex flex-col lg:flex-row items-center justify-center p-4 lg:p-0 relative z-10">
-<!-- Left Side: Visual / Value Prop (Desktop) -->
-<div class="hidden lg:flex flex-1 h-full flex-col justify-center px-20 py-12 relative">
-<div class="max-w-xl z-20">
-<div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold uppercase tracking-wider mb-6">
-<span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
-                        Real-time Intelligence
+
+<body>
+    <div class="page-wrapper">
+        
+        <!-- Background Decorations -->
+        <div class="bg-decoration">
+            <div class="blob-1"></div>
+            <div class="blob-2"></div>
+            <div class="grid-overlay"></div>
+        </div>
+
+        <!-- Navigation -->
+        <header>
+            <div class="logo-section">
+                <div class="logo-icon">
+                    <svg class="w-full h-full" fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                        <path clip-rule="evenodd" d="M24 18.4228L42 11.475V34.3663C42 34.7796 41.7457 35.1504 41.3601 35.2992L24 42V18.4228Z" fill="currentColor" fill-rule="evenodd"></path>
+                        <path clip-rule="evenodd" d="M24 8.18819L33.4123 11.574L24 15.2071L14.5877 11.574L24 8.18819ZM9 15.8487L21 20.4805V37.6263L9 32.9945V15.8487ZM27 37.6263V20.4805L39 15.8487V32.9945L27 37.6263ZM25.354 2.29885C24.4788 1.98402 23.5212 1.98402 22.646 2.29885L4.98454 8.65208C3.7939 9.08038 3 10.2097 3 11.475V34.3663C3 36.0196 4.01719 37.5026 5.55962 38.098L22.9197 44.7987C23.6149 45.0671 24.3851 45.0671 25.0803 44.7987L42.4404 38.098C43.9828 37.5026 45 36.0196 45 34.3663V11.475C45 10.2097 44.2061 9.08038 43.0155 8.65208L25.354 2.29885Z" fill="currentColor" fill-rule="evenodd"></path>
+                    </svg>
+                </div>
+                <h2 class="logo-text">Smart Vision</h2>
+            </div>
+            
+            <div class="nav-actions">
+                <span class="nav-label">Already a member?</span>
+                <a href="{% url 'login' %}" class="login-btn">Login</a>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main>
+            <div class="content-wrapper">
+
+                <!-- Left Panel - Value Proposition -->
+                <div class="left-panel">
+                    <div class="value-content">
+                        <div class="badge">
+                            <span class="pulse-dot"></span>
+                            Real-time Intelligence
+                        </div>
+                        
+                        <h1 class="value-title">
+                            See the world through <span class="gradient-text">AI eyes</span>
+                        </h1>
+                        
+                        <p class="value-description">
+                            Join thousands of developers and researchers using Smart Vision for advanced object detection, 3D spatial mapping, and LLM-powered scene analysis.
+                        </p>
+                        
+                        <div class="features-grid">
+                            <div class="feature-card">
+                                <span class="material-symbols-outlined feature-icon">view_in_ar</span>
+                                <h3 class="feature-title">3D Modeling</h3>
+                                <p class="feature-desc">Instant point cloud generation from video feeds.</p>
+                            </div>
+                            
+                            <div class="feature-card">
+                                <span class="material-symbols-outlined feature-icon">psychology</span>
+                                <h3 class="feature-title">LLM Context</h3>
+                                <p class="feature-desc">Ask questions about what your camera sees.</p>
+                            </div>
+                        </div>
                     </div>
-<h1 class="text-5xl font-bold text-slate-900 dark:text-white leading-[1.1] mb-6 tracking-tight">
-                        See the world through <span class="text-transparent bg-clip-text bg-gradient-to-r from-primary to-purple-400">AI eyes</span>
-</h1>
-<p class="text-lg text-slate-600 dark:text-[#9da6b9] mb-10 leading-relaxed max-w-md">
-                        Join thousands of developers and researchers using Smart Vision for advanced object detection, 3D spatial mapping, and LLM-powered scene analysis.
-                    </p>
-<div class="grid grid-cols-2 gap-6">
-<div class="flex flex-col gap-2 p-4 rounded-xl bg-slate-100 dark:bg-[#1c1f27] border border-slate-200 dark:border-[#282e39]">
-<span class="material-symbols-outlined text-primary text-3xl">view_in_ar</span>
-<h3 class="text-slate-900 dark:text-white font-bold">3D Modeling</h3>
-<p class="text-sm text-slate-500 dark:text-[#9da6b9]">Instant point cloud generation from video feeds.</p>
-</div>
-<div class="flex flex-col gap-2 p-4 rounded-xl bg-slate-100 dark:bg-[#1c1f27] border border-slate-200 dark:border-[#282e39]">
-<span class="material-symbols-outlined text-primary text-3xl">psychology</span>
-<h3 class="text-slate-900 dark:text-white font-bold">LLM Context</h3>
-<p class="text-sm text-slate-500 dark:text-[#9da6b9]">Ask questions about what your camera sees.</p>
-</div>
-</div>
-</div>
-<!-- Abstract 3D shape decoration -->
-<div class="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/4 w-[600px] h-[600px] opacity-30 pointer-events-none">
-<img alt="Abstract 3D wireframe mesh representing computer vision scanning" class="w-full h-full object-contain mix-blend-screen" data-alt="Abstract 3D wireframe mesh representing computer vision scanning" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDz8uzedjoslLJRHEKSxb_tU9RrEZhTCTkhMPz0SrNAZY4lb4RXd1lhawgkzSXqXuRVFa0bBDlWOjoBlEqVZM_GRCipONKkVWsqJzI4PNw8O2hASmia1Q83etON-spoR4oZ6dA88m7F0Jlohy-Yds3RH7Zq5Y38sX6sefxNL2ifBf62acV21gTPj8m9qlqD5lWVgRdz7uuQ69sTnyR_bxCeSih2TSFOGfB78L3PSuvKdv9YppsKsQKFaIbl_VubO7Jcv_WLtx34Lzg"/>
-</div>
-</div>
-<!-- Right Side: Sign Up Form -->
-<div class="w-full lg:w-[540px] flex flex-col justify-center lg:min-h-[calc(100vh-80px)] py-8 lg:py-12">
-<div class="w-full max-w-md mx-auto bg-white dark:bg-[#1c1f27] rounded-2xl shadow-2xl shadow-black/20 border border-slate-200 dark:border-[#282e39] p-8 relative overflow-hidden">
-<!-- Decorative top gradient line -->
-<div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-purple-500 to-primary"></div>
-<div class="mb-8 text-center lg:text-left">
-<h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-2">Create your account</h2>
-<p class="text-slate-500 dark:text-[#9da6b9] text-sm">Start detecting objects with AI today.</p>
-</div>
+                    
+                    <div class="decoration-image">
+                        <img alt="Abstract 3D wireframe mesh" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDz8uzedjoslLJRHEKSxb_tU9RrEZhTCTkhMPz0SrNAZY4lb4RXd1lhawgkzSXqXuRVFa0bBDlWOjoBlEqVZM_GRCipONKkVWsqJzI4PNw8O2hASmia1Q83etON-spoR4oZ6dA88m7F0Jlohy-Yds3RH7Zq5Y38sX6sefxNL2ifBf62acV21gTPj8m9qlqD5lWVgRdz7uuQ69sTnyR_bxCeSih2TSFOGfB78L3PSuvKdv9YppsKsQKFaIbl_VubO7Jcv_WLtx34Lzg"/>
+                    </div>
+                </div>
 
-<!-- Error Message -->
-{% if error %}
-<div class="mb-6 bg-red-500/10 border border-red-500/50 rounded-lg p-4">
-    <p class="text-red-400 text-sm">{{ error }}</p>
-</div>
-{% endif %}
+                <!-- Right Panel - Signup Form -->
+                <div class="right-panel">
+                    <div class="form-card">
+                        
+                        <div class="form-header">
+                            <h2 class="form-title">Create your account</h2>
+                            <p class="form-subtitle">Start detecting objects with AI today.</p>
+                        </div>
 
-<form method="POST" action="{% url 'signup' %}" class="flex flex-col gap-5">
-    {% csrf_token %}
-    
-<label class="flex flex-col gap-2">
-<span class="text-sm font-medium text-slate-700 dark:text-white">Full Name</span>
-<div class="relative group">
-<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-[#9da6b9] group-focus-within:text-primary transition-colors text-xl">person</span>
-<input name="full_name" required class="w-full h-11 pl-10 pr-4 rounded-lg border border-slate-300 dark:border-[#3b4354] bg-white dark:bg-[#111318] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-[#636b7e] focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-sm font-body" placeholder="John Doe" type="text"/>
-</div>
-</label>
-<label class="flex flex-col gap-2">
-<span class="text-sm font-medium text-slate-700 dark:text-white">Email Address</span>
-<div class="relative group">
-<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-[#9da6b9] group-focus-within:text-primary transition-colors text-xl">mail</span>
-<input name="email" required class="w-full h-11 pl-10 pr-4 rounded-lg border border-slate-300 dark:border-[#3b4354] bg-white dark:bg-[#111318] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-[#636b7e] focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-sm font-body" placeholder="name@company.com" type="email"/>
-</div>
-</label>
-<div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-<label class="flex flex-col gap-2">
-<span class="text-sm font-medium text-slate-700 dark:text-white">Password</span>
-<div class="relative group">
-<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-[#9da6b9] group-focus-within:text-primary transition-colors text-xl">lock</span>
-<input name="password" required class="w-full h-11 pl-10 pr-4 rounded-lg border border-slate-300 dark:border-[#3b4354] bg-white dark:bg-[#111318] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-[#636b7e] focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-sm font-body" placeholder="••••••••" type="password"/>
-</div>
-</label>
-<label class="flex flex-col gap-2">
-<span class="text-sm font-medium text-slate-700 dark:text-white">Confirm Password</span>
-<div class="relative group">
-<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-[#9da6b9] group-focus-within:text-primary transition-colors text-xl">lock_reset</span>
-<input name="confirm_password" required class="w-full h-11 pl-10 pr-4 rounded-lg border border-slate-300 dark:border-[#3b4354] bg-white dark:bg-[#111318] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-[#636b7e] focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all text-sm font-body" placeholder="••••••••" type="password"/>
-</div>
-</label>
-</div>
-<div class="flex items-center gap-3 my-1">
-<input class="w-4 h-4 rounded border-slate-300 dark:border-[#3b4354] bg-white dark:bg-[#111318] text-primary focus:ring-primary" id="terms" type="checkbox" required/>
-<label class="text-xs text-slate-500 dark:text-[#9da6b9]" for="terms">
-                                I agree to the <a class="text-primary hover:text-primary-hover underline" href="#">Terms of Service</a> and <a class="text-primary hover:text-primary-hover underline" href="#">Privacy Policy</a>
-</label>
-</div>
-<button class="group relative w-full h-12 bg-primary hover:bg-primary-hover text-white text-base font-bold rounded-lg transition-all duration-200 shadow-lg shadow-primary/25 overflow-hidden" type="submit">
-<span class="relative z-10 flex items-center justify-center gap-2">
-                                Sign Up Now
-                                <span class="material-symbols-outlined text-lg group-hover:translate-x-1 transition-transform">arrow_forward</span>
-</span>
-</button>
-</form>
-<div class="mt-8 pt-6 border-t border-slate-100 dark:border-[#282e39] text-center">
-<p class="text-sm text-slate-500 dark:text-[#9da6b9]">
-                            Already have an account? <a class="text-primary hover:text-primary-hover font-medium" href="{% url 'login' %}">Login</a>
-</p>
-</div>
-</div>
-</div>
-</main>
-</div>
-</body></html>
+                        <!-- Error Message -->
+                        {% if error %}
+                        <div class="error-message">
+                            <p>{{ error }}</p>
+                        </div>
+                        {% endif %}
+
+                        <!-- Signup Form -->
+                        <form method="POST" action="{% url 'signup' %}" class="signup-form">
+                            {% csrf_token %}
+                            
+                            <!-- Full Name -->
+                            <div class="form-group">
+                                <label class="form-label">Full Name</label>
+                                <div class="input-wrapper">
+                                    <input 
+                                        type="text" 
+                                        name="full_name" 
+                                        class="form-input" 
+                                        placeholder="John Doe" 
+                                        required
+                                    />
+                                    <span class="material-symbols-outlined input-icon">person</span>
+                                </div>
+                            </div>
+
+                            <!-- Email -->
+                            <div class="form-group">
+                                <label class="form-label">Email Address</label>
+                                <div class="input-wrapper">
+                                    <input 
+                                        type="email" 
+                                        name="email" 
+                                        class="form-input" 
+                                        placeholder="name@company.com" 
+                                        required
+                                    />
+                                    <span class="material-symbols-outlined input-icon">mail</span>
+                                </div>
+                            </div>
+
+                            <!-- Password & Confirm Password -->
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">Password</label>
+                                    <div class="input-wrapper">
+                                        <input 
+                                            type="password" 
+                                            name="password" 
+                                            class="form-input" 
+                                            placeholder="••••••••" 
+                                            required
+                                        />
+                                        <span class="material-symbols-outlined input-icon">lock</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label class="form-label">Confirm Password</label>
+                                    <div class="input-wrapper">
+                                        <input 
+                                            type="password" 
+                                            name="confirm_password" 
+                                            class="form-input" 
+                                            placeholder="••••••••" 
+                                            required
+                                        />
+                                        <span class="material-symbols-outlined input-icon">lock_reset</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Terms Checkbox -->
+                            <div class="terms-group">
+                                <input 
+                                    type="checkbox" 
+                                    id="terms" 
+                                    class="terms-checkbox" 
+                                    required
+                                />
+                                <label for="terms" class="terms-label">
+                                    I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>
+                                </label>
+                            </div>
+
+                            <!-- Submit Button -->
+                            <button type="submit" class="submit-button">
+                                <span class="button-content">
+                                    Sign Up Now
+                                    <span class="material-symbols-outlined button-arrow">arrow_forward</span>
+                                </span>
+                            </button>
+                        </form>
+
+                        <!-- Footer Link -->
+                        <div class="form-footer">
+                            <p class="footer-text">
+                                Already have an account? 
+                                <a href="{% url 'login' %}" class="footer-link">Login</a>
+                            </p>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </main>
+
+    </div>
+</body>
+</html>
