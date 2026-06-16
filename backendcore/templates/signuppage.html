@@ -2,827 +2,175 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Smart Vision - Sign Up</title>
-    
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Noto+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
-
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sign Up - Smart Vision</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <style>
-        /* ============================================
-           RESET & BASE STYLES
-           ============================================ */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'Space Grotesk', sans-serif;
-            background-color: #101622;
-            color: #ffffff;
+            font-family: 'Inter', sans-serif;
+            background: #101922;
+            color: #e0e0e0;
             min-height: 100vh;
-            overflow-x: hidden;
-            -webkit-font-smoothing: antialiased;
-        }
-
-        .material-symbols-outlined {
-            font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
-        }
-
-        /* ============================================
-           CUSTOM SCROLLBAR
-           ============================================ */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-        
-        ::-webkit-scrollbar-track {
-            background: #101622;
-        }
-        
-        ::-webkit-scrollbar-thumb {
-            background: #282e39;
-            border-radius: 4px;
-        }
-        
-        ::-webkit-scrollbar-thumb:hover {
-            background: #3b4354;
-        }
-
-        /* ============================================
-           BACKGROUND DECORATIONS
-           ============================================ */
-        .page-wrapper {
-            position: relative;
-            min-height: 100vh;
-            width: 100%;
             display: flex;
-            flex-direction: column;
         }
-
-        .bg-decoration {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            z-index: -1;
-            pointer-events: none;
-        }
-
-        .blob-1 {
-            position: absolute;
-            top: -10%;
-            right: -5%;
-            width: 600px;
-            height: 600px;
-            background: rgba(19, 91, 236, 0.2);
-            border-radius: 50%;
-            filter: blur(120px);
-        }
-
-        .blob-2 {
-            position: absolute;
-            bottom: -10%;
-            left: -10%;
-            width: 500px;
-            height: 500px;
-            background: rgba(99, 102, 241, 0.2);
-            border-radius: 50%;
-            filter: blur(100px);
-        }
-
-        .grid-overlay {
-            position: absolute;
-            inset: 0;
-            background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTTAgNDBMMCAwTDQwIDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgyNTUsIDI1NSwgMjU1LCAwLjAzKSIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyaWQpIiAvPjwvc3ZnPg==');
-            opacity: 0.3;
-        }
-
-        /* ============================================
-           HEADER / NAVIGATION
-           ============================================ */
-        header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 1rem 1.5rem;
-            border-bottom: 1px solid #282e39;
-            background: rgba(28, 31, 39, 0.7);
-            backdrop-filter: blur(12px);
-            position: sticky;
-            top: 0;
-            z-index: 50;
-        }
-
-        .logo-section {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            color: white;
-        }
-
-        .logo-icon {
-            width: 32px;
-            height: 32px;
-            color: #135bec;
-        }
-
-        .logo-text {
-            font-size: 1.25rem;
-            font-weight: 700;
-            letter-spacing: -0.01em;
-        }
-
-        .nav-actions {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .nav-label {
-            display: none;
-            font-size: 0.875rem;
-            font-weight: 500;
-            color: #9da6b9;
-        }
-
-        .login-btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            min-width: 84px;
-            height: 36px;
-            padding: 0 1rem;
-            background: transparent;
-            border: 1px solid #3b4354;
-            border-radius: 0.5rem;
-            color: white;
-            font-size: 0.875rem;
-            font-weight: 700;
-            text-decoration: none;
-            transition: all 0.2s ease;
-            cursor: pointer;
-        }
-
-        .login-btn:hover {
-            background: #282e39;
-        }
-
-        /* ============================================
-           MAIN CONTENT LAYOUT
-           ============================================ */
-        main {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 1rem;
-            position: relative;
-            z-index: 10;
-        }
-
-        .content-wrapper {
-            display: flex;
-            width: 100%;
-            max-width: 1400px;
-            gap: 2rem;
-        }
-
-        /* ============================================
-           LEFT SIDE - VALUE PROPOSITION
-           ============================================ */
         .left-panel {
             display: none;
-            flex: 1;
+            width: 50%;
+            min-height: 100vh;
+            background: #0c1219;
             flex-direction: column;
-            justify-content: center;
-            padding: 3rem 5rem;
-            position: relative;
-        }
-
-        .value-content {
-            max-width: 600px;
-            z-index: 20;
-            position: relative;
-        }
-
-        .badge {
-            display: inline-flex;
             align-items: center;
-            gap: 0.5rem;
-            padding: 0.25rem 0.75rem;
-            border-radius: 9999px;
-            background: rgba(19, 91, 236, 0.1);
-            border: 1px solid rgba(19, 91, 236, 0.2);
-            color: #135bec;
-            font-size: 0.75rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 1.5rem;
-        }
-
-        .pulse-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #135bec;
-            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% {
-                opacity: 1;
-            }
-            50% {
-                opacity: 0.5;
-            }
-        }
-
-        .value-title {
-            font-size: 3rem;
-            font-weight: 700;
-            line-height: 1.1;
-            margin-bottom: 1.5rem;
-            letter-spacing: -0.02em;
-        }
-
-        .gradient-text {
-            background: linear-gradient(135deg, #135bec 0%, #a78bfa 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .value-description {
-            font-size: 1.125rem;
-            color: #9da6b9;
-            margin-bottom: 2.5rem;
-            line-height: 1.6;
-            max-width: 450px;
-        }
-
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 1.5rem;
-        }
-
-        .feature-card {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-            padding: 1rem;
-            border-radius: 0.75rem;
-            background: #1c1f27;
-            border: 1px solid #282e39;
-        }
-
-        .feature-icon {
-            color: #135bec;
-            font-size: 2rem;
-        }
-
-        .feature-title {
-            font-weight: 700;
-            color: white;
-        }
-
-        .feature-desc {
-            font-size: 0.875rem;
-            color: #9da6b9;
-        }
-
-        .decoration-image {
-            position: absolute;
-            right: 0;
-            top: 50%;
-            transform: translateY(-50%) translateX(25%);
-            width: 600px;
-            height: 600px;
-            opacity: 0.3;
-            pointer-events: none;
-        }
-
-        .decoration-image img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            mix-blend-mode: screen;
-        }
-
-        /* ============================================
-           RIGHT SIDE - SIGNUP FORM
-           ============================================ */
-        .right-panel {
-            width: 100%;
-            max-width: 540px;
-            display: flex;
-            flex-direction: column;
             justify-content: center;
-            padding: 2rem 0;
-        }
-
-        .form-card {
-            width: 100%;
-            max-width: 450px;
-            margin: 0 auto;
-            background: #1c1f27;
-            border-radius: 1rem;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-            border: 1px solid #282e39;
             padding: 2rem;
-            position: relative;
-            overflow: hidden;
+            border-right: 1px solid #1e2a38;
         }
-
-        .form-card::before {
-            content: "";
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 4px;
-            background: linear-gradient(90deg, #135bec 0%, #9333ea 50%, #135bec 100%);
-        }
-
-        .form-header {
-            margin-bottom: 2rem;
-            text-align: center;
-        }
-
-        .form-title {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: white;
-            margin-bottom: 0.5rem;
-        }
-
-        .form-subtitle {
-            font-size: 0.875rem;
-            color: #9da6b9;
-        }
-
-        /* ============================================
-           ERROR MESSAGE
-           ============================================ */
-        .error-message {
-            margin-bottom: 1.5rem;
-            background: rgba(239, 68, 68, 0.1);
-            border: 1px solid rgba(239, 68, 68, 0.5);
-            border-radius: 0.5rem;
-            padding: 1rem;
-        }
-
-        .error-message p {
-            color: #f87171;
-            font-size: 0.875rem;
-        }
-
-        /* ============================================
-           FORM STYLES
-           ============================================ */
-        .signup-form {
-            display: flex;
-            flex-direction: column;
-            gap: 1.25rem;
-        }
-
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 1.25rem;
-        }
-
-        .form-label {
-            font-size: 0.875rem;
-            font-weight: 500;
-            color: white;
-        }
-
-        .input-wrapper {
-            position: relative;
-        }
-
-        .input-icon {
-            position: absolute;
-            left: 0.75rem;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #9da6b9;
-            font-size: 1.25rem;
-            transition: color 0.3s ease;
-            pointer-events: none;
-        }
-
-        .form-input {
-            width: 100%;
-            height: 44px;
-            padding: 0 1rem 0 2.5rem;
-            background: #111318;
-            border: 1px solid #3b4354;
-            border-radius: 0.5rem;
-            color: white;
-            font-size: 0.875rem;
-            font-family: 'Noto Sans', sans-serif;
-            transition: all 0.3s ease;
-        }
-
-        .form-input:focus {
-            outline: none;
-            border-color: #135bec;
-            box-shadow: 0 0 0 1px #135bec;
-        }
-
-        .form-input:focus + .input-icon {
-            color: #135bec;
-        }
-
-        .input-wrapper:focus-within .input-icon {
-            color: #135bec;
-        }
-
-        .form-input::placeholder {
-            color: #636b7e;
-        }
-
-        /* ============================================
-           TERMS CHECKBOX
-           ============================================ */
-        .terms-group {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            margin: 0.25rem 0;
-        }
-
-        .terms-checkbox {
-            width: 16px;
-            height: 16px;
-            border-radius: 0.25rem;
-            border: 1px solid #3b4354;
-            background: #111318;
-            cursor: pointer;
-        }
-
-        .terms-checkbox:checked {
-            background: #135bec;
-            border-color: #135bec;
-        }
-
-        .terms-label {
-            font-size: 0.75rem;
-            color: #9da6b9;
-        }
-
-        .terms-label a {
-            color: #135bec;
-            text-decoration: underline;
-        }
-
-        .terms-label a:hover {
-            color: #0e4bce;
-        }
-
-        /* ============================================
-           SUBMIT BUTTON
-           ============================================ */
-        .submit-button {
-            position: relative;
-            width: 100%;
-            height: 48px;
-            background: #135bec;
-            color: white;
-            font-size: 1rem;
-            font-weight: 700;
-            border: none;
-            border-radius: 0.5rem;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            box-shadow: 0 10px 15px -3px rgba(19, 91, 236, 0.25);
-            overflow: hidden;
-        }
-
-        .submit-button:hover {
-            background: #0e4bce;
-            transform: translateY(-2px);
-            box-shadow: 0 15px 20px -3px rgba(19, 91, 236, 0.35);
-        }
-
-        .submit-button:active {
-            transform: translateY(0);
-        }
-
-        .button-content {
-            position: relative;
-            z-index: 10;
+        .brand-title { font-size: 2.5rem; font-weight: 700; color: white; margin-bottom: 0.5rem; }
+        .brand-tagline { font-size: 1rem; color: #7a8a9e; }
+        .right-panel {
+            flex: 1;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 0.5rem;
+            padding: 2rem;
+        }
+        .form-box { width: 100%; max-width: 420px; }
+        .form-title { font-size: 1.75rem; font-weight: 700; color: white; margin-bottom: 0.25rem; }
+        .form-subtitle { color: #7a8a9e; font-size: 0.9rem; margin-bottom: 1.5rem; }
+
+        .error-box {
+            background: rgba(239,68,68,0.1);
+            border: 1px solid rgba(239,68,68,0.4);
+            border-radius: 6px;
+            padding: 0.75rem 1rem;
+            margin-bottom: 1rem;
+            color: #f87171;
+            font-size: 0.85rem;
+        }
+        .form-group { margin-bottom: 1rem; }
+        .form-group label {
+            display: block; font-size: 0.85rem; font-weight: 500;
+            color: #c0c8d4; margin-bottom: 0.4rem;
+        }
+        .form-group input {
+            width: 100%; height: 44px; padding: 0 12px;
+            background: #192633; border: 1px solid #2e3e50;
+            border-radius: 6px; color: white; font-size: 0.9rem; font-family: inherit;
+        }
+        .form-group input:focus { outline: none; border-color: #2563eb; }
+        .form-group input::placeholder { color: #556677; }
+
+        .form-row { display: grid; grid-template-columns: 1fr; gap: 0; }
+
+        .terms-row {
+            display: flex; align-items: center; gap: 8px;
+            margin-bottom: 1rem; font-size: 0.8rem; color: #7a8a9e;
+        }
+        .terms-row input { width: 16px; height: 16px; }
+        .terms-row a { color: #2563eb; text-decoration: underline; }
+
+        .submit-btn {
+            width: 100%; height: 44px; background: #2563eb; color: white;
+            border: none; border-radius: 6px; font-size: 0.95rem;
+            font-weight: 600; cursor: pointer; font-family: inherit;
+        }
+        .submit-btn:hover { background: #1d4ed8; }
+
+        .divider {
+            display: flex; align-items: center; gap: 12px;
+            margin: 1.25rem 0; color: #556677; font-size: 0.8rem;
+        }
+        .divider::before, .divider::after {
+            content: ''; flex: 1; height: 1px; background: #2e3e50;
         }
 
-        .button-arrow {
-            transition: transform 0.2s ease;
+        .oauth-buttons { display: flex; flex-direction: column; gap: 10px; }
+        .oauth-btn {
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            width: 100%; height: 44px; background: #192633;
+            border: 1px solid #2e3e50; border-radius: 6px;
+            color: #c0c8d4; font-size: 0.85rem; font-weight: 500;
+            text-decoration: none; font-family: inherit; cursor: pointer;
         }
-
-        .submit-button:hover .button-arrow {
-            transform: translateX(4px);
-        }
-
-        /* ============================================
-           FOOTER LINK
-           ============================================ */
-        .form-footer {
-            margin-top: 2rem;
-            padding-top: 1.5rem;
-            border-top: 1px solid #282e39;
-            text-align: center;
-        }
+        .oauth-btn:hover { background: #1e2e3f; border-color: #3e5060; }
+        .oauth-btn svg { width: 18px; height: 18px; flex-shrink: 0; }
 
         .footer-text {
-            font-size: 0.875rem;
-            color: #9da6b9;
+            text-align: center; margin-top: 1.5rem;
+            font-size: 0.85rem; color: #7a8a9e;
         }
+        .footer-text a { color: #2563eb; text-decoration: none; font-weight: 500; }
+        .footer-text a:hover { text-decoration: underline; }
 
-        .footer-link {
-            color: #135bec;
-            font-weight: 500;
-            text-decoration: none;
-        }
-
-        .footer-link:hover {
-            color: #0e4bce;
-        }
-
-        /* ============================================
-           RESPONSIVE DESIGN
-           ============================================ */
-        @media (min-width: 640px) {
-            .nav-label {
-                display: inline-block;
-            }
-
-            .form-header {
-                text-align: left;
-            }
-        }
-
-        @media (min-width: 768px) {
-            .form-row {
-                grid-template-columns: 1fr 1fr;
-            }
-        }
-
-        @media (min-width: 1024px) {
-            header {
-                padding: 1rem 2.5rem;
-            }
-
-            main {
-                padding: 0;
-            }
-
-            .content-wrapper {
-                flex-direction: row;
-            }
-
-            .left-panel {
-                display: flex;
-            }
-
-            .right-panel {
-                min-height: calc(100vh - 80px);
-            }
-        }
-
-        @media (max-width: 1024px) {
-            .value-title {
-                font-size: 2.5rem;
-            }
-        }
-
-        @media (max-width: 768px) {
-            .value-title {
-                font-size: 2rem;
-            }
-
-            .features-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .form-card {
-                padding: 1.5rem;
-            }
-
-            .form-title {
-                font-size: 1.25rem;
-            }
-        }
+        @media (min-width: 768px) { .form-row { grid-template-columns: 1fr 1fr; gap: 1rem; } }
+        @media (min-width: 1024px) { .left-panel { display: flex; } }
     </style>
 </head>
-
 <body>
-    <div class="page-wrapper">
-        
-        <!-- Background Decorations -->
-        <div class="bg-decoration">
-            <div class="blob-1"></div>
-            <div class="blob-2"></div>
-            <div class="grid-overlay"></div>
+    <div class="left-panel">
+        <h1 class="brand-title">Smart Vision</h1>
+        <p class="brand-tagline">AI-Powered Object Detection</p>
+    </div>
+
+    <div class="right-panel">
+        <div class="form-box">
+            <h2 class="form-title">Create Account</h2>
+            <p class="form-subtitle">Get started with Smart Vision</p>
+
+            {% if error %}
+            <div class="error-box">{{ error }}</div>
+            {% endif %}
+
+            <form method="POST" action="{% url 'signup' %}">
+                {% csrf_token %}
+
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <input type="text" name="full_name" placeholder="John Doe" required />
+                </div>
+
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" name="email" placeholder="name@example.com" required />
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" name="password" placeholder="Min 8 characters" required />
+                    </div>
+                    <div class="form-group">
+                        <label>Confirm Password</label>
+                        <input type="password" name="confirm_password" placeholder="Repeat password" required />
+                    </div>
+                </div>
+
+                <div class="terms-row">
+                    <input type="checkbox" id="terms" required />
+                    <label for="terms">I agree to the <a href="#">Terms</a> and <a href="#">Privacy Policy</a></label>
+                </div>
+
+                <button type="submit" class="submit-btn">Sign Up</button>
+            </form>
+
+            <div class="divider">or continue with</div>
+
+            <div class="oauth-buttons">
+                <a href="{% url 'google_login' %}" class="oauth-btn">
+                    <svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+                    Continue with Google
+                </a>
+                <a href="{% url 'github_login' %}" class="oauth-btn">
+                    <svg viewBox="0 0 24 24" fill="#c0c8d4"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+                    Continue with GitHub
+                </a>
+            </div>
+
+            <p class="footer-text">
+                Already have an account? <a href="{% url 'login' %}">Log in</a>
+            </p>
         </div>
-
-        <!-- Navigation -->
-        <header>
-            <div class="logo-section">
-                <div class="logo-icon">
-                    <svg class="w-full h-full" fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-                        <path clip-rule="evenodd" d="M24 18.4228L42 11.475V34.3663C42 34.7796 41.7457 35.1504 41.3601 35.2992L24 42V18.4228Z" fill="currentColor" fill-rule="evenodd"></path>
-                        <path clip-rule="evenodd" d="M24 8.18819L33.4123 11.574L24 15.2071L14.5877 11.574L24 8.18819ZM9 15.8487L21 20.4805V37.6263L9 32.9945V15.8487ZM27 37.6263V20.4805L39 15.8487V32.9945L27 37.6263ZM25.354 2.29885C24.4788 1.98402 23.5212 1.98402 22.646 2.29885L4.98454 8.65208C3.7939 9.08038 3 10.2097 3 11.475V34.3663C3 36.0196 4.01719 37.5026 5.55962 38.098L22.9197 44.7987C23.6149 45.0671 24.3851 45.0671 25.0803 44.7987L42.4404 38.098C43.9828 37.5026 45 36.0196 45 34.3663V11.475C45 10.2097 44.2061 9.08038 43.0155 8.65208L25.354 2.29885Z" fill="currentColor" fill-rule="evenodd"></path>
-                    </svg>
-                </div>
-                <h2 class="logo-text">Smart Vision</h2>
-            </div>
-            
-            {% comment %} <div class="nav-actions">
-                <span class="nav-label"></span>
-                <a href="{% url 'login' %}" class="login-btn"></a>
-            </div> {% endcomment %}
-        </header>
-
-        <!-- Main Content -->
-        <main>
-            <div class="content-wrapper">
-
-                <!-- Left Panel - Value Proposition -->
-                <div class="left-panel">
-                    <div class="value-content">
-                        <div class="badge">
-                            <span class="pulse-dot"></span>
-                            Real-time Intelligence
-                        </div>
-                        
-                        <h1 class="value-title">
-                            See the world through AI eyes
-                        </h1>
-                        
-                        <p class="value-description">
-                            Smart Vision for advanced object detection, 3D spatial mapping, and LLM-powered scene analysis.
-                        </p>
-                        
-                        <div class="features-grid">
-                            <div class="feature-card">
-                                <span class="material-symbols-outlined feature-icon">view_in_ar</span>
-                                <h3 class="feature-title">3D Modeling</h3>
-                                <p class="feature-desc">Instant point cloud generation from video feeds.</p>
-                            </div>
-                            
-                            <div class="feature-card">
-                                <span class="material-symbols-outlined feature-icon">psychology</span>
-                                <h3 class="feature-title">LLM Context</h3>
-                                <p class="feature-desc">Ask questions about what your camera sees.</p>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="decoration-image">
-                        <img alt="Abstract 3D wireframe mesh" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDz8uzedjoslLJRHEKSxb_tU9RrEZhTCTkhMPz0SrNAZY4lb4RXd1lhawgkzSXqXuRVFa0bBDlWOjoBlEqVZM_GRCipONKkVWsqJzI4PNw8O2hASmia1Q83etON-spoR4oZ6dA88m7F0Jlohy-Yds3RH7Zq5Y38sX6sefxNL2ifBf62acV21gTPj8m9qlqD5lWVgRdz7uuQ69sTnyR_bxCeSih2TSFOGfB78L3PSuvKdv9YppsKsQKFaIbl_VubO7Jcv_WLtx34Lzg"/>
-                    </div>
-                </div>
-
-                <!-- Right Panel - Signup Form -->
-                <div class="right-panel">
-                    <div class="form-card">
-                        
-                        <div class="form-header">
-                            <h2 class="form-title">Create your account</h2>
-                            <p class="form-subtitle">Start detecting objects with AI today.</p>
-                        </div>
-
-                        <!-- Error Message -->
-                        {% if error %}
-                        <div class="error-message">
-                            <p>{{ error }}</p>
-                        </div>
-                        {% endif %}
-
-                        <!-- Signup Form -->
-                        <form method="POST" action="{% url 'signup' %}" class="signup-form">
-                            {% csrf_token %}
-                            
-                            <!-- Full Name -->
-                            <div class="form-group">
-                                <label class="form-label">Full Name</label>
-                                <div class="input-wrapper">
-                                    <input 
-                                        type="text" 
-                                        name="full_name" 
-                                        class="form-input" 
-                                        placeholder="John Doe" 
-                                        required
-                                    />
-                                    <span class="material-symbols-outlined input-icon">person</span>
-                                </div>
-                            </div>
-
-                            <!-- Email -->
-                            <div class="form-group">
-                                <label class="form-label">Email Address</label>
-                                <div class="input-wrapper">
-                                    <input 
-                                        type="email" 
-                                        name="email" 
-                                        class="form-input" 
-                                        placeholder="name@company.com" 
-                                        required
-                                    />
-                                    <span class="material-symbols-outlined input-icon">mail</span>
-                                </div>
-                            </div>
-
-                            <!-- Password & Confirm Password -->
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label class="form-label">Password</label>
-                                    <div class="input-wrapper">
-                                        <input 
-                                            type="password" 
-                                            name="password" 
-                                            class="form-input" 
-                                            placeholder="••••••••" 
-                                            required
-                                        />
-                                        <span class="material-symbols-outlined input-icon">lock</span>
-                                    </div>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label class="form-label">Confirm Password</label>
-                                    <div class="input-wrapper">
-                                        <input 
-                                            type="password" 
-                                            name="confirm_password" 
-                                            class="form-input" 
-                                            placeholder="••••••••" 
-                                            required
-                                        />
-                                        <span class="material-symbols-outlined input-icon">lock_reset</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Terms Checkbox -->
-                            <div class="terms-group">
-                                <input 
-                                    type="checkbox" 
-                                    id="terms" 
-                                    class="terms-checkbox" 
-                                    required
-                                />
-                                <label for="terms" class="terms-label">
-                                    I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>
-                                </label>
-                            </div>
-
-                            <!-- Submit Button -->
-                            <button type="submit" class="submit-button">
-                                <span class="button-content">
-                                    Sign Up Now
-                                    <span class="material-symbols-outlined button-arrow">arrow_forward</span>
-                                </span>
-                            </button>
-                        </form>
-
-                        <!-- Footer Link -->
-                        <div class="form-footer">
-                            <p class="footer-text">
-                                Already have an account? 
-                                <a href="{% url 'login' %}" class="footer-link">Login</a>
-                            </p>
-                        </div>
-
-                    </div>
-                </div>
-
-            </div>
-        </main>
-
     </div>
 </body>
 </html>
