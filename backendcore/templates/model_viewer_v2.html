@@ -95,10 +95,10 @@ if ('serviceWorker' in navigator) {
                 <div class="card p-5">
                     <h3 class="text-sm font-semibold mb-3 text-gray-300">View Mode</h3>
                     <div class="mode-toggle">
-                        <button id="modeMesh" class="active" onclick="switchMode('mesh')">3D Mesh</button>
-                        <button id="modePointCloud" onclick="switchMode('pointcloud')">Point Cloud</button>
+                        <button id="modeMesh" onclick="switchMode('mesh')">3D Mesh</button>
+                        <button id="modePointCloud" class="active" onclick="switchMode('pointcloud')">Point Cloud</button>
                     </div>
-                    <p class="text-xs text-gray-500 mt-3" id="modeDesc">TripoSR generates a full 3D mesh from the detected object.</p>
+                    <p class="text-xs text-gray-500 mt-3" id="modeDesc">MiDaS estimates depth and creates a 3D point cloud.</p>
                 </div>
 
                 <div class="card p-5">
