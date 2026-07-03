@@ -1,0 +1,15 @@
+services:
+  web:
+    build: .
+    container_name: smart_vision_ai
+    ports:
+      - "8000:8000"
+    environment:
+      - DJANGO_DEBUG=True
+      - DJANGO_ALLOWED_HOSTS=*
+      - OFFLINE_MODE=True
+      - SECRET_KEY=docker-evaluation-smartvision-secret-key-2026
+    volumes:
+      - ./backend/ml_model/weights:/app/backend/ml_model/weights:ro
+      - ./logs:/app/logs
+    restart: unless-stopped
