@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package smartvision.v1;
+
+option go_package = "github.com/Lamsalyusu/smart-vision-ai/gen/go/smartvision/v1;smartvisionv1";
+
+enum PixelFormat {
+  PIXEL_FORMAT_UNSPECIFIED = 0;
+  PIXEL_FORMAT_RGB24 = 1;
+  PIXEL_FORMAT_BGR24 = 2;
+  PIXEL_FORMAT_NV12 = 3;
+  PIXEL_FORMAT_GRAY8 = 4;
+}
+
+message Frame {
+  string camera_id = 1;
+  uint64 sequence_number = 2;
+  int64 captured_at_unix_micros = 3;
+  uint32 width = 4;
+  uint32 height = 5;
+  PixelFormat pixel_format = 6;
+  bytes data = 7;
+}
