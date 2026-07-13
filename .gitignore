@@ -21,6 +21,7 @@ yarn-error.log*
 .venv/
 __pycache__/
 *.pyc
+proto/*_pb2.py
 db.sqlite3
 .coverage
 htmlcov/
