@@ -8,6 +8,7 @@ from .stream_registry import (
 	CameraStreamRegistry,
 	VideoCodec,
 )
+from .frame_ingress import FrameIngressCoordinator, FrameIngressResult, IncomingFrame
 
 __all__ = [
 	"AdmissionDecision",
@@ -17,4 +18,7 @@ __all__ = [
 	"CameraStream",
 	"CameraStreamRegistry",
 	"VideoCodec",
+	"FrameIngressCoordinator",
+	"FrameIngressResult",
+	"IncomingFrame",
 ]
