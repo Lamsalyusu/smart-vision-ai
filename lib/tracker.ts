@@ -45,7 +45,10 @@ export function xToBbox(
 export enum TrackState {
   TENTATIVE = 1,
   CONFIRMED = 2,
-  DELETED = 3,
+  COASTING = 3,
+  RE_IDENTIFIED = 4,
+  LOST = 5,
+  DELETED = 6,
 }
 
 let globalTrackerCount = 0;
@@ -99,6 +102,9 @@ export class KalmanBoxTracker {
 
     if (this.timeSinceUpdate > 0) {
       this.hitStreak = 0;
+      if (this.state === TrackState.CONFIRMED || this.state === TrackState.RE_IDENTIFIED) {
+        this.state = TrackState.COASTING;
+      }
     }
     this.timeSinceUpdate += 1;
 
@@ -106,6 +112,7 @@ export class KalmanBoxTracker {
   }
 
   update(bbox: [number, number, number, number], confidence: number): void {
+    const wasCoasting = this.state === TrackState.COASTING;
     this.timeSinceUpdate = 0;
     this.hits += 1;
     this.hitStreak += 1;
@@ -130,7 +137,11 @@ export class KalmanBoxTracker {
     this.vDot += beta * resV;
     this.sDot += beta * resS;
 
-    if (this.state === TrackState.TENTATIVE && this.hits >= 2) {
+    if (wasCoasting) {
+      this.state = TrackState.RE_IDENTIFIED;
+    } else if (this.state === TrackState.TENTATIVE && this.hits >= 2) {
+      this.state = TrackState.CONFIRMED;
+    } else if (this.state === TrackState.RE_IDENTIFIED) {
       this.state = TrackState.CONFIRMED;
     }
   }
