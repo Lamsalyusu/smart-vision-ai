@@ -207,7 +207,6 @@ function ModelViewerContent() {
     }
   };
 
-  // Initialize Three.js WebGL Scene
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
