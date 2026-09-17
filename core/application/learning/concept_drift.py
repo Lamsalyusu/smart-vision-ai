@@ -1,7 +1,7 @@
-from collections import deque
-from dataclasses import dataclass
 import math
-from typing import Sequence
+from collections import deque
+from collections.abc import Sequence
+from dataclasses import dataclass
 
 import numpy as np
 
