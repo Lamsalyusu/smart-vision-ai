@@ -1,11 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
+import { login } from "@/lib/apiClient";
 import { dataManager } from "@/lib/store";
+import { SecurityAuditLog, verifyPassword } from "@/lib/auth-crypto";
 
+/**
+ * Handles login requests.
+ * - Proxies authentication to FastAPI (`login`).
+ * - Performs brute‑force lockout checks.
+ * - Issues a secure HTTP‑only session cookie.
+ */
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { email_or_username, password } = body;
-
+    const { email_or_username, password } = await req.json();
     if (!email_or_username || !password) {
       return NextResponse.json(
         { error: "Please provide email/username and password" },
@@ -13,36 +19,47 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const user = dataManager.findUserByIdentifier(email_or_username);
-    if (!user) {
+    // Brute‑force lockout check
+    const cleanIdentifier = String(email_or_username).trim();
+    if (dataManager.isAccountLocked(cleanIdentifier)) {
       return NextResponse.json(
-        { error: "Invalid credentials" },
-        { status: 401 }
+        {
+          error: "Account temporarily locked due to consecutive failed attempts. Please try again in 15 minutes."
+        },
+        { status: 429 }
       );
     }
 
-    const sessionToken = dataManager.createSession(user.id);
+    // Authenticate via FastAPI
+    const user = await login(email_or_username, password);
 
-    const res = NextResponse.json({
-      success: true,
-      user: {
-        id: user.id,
-        full_name: user.full_name,
-        email: user.email,
-        username: user.username,
-      },
+    // Successful login: clear lockout, create session, audit
+    dataManager.clearFailedLogins(cleanIdentifier);
+    const sessionToken = dataManager.createSession(user.id);
+    SecurityAuditLog.record({
+      event_type: "LOGIN_SUCCESS",
+      user_id: user.id,
+      identifier: cleanIdentifier
     });
 
+    const res = NextResponse.json({ success: true, user });
+    res.headers.set(
+      "Content-Security-Policy",
+      "default-src 'self'; script-src 'none'; style-src 'self' 'unsafe-inline';"
+    );
     res.cookies.set("session_token", sessionToken, {
       path: "/",
-      httpOnly: false, // accessible to client for simplicity
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 7,
+      maxAge: 60 * 60 * 24 * 7 // 7 days
     });
-
     return res;
   } catch (err: unknown) {
     console.error("Login error:", err);
-    return NextResponse.json({ error: "Login failed" }, { status: 500 });
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Login failed" },
+      { status: 500 }
+    );
   }
 }
