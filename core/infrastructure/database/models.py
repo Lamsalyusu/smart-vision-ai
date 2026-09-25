@@ -9,29 +9,32 @@ business logic are included.  Additional columns can be added later
 without breaking existing code.
 """
 
+from __future__ import annotations
+
 from datetime import datetime, timedelta
-from typing import Optional, Dict, Any
+from typing import Any
 
-from sqlalchemy import Column, String, DateTime, Boolean, Float, Integer, JSON, ForeignKey
-from sqlalchemy.orm import relationship
+from sqlalchemy import JSON, Boolean, DateTime, Float, ForeignKey, Integer, String
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from .clock import utcnow_naive
 from .engine import Base
 
 
 class User(Base):
     __tablename__ = "users"
 
-    id = Column(String, primary_key=True)
-    full_name = Column(String, nullable=False)
-    email = Column(String, unique=True, nullable=False)
-    username = Column(String, unique=True, nullable=False)
-    password_hash = Column(String, nullable=False)
-    auth_provider = Column(String, default="local")
-    role = Column(String, default="operator")
-    created_at = Column(DateTime, default=datetime.utcnow)
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    full_name: Mapped[str] = mapped_column(String, nullable=False)
+    email: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    username: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    password_hash: Mapped[str] = mapped_column(String, nullable=False)
+    auth_provider: Mapped[str] = mapped_column(String, default="local")
+    role: Mapped[str] = mapped_column(String, default="operator")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow_naive)
 
     # One‑to‑many relationship to sessions
-    sessions = relationship("Session", back_populates="user", cascade="all, delete-orphan")
+    sessions: Mapped[list[Session]] = relationship(back_populates="user", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         return f"<User {self.id} ({self.username})>"
@@ -40,20 +43,20 @@ class User(Base):
 class Session(Base):
     __tablename__ = "sessions"
 
-    token = Column(String, primary_key=True)
-    user_id = Column(String, ForeignKey("users.id"), nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    last_active_at = Column(DateTime, default=datetime.utcnow)
-    expires_at = Column(DateTime)
+    token: Mapped[str] = mapped_column(String, primary_key=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow_naive)
+    last_active_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow_naive)
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     # Simple foreign‑key relationship (no explicit FK to keep it lightweight)
-    user = relationship("User", back_populates="sessions")
+    user: Mapped[User] = relationship(back_populates="sessions")
 
     def is_expired(self) -> bool:
-        return datetime.utcnow() > self.expires_at
+        return self.expires_at is None or utcnow_naive() > self.expires_at
 
     def slide(self, delta: timedelta = timedelta(days=7)) -> None:
-        now = datetime.utcnow()
+        now = utcnow_naive()
         self.last_active_at = now
         self.expires_at = now + delta
 
@@ -64,27 +67,36 @@ class Session(Base):
 class DetectionCropRecord(Base):
     __tablename__ = "crops"
 
-    id = Column(String, primary_key=True)
-    object_class = Column(String, nullable=False)
-    confidence = Column(Float, nullable=False)
-    timestamp = Column(DateTime, default=datetime.utcnow)
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    object_class: Mapped[str] = mapped_column(String, nullable=False)
+    confidence: Mapped[float] = mapped_column(Float, nullable=False)
+    timestamp: Mapped[datetime] = mapped_column(DateTime, default=utcnow_naive)
     # optional fields
-    distance_m = Column(Float, nullable=True)
-    has_crop = Column(Boolean, default=False)
+    distance_m: Mapped[float | None] = mapped_column(Float, nullable=True)
+    has_crop: Mapped[bool] = mapped_column(Boolean, default=False)
     # store any extra payload as JSON for flexibility
-    payload = Column(JSON, nullable=True)
+    payload: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
 
     def __repr__(self) -> str:
         return f"<Crop {self.id} {self.object_class} {self.confidence:.2f}>"
 
 
+class FailedLoginAttempt(Base):
+    __tablename__ = "failed_login_attempts"
+
+    identifier: Mapped[str] = mapped_column(String, primary_key=True)
+    attempt_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    locked_until: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow_naive, onupdate=utcnow_naive)
+
+
 class TelemetryStat(Base):
     __tablename__ = "telemetry"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    key = Column(String, nullable=False)
-    value = Column(JSON, nullable=False)
-    recorded_at = Column(DateTime, default=datetime.utcnow)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    key: Mapped[str] = mapped_column(String, nullable=False)
+    value: Mapped[Any] = mapped_column(JSON, nullable=False)
+    recorded_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow_naive)
 
     def __repr__(self) -> str:
         return f"<Telemetry {self.key}={self.value}>"
@@ -93,11 +105,11 @@ class TelemetryStat(Base):
 class AuditLogRecord(Base):
     __tablename__ = "audit_logs"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    event_type = Column(String, nullable=False)
-    user_id = Column(String, nullable=True)
-    details = Column(JSON, nullable=False)
-    timestamp = Column(DateTime, default=datetime.utcnow)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    event_type: Mapped[str] = mapped_column(String, nullable=False)
+    user_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    details: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    timestamp: Mapped[datetime] = mapped_column(DateTime, default=utcnow_naive)
 
     def __repr__(self) -> str:
         return f"<AuditLog {self.event_type} user={self.user_id}>"

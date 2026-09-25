@@ -1,5 +1,7 @@
 import unittest
 
+import numpy as np
+
 from core.application.simulation import (
     SyntheticTrackingScenario,
     evaluate_tracking_sequence,
@@ -39,6 +41,15 @@ class TrackingMetricTests(unittest.TestCase):
         self.assertEqual(metrics.mota, 1.0)
         self.assertEqual(metrics.motp, 1.0)
         self.assertEqual(metrics.idf1, 1.0)
+
+    def test_accepts_numpy_bounding_boxes(self) -> None:
+        truth = [[{"object_id": 1, "class": "person", "bbox": np.array([0, 0, 10, 10])}]]
+        prediction = [[{"track_id": 8, "class": "person", "bbox": np.array([0, 0, 10, 10])}]]
+
+        metrics = evaluate_tracking_sequence(truth, prediction)
+
+        self.assertEqual(metrics.true_positives, 1)
+        self.assertEqual(metrics.motp, 1.0)
 
     def test_counts_misses_false_positives_and_identity_switches(self) -> None:
         truth = [

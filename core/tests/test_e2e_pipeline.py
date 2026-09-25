@@ -1,9 +1,9 @@
 import time
 import unittest
+
 import numpy as np
 
 from core.container import container
-from core.domain.analytics.behavior import TrajectoryBehaviorAnalyzer
 from core.domain.analytics.geofence import GeofenceZone, ZoneType
 from core.domain.ports.event_bus import DomainEvent
 from core.domain.tracking.hungarian_fusion import DetectionCandidate, TrackTarget
@@ -54,7 +54,7 @@ class EndToEndPipelineTests(unittest.IsolatedAsyncioTestCase):
         )
 
         # 4. Multi-Modal Hungarian Fusion Matching
-        matched, unmatched_t, unmatched_d = matcher.match([track1], [det_face, det_knife])
+        matched, _unmatched_t, unmatched_d = matcher.match([track1], [det_face, det_knife])
         self.assertEqual(len(matched), 1)
         self.assertEqual(matched[0], (0, 0))  # Track #1 matched to det_face
         self.assertIn(1, unmatched_d)         # det_knife is a new unconfirmed track candidate

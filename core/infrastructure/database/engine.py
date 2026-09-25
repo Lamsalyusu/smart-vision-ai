@@ -9,8 +9,9 @@ service that needs a database session.
 """
 
 import os
+
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy.orm import declarative_base, sessionmaker
 
 # Optional: load a .env file in development environments
 try:
@@ -20,21 +21,29 @@ except ImportError:  # pragma: no cover – dotenv is optional
     pass
 
 import logging
+
 logger = logging.getLogger(__name__)
 
-POSTGRES_USER = os.getenv("POSTGRES_USER")
-POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD")
-POSTGRES_DB = os.getenv("POSTGRES_DB")
-POSTGRES_HOST = os.getenv("POSTGRES_HOST")
-POSTGRES_PORT = os.getenv("POSTGRES_PORT", "5432")
-
 def _init_engine():
+    environment = os.getenv("APP_ENV", os.getenv("NODE_ENV", "development")).lower()
+    production = environment in {"production", "prod"}
     target_url = os.getenv("DATABASE_URL")
-    if not target_url and POSTGRES_USER and POSTGRES_PASSWORD and POSTGRES_DB and POSTGRES_HOST:
+    postgres_user = os.getenv("POSTGRES_USER")
+    postgres_password = os.getenv("POSTGRES_PASSWORD")
+    postgres_db = os.getenv("POSTGRES_DB")
+    postgres_host = os.getenv("POSTGRES_HOST")
+    postgres_port = os.getenv("POSTGRES_PORT", "5432")
+    if not target_url and postgres_user and postgres_password and postgres_db and postgres_host:
         target_url = (
-            f"postgresql+psycopg2://{POSTGRES_USER}:{POSTGRES_PASSWORD}@"
-            f"{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
+            f"postgresql+psycopg2://{postgres_user}:{postgres_password}@"
+            f"{postgres_host}:{postgres_port}/{postgres_db}"
         )
+
+    if production and not target_url:
+        raise RuntimeError("A production DATABASE_URL or complete PostgreSQL configuration is required")
+
+    if target_url and target_url.startswith("sqlite") and production:
+        raise RuntimeError("SQLite fallback is disabled in production")
 
     if target_url and not target_url.startswith("sqlite"):
         try:
@@ -49,6 +58,8 @@ def _init_engine():
                 pass
             return eng, target_url
         except Exception as exc:
+            if production:
+                raise RuntimeError("The configured production database is unavailable") from exc
             logger.warning("PostgreSQL server unreachable (%s); using resilient SQLite database fallback.", exc)
 
     fallback_url = os.getenv("SQLITE_URL", "sqlite:///smart_vision_ai.db")
@@ -68,4 +79,4 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 # Base class for ORM models.
 Base = declarative_base()
 
-__all__ = ["engine", "SessionLocal", "Base", "DATABASE_URL"]
+__all__ = ["DATABASE_URL", "Base", "SessionLocal", "engine"]

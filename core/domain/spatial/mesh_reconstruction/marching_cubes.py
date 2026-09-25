@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Tuple
+
 import numpy as np
 
 from .signed_distance_field import VoxelGridMetadata
@@ -106,8 +106,8 @@ class MarchingCubesReconstructor:
         h = metadata.voxel_size
         origin = metadata.origin
 
-        vertices: List[np.ndarray] = []
-        faces: List[Tuple[int, int, int]] = []
+        vertices: list[np.ndarray] = []
+        faces: list[tuple[int, int, int]] = []
 
         for x in range(nx - 1):
             for y in range(ny - 1):

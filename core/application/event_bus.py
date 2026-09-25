@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections import defaultdict
-from typing import Any, DefaultDict, List, Type
+from typing import Any
 
 from core.domain.ports.event_bus import DomainEvent, EventBusPort, EventHandler, TEvent
 
@@ -14,11 +14,11 @@ class InMemoryEventBus(EventBusPort):
     """High-throughput In-Memory Asynchronous Domain Event Bus."""
 
     def __init__(self) -> None:
-        self._subscribers: DefaultDict[Type[DomainEvent], List[EventHandler[Any]]] = defaultdict(list)
-        self._history: List[DomainEvent] = []
+        self._subscribers: defaultdict[type[DomainEvent], list[EventHandler[Any]]] = defaultdict(list)
+        self._history: list[DomainEvent] = []
         self._max_history = 500
 
-    def subscribe(self, event_cls: Type[TEvent], handler: EventHandler[TEvent]) -> None:
+    def subscribe(self, event_cls: type[TEvent], handler: EventHandler[TEvent]) -> None:
         self._subscribers[event_cls].append(handler)
         logger.debug("Registered handler %s for event %s", handler, event_cls.__name__)
 
@@ -40,11 +40,11 @@ class InMemoryEventBus(EventBusPort):
     async def _safe_invoke(self, handler: EventHandler[Any], event: DomainEvent) -> None:
         try:
             await handler(event)
-        except Exception as exc:  # noqa: BLE001
-            logger.exception("Error in event handler %s for event %s: %s", handler, event.event_type, exc)
+        except Exception:
+            logger.exception("Error in event handler %s for event %s", handler, event.event_type)
 
     @property
-    def history(self) -> List[DomainEvent]:
+    def history(self) -> list[DomainEvent]:
         return list(self._history)
 
     def clear(self) -> None:

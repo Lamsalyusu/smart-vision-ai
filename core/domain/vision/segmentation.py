@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import math
-from typing import List, Tuple
 import numpy as np
 
 
@@ -9,7 +7,7 @@ class ImageSegmentationEngine:
     """Image segmentation via thresholding and region-based algorithms."""
 
     @staticmethod
-    def otsu_threshold(image: np.ndarray) -> Tuple[float, np.ndarray]:
+    def otsu_threshold(image: np.ndarray) -> tuple[float, np.ndarray]:
         """Otsu thresholding: maximizes inter-class variance between background and foreground."""
         gray = image.astype(np.uint8) if image.ndim == 2 else np.mean(image, axis=-1).astype(np.uint8)
         hist, _ = np.histogram(gray, bins=256, range=(0, 256))
@@ -54,12 +52,8 @@ class ImageSegmentationEngine:
         """Locally adaptive thresholding for uneven illumination."""
         if block_size % 2 == 0:
             block_size += 1
-        pad = block_size // 2
 
         img = image.astype(np.float64)
-        padded = np.pad(img, ((pad, pad), (pad, pad)), mode="reflect")
-        h, w = img.shape
-
         if method == "gaussian":
             from .filters import ImageFilterKernel, SpatialConvolutionEngine
             kernel = ImageFilterKernel.gaussian_2d(block_size, sigma=block_size / 6.0)
@@ -73,7 +67,7 @@ class ImageSegmentationEngine:
         return (img > thresh).astype(np.uint8) * 255
 
     @staticmethod
-    def region_growing(image: np.ndarray, seed: Tuple[int, int], threshold: float = 15.0) -> np.ndarray:
+    def region_growing(image: np.ndarray, seed: tuple[int, int], threshold: float = 15.0) -> np.ndarray:
         """Connected component region growing starting from seed pixel coordinate."""
         h, w = image.shape
         visited = np.zeros((h, w), dtype=bool)

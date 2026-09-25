@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import math
-from typing import Tuple
 import numpy as np
 
 from .filters import ImageFilterKernel, SpatialConvolutionEngine
@@ -14,7 +12,7 @@ class LucasKanadeOpticalFlow:
         self.w_size = window_size
         self.reg = regularization
 
-    def compute_flow(self, prev_img: np.ndarray, next_img: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    def compute_flow(self, prev_img: np.ndarray, next_img: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """Compute (u, v) dense optical flow fields.
 
         Args:
@@ -36,8 +34,6 @@ class LucasKanadeOpticalFlow:
 
         u = np.zeros((h, w), dtype=np.float64)
         v = np.zeros((h, w), dtype=np.float64)
-        half = self.w_size // 2
-
         # Solve [Ix^2   Ix*Iy] [u] = -[Ix*It]
         #       [Ix*Iy  Iy^2 ] [v]   -[Iy*It]
         # in local neighborhood windows
@@ -66,7 +62,7 @@ class HornSchunckOpticalFlow:
         self.max_iter = max_iter
         self.tol = tol
 
-    def compute_flow(self, prev_img: np.ndarray, next_img: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    def compute_flow(self, prev_img: np.ndarray, next_img: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         i1 = prev_img.astype(np.float64)
         i2 = next_img.astype(np.float64)
         h, w = i1.shape

@@ -1,16 +1,14 @@
 from __future__ import annotations
 
-import math
-from typing import List, Tuple
 import numpy as np
 
-from .lie_algebra import SO3, SE3
+from .lie_algebra import SE3
 
 
 class VisualOdometryEstimator:
     """Monocular Visual Odometry using Essential Matrix decomposition and PnP pose recovery."""
 
-    def __init__(self, focal_length: float = 718.856, principal_point: Tuple[float, float] = (607.1928, 185.2157)) -> None:
+    def __init__(self, focal_length: float = 718.856, principal_point: tuple[float, float] = (607.1928, 185.2157)) -> None:
         self.fx = focal_length
         self.fy = focal_length
         self.cx, self.cy = principal_point
@@ -51,7 +49,7 @@ class VisualOdometryEstimator:
         e = u @ np.diag([s_avg, s_avg, 0.0]) @ vh
         return e
 
-    def decompose_essential_matrix(self, e: np.ndarray) -> List[Tuple[np.ndarray, np.ndarray]]:
+    def decompose_essential_matrix(self, e: np.ndarray) -> list[tuple[np.ndarray, np.ndarray]]:
         """Decompose Essential Matrix into 4 possible (R, t) hypothesis solutions."""
         u, _, vh = np.linalg.svd(e)
         if np.linalg.det(u) < 0:

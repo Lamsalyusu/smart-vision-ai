@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import math
-import numpy as np
+
 from .activations import Activations
-from .layers import Linear, LayerNorm, Dropout, Module
+from .layers import LayerNorm, Linear, Module
 from .tensor import Tensor
 
 

@@ -8,7 +8,6 @@ The network consists of:
 - Multi-scale detection heads for 10 object classes
 """
 
-import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 

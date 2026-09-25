@@ -1,13 +1,15 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from enum import Enum
-from typing import Callable, List, Set
+
 from fastapi import HTTPException, Security, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from .jwt_auth import TokenPayload, jwt_service
 
 security_bearer = HTTPBearer(auto_error=False)
+bearer_credentials = Security(security_bearer)
 
 
 class AppRole(str, Enum):
@@ -25,7 +27,7 @@ class AppPermission(str, Enum):
     ADMIN_USERS = "admin_users"
 
 
-ROLE_PERMISSIONS_MAP: dict[AppRole, Set[AppPermission]] = {
+ROLE_PERMISSIONS_MAP: dict[AppRole, set[AppPermission]] = {
     AppRole.ADMIN: {
         AppPermission.DETECT,
         AppPermission.VIEW_TELEMETRY,
@@ -52,7 +54,7 @@ ROLE_PERMISSIONS_MAP: dict[AppRole, Set[AppPermission]] = {
 
 def require_permission(required_perm: AppPermission) -> Callable[..., TokenPayload]:
     """FastAPI Dependency enforcing RBAC permission verification."""
-    def dependency(credentials: HTTPAuthorizationCredentials = Security(security_bearer)) -> TokenPayload:
+    def dependency(credentials: HTTPAuthorizationCredentials | None = bearer_credentials) -> TokenPayload:
         if not credentials:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,

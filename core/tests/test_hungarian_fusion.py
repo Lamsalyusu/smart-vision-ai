@@ -1,4 +1,5 @@
 import unittest
+
 import numpy as np
 
 from core.domain.tracking.hungarian_fusion import (

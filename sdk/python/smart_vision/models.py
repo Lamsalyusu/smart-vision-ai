@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 
@@ -16,8 +17,8 @@ class DetectionRecord(BaseModel):
     class_name: str
     confidence: float
     bbox: BoundingBoxModel
-    depth_m: Optional[float] = None
-    spatial_coords: Optional[List[float]] = None
+    depth_m: float | None = None
+    spatial_coords: list[float] | None = None
 
 
 class SpatialTrackRecord(BaseModel):
@@ -25,8 +26,8 @@ class SpatialTrackRecord(BaseModel):
     class_name: str
     state: str
     confidence: float
-    position_3d: List[float] = Field(default_factory=list)
-    velocity_3d: List[float] = Field(default_factory=list)
+    position_3d: list[float] = Field(default_factory=list)
+    velocity_3d: list[float] = Field(default_factory=list)
     age_frames: int = 1
 
 
@@ -36,8 +37,8 @@ class MeshReconstructionResult(BaseModel):
     vertex_count: int
     face_count: int
     surface_area_sq_m: float
-    obj_data: Optional[str] = None
-    threejs_geometry: Optional[Dict[str, Any]] = None
+    obj_data: str | None = None
+    threejs_geometry: dict[str, Any] | None = None
 
 
 class TelemetryPacket(BaseModel):
@@ -46,4 +47,4 @@ class TelemetryPacket(BaseModel):
     active_tracks: int
     inference_latency_ms: float
     drift_score: float
-    geofence_breaches: List[Dict[str, Any]] = Field(default_factory=list)
+    geofence_breaches: list[dict[str, Any]] = Field(default_factory=list)

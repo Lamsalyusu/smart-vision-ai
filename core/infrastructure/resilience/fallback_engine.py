@@ -2,7 +2,7 @@ import logging
 from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
-from typing import TypeVar
+from typing import Generic, TypeVar
 
 from core.infrastructure.resilience.circuit_breaker import (
     CircuitBreaker,
@@ -28,7 +28,7 @@ class InferenceExecutionResult:
     fallback_occurred: bool
 
 
-class ResilientInferencePipeline:
+class ResilientInferencePipeline(Generic[InputType, OutputType]):
     """Multi-tier inference execution supervisor with automated circuit breaker cascade.
 
     Cascades execution through:

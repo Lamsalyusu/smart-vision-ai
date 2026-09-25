@@ -2,17 +2,15 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import List, Optional, Tuple
-import numpy as np
 
 
 @dataclass(frozen=True, slots=True)
 class SpatialAABB:
     """Axis-Aligned Bounding Box in 3D Euclidean space."""
-    min_point: Tuple[float, float, float]
-    max_point: Tuple[float, float, float]
+    min_point: tuple[float, float, float]
+    max_point: tuple[float, float, float]
 
-    def contains(self, point: Tuple[float, float, float]) -> bool:
+    def contains(self, point: tuple[float, float, float]) -> bool:
         return (
             self.min_point[0] <= point[0] <= self.max_point[0]
             and self.min_point[1] <= point[1] <= self.max_point[1]
@@ -29,7 +27,7 @@ class SpatialAABB:
 
 @dataclass
 class OctreePoint:
-    position: Tuple[float, float, float]
+    position: tuple[float, float, float]
     data: int  # index or entity ID
 
 
@@ -39,8 +37,8 @@ class OctreeNode:
         self.capacity = capacity
         self.depth = depth
         self.max_depth = max_depth
-        self.points: List[OctreePoint] = []
-        self.children: Optional[List[OctreeNode]] = None
+        self.points: list[OctreePoint] = []
+        self.children: list[OctreeNode] | None = None
 
     def subdivide(self) -> None:
         x_min, y_min, z_min = self.boundary.min_point
@@ -84,7 +82,7 @@ class OctreeNode:
 
         return True
 
-    def query_range(self, aabb: SpatialAABB, results: List[OctreePoint]) -> None:
+    def query_range(self, aabb: SpatialAABB, results: list[OctreePoint]) -> None:
         if not self.boundary.intersects(aabb):
             return
 
@@ -96,12 +94,12 @@ class OctreeNode:
             for child in self.children:
                 child.query_range(aabb, results)
 
-    def query_radius(self, center: Tuple[float, float, float], radius: float, results: List[OctreePoint]) -> None:
+    def query_radius(self, center: tuple[float, float, float], radius: float, results: list[OctreePoint]) -> None:
         aabb = SpatialAABB(
             (center[0] - radius, center[1] - radius, center[2] - radius),
             (center[0] + radius, center[1] + radius, center[2] + radius),
         )
-        candidates: List[OctreePoint] = []
+        candidates: list[OctreePoint] = []
         self.query_range(aabb, candidates)
 
         r2 = radius * radius
@@ -126,9 +124,9 @@ class SpatialOctreeIndex:
             self.count += 1
         return success
 
-    def radius_search(self, center: Tuple[float, float, float], radius: float) -> List[Tuple[int, float]]:
+    def radius_search(self, center: tuple[float, float, float], radius: float) -> list[tuple[int, float]]:
         """Find entity IDs within radius distance, returning list of (entity_id, distance)."""
-        pts: List[OctreePoint] = []
+        pts: list[OctreePoint] = []
         self.root.query_radius(center, radius, pts)
 
         results = []

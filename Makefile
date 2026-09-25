@@ -1,8 +1,8 @@
-.PHONY: help install dev test test-py test-ts lint lint-py lint-ts type-check docker-up docker-down clean
+.PHONY: help install dev test test-py test-ts test-core lint lint-py lint-ts lint-core type-check type-check-core docker-up docker-down clean
 
 PYTHON ?= .venv/bin/python
-RUFF ?= ruff
-MYPY ?= mypy
+RUFF ?= $(dir $(PYTHON))ruff
+MYPY ?= $(dir $(PYTHON))mypy
 
 help:
 	@echo "Smart Vision AI Build & Quality System:"
@@ -30,6 +30,8 @@ test: test-py test-ts
 test-py:
 	$(PYTHON) -m unittest discover -s core/tests -v
 
+test-core: test-py
+
 test-ts:
 	npm test
 
@@ -38,12 +40,17 @@ lint: lint-py lint-ts
 lint-py:
 	$(RUFF) check core
 
+lint-core: lint-py
+
 lint-ts:
 	npm run lint
 
 type-check:
 	$(MYPY) core --ignore-missing-imports
 	npm run type-check
+
+type-check-core:
+	$(MYPY) core --ignore-missing-imports
 
 docker-up:
 	docker compose up --build -d

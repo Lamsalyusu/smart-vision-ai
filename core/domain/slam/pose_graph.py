@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-import math
 from dataclasses import dataclass
-from typing import Dict, List, Tuple
+
 import numpy as np
 
-from .lie_algebra import SO3, SE3
+from .lie_algebra import SE3
 
 
 @dataclass
@@ -23,8 +22,8 @@ class PoseGraphOptimizer:
     def __init__(self, damping: float = 1e-3, max_iters: int = 25) -> None:
         self.damping = damping
         self.max_iters = max_iters
-        self.vertices: Dict[int, SE3] = {}
-        self.edges: List[PoseGraphEdge] = []
+        self.vertices: dict[int, SE3] = {}
+        self.edges: list[PoseGraphEdge] = []
 
     def add_vertex(self, vertex_id: int, pose: SE3) -> None:
         self.vertices[vertex_id] = pose

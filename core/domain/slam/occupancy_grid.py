@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import math
-from typing import Tuple
+
 import numpy as np
 
 
@@ -10,8 +10,8 @@ class OccupancyGrid3D:
 
     def __init__(
         self,
-        bounds_min: Tuple[float, float, float] = (-5.0, -5.0, -1.0),
-        bounds_max: Tuple[float, float, float] = (5.0, 5.0, 3.0),
+        bounds_min: tuple[float, float, float] = (-5.0, -5.0, -1.0),
+        bounds_max: tuple[float, float, float] = (5.0, 5.0, 3.0),
         voxel_size: float = 0.1,
         p_occ: float = 0.7,
         p_free: float = 0.4,
@@ -35,7 +35,7 @@ class OccupancyGrid3D:
         self.l_min = -5.0
         self.l_max = 5.0
 
-    def world_to_voxel(self, pt_world: np.ndarray) -> Tuple[int, int, int]:
+    def world_to_voxel(self, pt_world: np.ndarray) -> tuple[int, int, int]:
         """Convert world coordinates (x, y, z) to discrete grid indices."""
         idx = np.floor((pt_world - self.origin) / self.voxel_size).astype(np.int32)
         return int(idx[0]), int(idx[1]), int(idx[2])

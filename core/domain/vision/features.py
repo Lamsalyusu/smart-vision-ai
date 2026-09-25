@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import List, Tuple
+from typing import ClassVar
+
 import numpy as np
 
 from .filters import ImageFilterKernel, SpatialConvolutionEngine
@@ -50,7 +51,7 @@ class HarrisCornerDetector:
         r = det_m - self.k * (trace_m ** 2)
         return r
 
-    def detect(self, image: np.ndarray) -> List[Keypoint2D]:
+    def detect(self, image: np.ndarray) -> list[Keypoint2D]:
         """Detect local maxima corner points passing threshold."""
         r = self.compute_response(image)
         h, w = r.shape
@@ -75,7 +76,7 @@ class ShiTomasiCornerDetector:
         self.threshold = threshold
         self.sigma = sigma
 
-    def detect(self, image: np.ndarray) -> List[Keypoint2D]:
+    def detect(self, image: np.ndarray) -> list[Keypoint2D]:
         img = image.astype(np.float64)
         gx = SpatialConvolutionEngine.convolve2d(img, ImageFilterKernel.sobel_x())
         gy = SpatialConvolutionEngine.convolve2d(img, ImageFilterKernel.sobel_y())
@@ -97,9 +98,8 @@ class ShiTomasiCornerDetector:
         for i in range(1, h - 1):
             for j in range(1, w - 1):
                 val = lambda_min[i, j]
-                if val > self.threshold:
-                    if val == np.max(lambda_min[i - 1:i + 2, j - 1:j + 2]):
-                        keypoints.append(Keypoint2D(x=float(j), y=float(i), response=float(val)))
+                if val > self.threshold and val == np.max(lambda_min[i - 1:i + 2, j - 1:j + 2]):
+                    keypoints.append(Keypoint2D(x=float(j), y=float(i), response=float(val)))
 
         return keypoints
 
@@ -108,7 +108,7 @@ class FastFeatureDetector:
     """Features from Accelerated Segment Test (FAST-9/16) corner detector."""
 
     # 16-pixel Bresenham circle offsets around center (x, y)
-    CIRCLE_OFFSETS = [
+    CIRCLE_OFFSETS: ClassVar[list[tuple[int, int]]] = [
         (0, -3), (1, -3), (2, -2), (3, -1),
         (3, 0), (3, 1), (2, 2), (1, 3),
         (0, 3), (-1, 3), (-2, 2), (-3, 1),
@@ -119,7 +119,7 @@ class FastFeatureDetector:
         self.threshold = threshold
         self.n_contiguous = n_contiguous
 
-    def detect(self, image: np.ndarray) -> List[Keypoint2D]:
+    def detect(self, image: np.ndarray) -> list[Keypoint2D]:
         """Detect fast corners."""
         h, w = image.shape
         img = image.astype(np.int32)
@@ -209,13 +209,13 @@ class OrbDescriptorExtractor:
 
         return math.atan2(m01, m10)
 
-    def extract(self, image: np.ndarray, keypoints: List[Keypoint2D]) -> np.ndarray:
+    def extract(self, image: np.ndarray, keypoints: list[Keypoint2D]) -> np.ndarray:
         """Extract 256-bit binary descriptors for given keypoints."""
         h, w = image.shape
         descriptors = np.zeros((len(keypoints), self.n_pairs // 8), dtype=np.uint8)
 
         for kp_idx, kp in enumerate(keypoints):
-            ix, iy = int(round(kp.x)), int(round(kp.y))
+            ix, iy = round(kp.x), round(kp.y)
             if not (16 <= ix < w - 16 and 16 <= iy < h - 16):
                 continue
 
@@ -228,20 +228,19 @@ class OrbDescriptorExtractor:
             byte_val = 0
             byte_pos = 0
 
-            for p_idx in range(self.n_pairs):
-                x1, y1, x2, y2 = self.test_pairs[p_idx]
+            for bit_idx, pair in enumerate(self.test_pairs[:self.n_pairs]):
+                x1, y1, x2, y2 = pair
                 # Steer sampling points by keypoint orientation angle
-                rx1 = int(round(x1 * cos_a - y1 * sin_a)) + ix
-                ry1 = int(round(x1 * sin_a + y1 * cos_a)) + iy
-                rx2 = int(round(x2 * cos_a - y2 * sin_a)) + ix
-                ry2 = int(round(x2 * sin_a + y2 * cos_a)) + iy
+                rx1 = round(x1 * cos_a - y1 * sin_a) + ix
+                ry1 = round(x1 * sin_a + y1 * cos_a) + iy
+                rx2 = round(x2 * cos_a - y2 * sin_a) + ix
+                ry2 = round(x2 * sin_a + y2 * cos_a) + iy
 
                 val1 = image[ry1, rx1]
                 val2 = image[ry2, rx2]
 
                 bit = 1 if val1 < val2 else 0
-                byte_val |= (bit << (bit_idx % 8))
-                bit_idx += 1
+                byte_val |= bit << (bit_idx % 8)
 
                 if bit_idx % 8 == 0:
                     descriptors[kp_idx, byte_pos] = byte_val
