@@ -6,14 +6,15 @@ session handling) in Python we reuse the newly‑created `DataManager`
 implementation.
 """
 
+import hmac
 import os
 import time
 from typing import Any
 
-from fastapi import Depends, FastAPI, HTTPException, Request, Response
+from fastapi import Depends, FastAPI, Header, HTTPException, Request, Response
 from fastapi.security import HTTPBasic
 from passlib.context import CryptContext
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.exc import SQLAlchemyError
 
 from ..database.data_manager import data_manager
@@ -63,6 +64,27 @@ class DetectionPayload(BaseModel):
 
 class DetectionBatchPayload(BaseModel):
     detections: list[DetectionPayload]
+
+class ReplayDetectionPayload(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    class_name: str = Field(alias="class")
+    confidence: float
+    bbox: list[float] = Field(min_length=4, max_length=4)
+    track_id: int | None = None
+    spatial_3d: dict[str, Any] | None = None
+
+class ReplayFramePayload(BaseModel):
+    session_id: str
+    captured_at: float
+    detections: list[ReplayDetectionPayload]
+
+async def require_internal_api_token(x_internal_token: str | None = Header(default=None)) -> None:
+    expected_token = os.getenv("INTERNAL_API_TOKEN", "")
+    if not expected_token:
+        raise HTTPException(status_code=503, detail="Replay service is not configured")
+    if x_internal_token is None or not hmac.compare_digest(x_internal_token, expected_token):
+        raise HTTPException(status_code=401, detail="Invalid internal service token")
 
 class SessionInfo(BaseModel):
     token: str
@@ -210,6 +232,24 @@ async def record_detection_batch(payload: DetectionBatchPayload):
 @app.get("/stats")
 async def get_stats():
     return data_manager.get_stats()
+
+@app.post("/replay/frames", dependencies=[Depends(require_internal_api_token)])
+async def save_replay_frame(payload: ReplayFramePayload):
+    frame = data_manager.save_replay_frame(
+        payload.session_id,
+        payload.captured_at,
+        [detection.model_dump(by_alias=True) for detection in payload.detections],
+    )
+    return {"success": True, "frame": frame}
+
+@app.get("/replay/frames", dependencies=[Depends(require_internal_api_token)])
+async def get_replay_frames(session_id: str):
+    return {"success": True, "frames": data_manager.get_replay_frames(session_id)}
+
+@app.delete("/replay/frames", dependencies=[Depends(require_internal_api_token)])
+async def clear_replay_frames(session_id: str):
+    data_manager.clear_replay_frames(session_id)
+    return {"success": True}
 
 @app.post("/history/clear")
 async def clear_history():

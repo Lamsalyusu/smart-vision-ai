@@ -14,13 +14,20 @@ import logging
 from collections.abc import Sequence
 from datetime import timedelta
 from typing import Any
+from uuid import uuid4
 
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from .clock import utcnow_naive
 from .engine import Base, SessionLocal, engine
-from .models import DetectionCropRecord, FailedLoginAttempt, TelemetryStat, User
+from .models import (
+    DetectionCropRecord,
+    FailedLoginAttempt,
+    ReplayFrameRecord,
+    TelemetryStat,
+    User,
+)
 from .models import Session as DBSession
 
 logger = logging.getLogger(__name__)
@@ -272,6 +279,69 @@ class DataManager:
     def clear_history(self) -> None:
         with SessionLocal() as db:
             db.query(TelemetryStat).filter(TelemetryStat.key == "detection").delete(synchronize_session=False)
+            db.commit()
+
+    def save_replay_frame(
+        self,
+        session_id: str,
+        captured_at: float,
+        detections: list[dict[str, Any]],
+        max_frames: int = 240,
+        retention_days: int = 30,
+    ) -> dict[str, Any]:
+        now = utcnow_naive()
+        record = ReplayFrameRecord(
+            id=str(uuid4()),
+            session_id=session_id,
+            captured_at=captured_at,
+            detections=detections,
+            recorded_at=now,
+        )
+        frame_data = {"capturedAt": captured_at, "detections": detections}
+        with SessionLocal() as db:
+            db.add(record)
+            db.flush()
+            expired_before = now - timedelta(days=retention_days)
+            db.query(ReplayFrameRecord).filter(
+                ReplayFrameRecord.recorded_at < expired_before
+            ).delete(synchronize_session=False)
+            stale_ids = (
+                db.query(ReplayFrameRecord.id)
+                .filter(ReplayFrameRecord.session_id == session_id)
+                .order_by(ReplayFrameRecord.captured_at.desc(), ReplayFrameRecord.id.desc())
+                .offset(max_frames)
+                .all()
+            )
+            if stale_ids:
+                db.query(ReplayFrameRecord).filter(
+                    ReplayFrameRecord.id.in_([frame_id for (frame_id,) in stale_ids])
+                ).delete(synchronize_session=False)
+            db.commit()
+        return frame_data
+
+    def get_replay_frames(self, session_id: str, limit: int = 240) -> list[dict[str, Any]]:
+        retention_cutoff = utcnow_naive() - timedelta(days=30)
+        with SessionLocal() as db:
+            records = (
+                db.query(ReplayFrameRecord)
+                .filter(
+                    ReplayFrameRecord.session_id == session_id,
+                    ReplayFrameRecord.recorded_at >= retention_cutoff,
+                )
+                .order_by(ReplayFrameRecord.captured_at.desc(), ReplayFrameRecord.id.desc())
+                .limit(limit)
+                .all()
+            )
+        return [
+            {"capturedAt": record.captured_at, "detections": record.detections}
+            for record in reversed(records)
+        ]
+
+    def clear_replay_frames(self, session_id: str) -> None:
+        with SessionLocal() as db:
+            db.query(ReplayFrameRecord).filter_by(session_id=session_id).delete(
+                synchronize_session=False
+            )
             db.commit()
 
     def get_stats(self) -> dict[str, Any]:
