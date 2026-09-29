@@ -1,6 +1,7 @@
 import os
 import unittest
 from unittest.mock import patch
+from uuid import uuid4
 
 import httpx
 
@@ -12,11 +13,15 @@ from core.infrastructure.database.models import Session as DatabaseSession
 
 class ApiPersistenceIntegrationTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
+        self.internal_token_patch = patch.dict(os.environ, {"INTERNAL_API_TOKEN": "test-internal-token"})
+        self.internal_token_patch.start()
         self.transport = httpx.ASGITransport(app=app)
         self.client = httpx.AsyncClient(transport=self.transport, base_url="http://test")
+        self.internal_headers = {"X-Internal-Token": "test-internal-token"}
 
     async def asyncTearDown(self):
         await self.client.aclose()
+        self.internal_token_patch.stop()
 
     async def test_01_health_endpoint(self):
         res = await self.client.get("/health")
@@ -163,6 +168,82 @@ class ApiPersistenceIntegrationTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(DataManager().is_account_locked(identifier))
         DataManager().clear_failed_logins(identifier)
         self.assertFalse(data_manager.is_account_locked(identifier))
+
+    async def test_replay_frames_persist_are_session_scoped_and_can_be_cleared(self):
+        first_session = str(uuid4())
+        second_session = str(uuid4())
+        payload = {
+            "captured_at": 1_798_000_000_000,
+            "detections": [
+                {
+                    "class": "can",
+                    "confidence": 0.81,
+                    "bbox": [1, 2, 30, 40],
+                    "track_id": 9,
+                    "spatial_3d": {"distance_m": 2.4},
+                }
+            ],
+        }
+
+        first_save = await self.client.post(
+            "/replay/frames",
+            json={"session_id": first_session, **payload},
+            headers=self.internal_headers,
+        )
+        second_save = await self.client.post(
+            "/replay/frames",
+            json={"session_id": second_session, "captured_at": payload["captured_at"], "detections": []},
+            headers=self.internal_headers,
+        )
+        self.assertEqual(first_save.status_code, 200)
+        self.assertEqual(second_save.status_code, 200)
+
+        loaded = await self.client.get(
+            "/replay/frames", params={"session_id": first_session}, headers=self.internal_headers
+        )
+        self.assertEqual(loaded.status_code, 200)
+        expected_frame = {
+            "capturedAt": float(payload["captured_at"]),
+            "detections": [{**payload["detections"][0], "bbox": [1.0, 2.0, 30.0, 40.0]}],
+        }
+        self.assertEqual(loaded.json()["frames"], [expected_frame])
+        self.assertEqual(DataManager().get_replay_frames(first_session), [expected_frame])
+
+        cleared = await self.client.delete(
+            "/replay/frames", params={"session_id": first_session}, headers=self.internal_headers
+        )
+        self.assertEqual(cleared.status_code, 200)
+        self.assertEqual(
+            (await self.client.get("/replay/frames", params={"session_id": first_session}, headers=self.internal_headers)).json()["frames"],
+            [],
+        )
+        self.assertEqual(
+            len((await self.client.get("/replay/frames", params={"session_id": second_session}, headers=self.internal_headers)).json()["frames"]),
+            1,
+        )
+
+    async def test_replay_api_rejects_missing_internal_token(self):
+        with patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("INTERNAL_API_TOKEN", None)
+            response = await self.client.get("/replay/frames", params={"session_id": str(uuid4())})
+
+        self.assertEqual(response.status_code, 503)
+
+    async def test_replay_storage_keeps_only_the_latest_frames_per_session(self):
+        session_id = str(uuid4())
+        manager = DataManager()
+        for captured_at in (1.0, 2.0, 3.0):
+            manager.save_replay_frame(
+                session_id,
+                captured_at,
+                [],
+                max_frames=2,
+            )
+
+        self.assertEqual(
+            [frame["capturedAt"] for frame in manager.get_replay_frames(session_id)],
+            [2.0, 3.0],
+        )
 
 
 class ProductionDatabaseConfigurationTests(unittest.TestCase):
