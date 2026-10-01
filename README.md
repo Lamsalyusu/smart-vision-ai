@@ -78,6 +78,16 @@ Generate a private internal service token and place the same value in `INTERNAL_
 openssl rand -hex 32
 ```
 
+### RTSP camera ingestion
+
+The vision service can ingest RTSP/RTSPS streams whose endpoint appears in `RTSP_ALLOWED_HOSTS` (comma-separated `host` or `host:port` values). Manage streams through the token-protected endpoint, sending the same `INTERNAL_API_TOKEN` value in the `X-Internal-Token` header:
+
+- `GET /api/streams/rtsp/` returns connection and frame-count metrics for each stream.
+- `POST /api/streams/rtsp/` with `{"camera_id": "...", "stream_url": "rtsp://..."}` starts ingestion and returns `202`.
+- `DELETE /api/streams/rtsp/?camera_id=...` stops and removes a stream.
+
+`RTSP_MAX_STREAMS` caps concurrent streams, and `RTSP_RECONNECT_DELAY_SECONDS` controls the wait before reconnecting a dropped camera.
+
 ---
 
 ## Project Structure
@@ -88,6 +98,7 @@ smart-vision-ai/
 │   ├── camera/           # Live camera feed with detection overlay & HUD
 │   ├── dashboard/        # Telemetry, analytics, and class statistics
 │   ├── model-viewer/     # Three.js 3D point cloud & GLB mesh viewer
+│   ├── gpu-viewer/       # WebGPU million-point viewer with measured FPS
 │   ├── replay/           # Session-scoped SQL-backed spatial trajectory replay
 │   └── api/              # API endpoints for detection, chat & 3D models
 ├── lib/                  # Core algorithms in TypeScript
@@ -95,12 +106,16 @@ smart-vision-ai/
 │   ├── tracker.ts        # Kalman box tracking (SORT)
 │   ├── spatial-fusion.ts # Camera intrinsics & 3D back-projection
 │   ├── scene-graph.ts    # Spatial relation builder
+│   ├── webgpu-pointcloud.ts # WebGPU point-cloud renderer
+│   ├── geometry-accel.ts # JS geometry with optional WASM acceleration
 │   └── store.ts          # Client state store
 ├── core/                 # Computer vision & spatial geometry algorithms in Python
 │   ├── application/      # Application layer (ingestion, perception, simulation, etc.)
 │   ├── domain/           # Domain models (tracking, vision, SLAM, robotics, etc.)
 │   ├── infrastructure/   # Infrastructure (database, API, security, concurrency, etc.)
 │   └── tests/            # Unit tests
+├── rust/geometry/        # Optional Rust/WASM point-cloud geometry kernels
+├── scripts/              # Operational load and chaos measurement commands
 ├── public/models/        # 3D GLB assets for detected object classes
 ├── configs/              # Sensor profiles and dataset configurations
 ├── docs/                 # Documentation and event schemas
@@ -121,17 +136,69 @@ npm run lint     # Run ESLint validation
 npx tsc --noEmit # Type-check TypeScript codebase
 ```
 
----
+Operational and quality commands:
 
-## Model Training & Background
+```bash
+make load-test     # 64 synthetic camera streams, throughput + p50/p95/p99
+make chaos-test    # Same load with drops, disconnects, and pipeline errors
+make mutation-test # Cosmic Ray mutation testing, writes reports/mutation.json
+```
 
-For details about how the dataset was collected, cleaned, and trained on Google Colab, see [`ProjectJourney.md`](ProjectJourney.md) and the training notebook in `legacy_django/144_2432214_YuyutsuLamsal_ObjectDetectionModel.ipynb`.
+To build the optional WASM geometry kernels:
+
+```bash
+rustup target add wasm32-unknown-unknown
+cd rust/geometry && cargo build --release --target wasm32-unknown-unknown
+mkdir -p ../../public/wasm
+cp target/wasm32-unknown-unknown/release/smartvision_geometry.wasm ../../public/wasm/geometry.wasm
+```
+
+When `/wasm/geometry.wasm` is absent the browser uses the JavaScript geometry
+implementation automatically, so WebGPU discovery does not depend on Rust.
 
 ---
 
 ## Performance Evidence
 
-No production benchmark figures are currently published. The dashboard reports measured detection counts and labels performance or accuracy metrics as unavailable until they are collected from representative workloads. The TensorFlow detector has a CPU smoke test; it is not a throughput or accuracy benchmark.
+No production inference benchmark is published yet: accuracy and end-to-end
+camera-to-model latency require representative cameras, GPU hardware, and a
+running Triton/TensorRT deployment. The dashboard labels those values as
+unavailable until they are measured rather than displaying fabricated numbers.
+
+The synthetic load harness has been measured locally on this workstation's CPU
+for **64 concurrent camera streams x 120 frames** (7,680 frames of deterministic
+320x240 JPEG encode + decode, no model inference):
+
+| Scenario | Throughput | p50 | p95 | p99 | Max | Faults |
+| --- | --- | --- | --- | --- | --- | --- |
+| Clean streams | 4,461 fps | 3.35 ms | 12.16 ms | 21.39 ms | 53.83 ms | 0 |
+| Chaos injection | 4,011 fps | 3.46 ms | 12.57 ms | 19.81 ms | 48.71 ms | 1,600 |
+
+Chaos injection configured drops every 7 frames, disconnects every 23, errors
+every 31, and a 5 ms latency spike every 47. Results include machine and
+JIT/decoder warm-up variance; reproduce with `make load-test` and
+`make chaos-test`. These figures measure the synthetic frame pipeline only, not
+detector accuracy or production inference throughput.
+
+Mutation testing is wired through `make mutation-test`, which initializes a
+Cosmic Ray session, executes it with the local distributor, and writes
+`reports/mutation.json` with killed/survived counts and the mutation score. A
+smoke session over `core/application/ingestion/frame_admission.py` produced
+**111 killed / 27 survived out of 138 mutations (80.43%)**. The surviving
+mutations cluster around idle-timeout eviction and rate-limit boundary
+assertions; they are reported rather than hidden, and the full `core` target is
+available for a complete score.
+
+The TensorFlow detector has a CPU smoke test through its HTTP endpoint. The
+Triton client, TensorRT artifact checks, and multi-GPU scheduler are unit tested
+with injected transports; no GPU cluster was available in this environment, so
+multi-GPU/Triton throughput is not claimed.
+
+---
+
+## Model Training & Background
+
+For details about how the dataset was collected, cleaned, and trained on Google Colab, see [`ProjectJourney.md`](ProjectJourney.md) and the training notebook in `legacy_django/144_2432214_YuyutsuLamsal_ObjectDetectionModel.ipynb`.
 
 ---
 
