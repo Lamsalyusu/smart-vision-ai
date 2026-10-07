@@ -1,5 +1,7 @@
 import time
 import logging
+
+from django.conf import settings
 from backend.ml_model.inference import detector
 from backend.ml_model.tracker import SortTracker
 from backend.ml_model.spatial_fusion import spatial_fuser
@@ -68,3 +70,28 @@ class VisionPipelineService:
 
 
 vision_service = VisionPipelineService()
+
+
+def _process_rtsp_frame(camera_id, sequence, image_bytes):
+    vision_service.process_frame(
+        image_bytes,
+        session_key=f"rtsp:{camera_id}",
+        user_id=None,
+        include_depth=False,
+    )
+
+
+rtsp_stream_manager = None
+try:
+    from backend.services.rtsp_ingestion import RTSPIngestionManager
+
+    rtsp_stream_manager = RTSPIngestionManager(
+        _process_rtsp_frame,
+        allowed_hosts=set(getattr(settings, "RTSP_ALLOWED_HOSTS", ())),
+        maximum_streams=int(getattr(settings, "RTSP_MAX_STREAMS", 50)),
+        reconnect_delay_seconds=float(
+            getattr(settings, "RTSP_RECONNECT_DELAY_SECONDS", 1.0)
+        ),
+    )
+except Exception:
+    logger.exception("RTSP ingestion manager could not be initialized")

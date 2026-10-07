@@ -1,4 +1,6 @@
 import base64
+import threading
+import unittest
 from unittest.mock import patch, MagicMock
 import numpy as np
 import cv2
@@ -13,6 +15,7 @@ from backend.ml_model.spatial_fusion import Spatial3DFusion
 from backend.ml_model.scene_graph import SpatialSceneGraph
 from backend.repositories.detection_buffer import DetectionBatchBuffer
 from backend.ml_model.depth_estimation import depth_estimator
+from backend.services.rtsp_ingestion import RTSPIngestionManager, RTSPStreamMetrics
 
 LANDING_URL = "/"
 DETECT_URL = "/api/detect/"
@@ -78,6 +81,7 @@ class DetectEndpointTests(BaseTestCase):
         response = self.client.post(DETECT_URL)
         self.assertEqual(response.status_code, 400)
         self.assertIn("error", response.json())
+
 
     @patch("backend.views.vision_service.process_frame", return_value=[])
     def test_uploaded_image_uses_forwarded_tracking_session(self, process_frame):
@@ -145,6 +149,199 @@ class DetectEndpointTests(BaseTestCase):
 
         self.assertEqual(response.status_code, 500)
         self.assertIn("error", response.json())
+
+
+class RTSPIngestionTests(unittest.TestCase):
+    class OneFrameCapture:
+        def __init__(self):
+            self.released = threading.Event()
+            self.sent_frame = False
+
+        def isOpened(self):
+            return True
+
+        def read(self):
+            if not self.sent_frame:
+                self.sent_frame = True
+                return True, np.zeros((8, 8, 3), dtype=np.uint8)
+            self.released.wait(1)
+            return False, None
+
+        def release(self):
+            self.released.set()
+
+    def test_registered_stream_processes_frame_and_reports_metrics(self):
+        processed = threading.Event()
+        received = []
+        capture = self.OneFrameCapture()
+        manager = RTSPIngestionManager(
+            lambda camera_id, sequence, frame: (
+                received.append((camera_id, sequence, frame)),
+                processed.set(),
+            ),
+            allowed_hosts={"camera.local:554"},
+            capture_factory=lambda _url: capture,
+            encode_frame=lambda _frame: b"jpeg-frame",
+        )
+
+        try:
+            manager.register("front-door", "rtsp://user:secret@camera.local:554/live")
+            self.assertTrue(processed.wait(1))
+            metrics = manager.metrics()[0]
+            self.assertEqual(received, [("front-door", 1, b"jpeg-frame")])
+            self.assertEqual(metrics.frames_received, 1)
+            self.assertEqual(metrics.frames_processed, 1)
+            self.assertEqual(metrics.frames_dropped, 0)
+        finally:
+            manager.close()
+
+    def test_rejects_unallowlisted_host_and_excess_streams(self):
+        capture = self.OneFrameCapture()
+        manager = RTSPIngestionManager(
+            lambda *_args: None,
+            allowed_hosts={"camera.local:554"},
+            maximum_streams=1,
+            capture_factory=lambda _url: capture,
+            encode_frame=lambda _frame: b"jpeg-frame",
+        )
+
+        try:
+            with self.assertRaises(PermissionError):
+                manager.register("camera-1", "rtsp://other.local/live")
+            manager.register("camera-1", "rtsp://camera.local:554/live")
+            with self.assertRaises(OverflowError):
+                manager.register("camera-2", "rtsp://camera.local:554/live")
+        finally:
+            manager.close()
+
+    def test_rejects_non_rtsp_urls_and_malformed_camera_ids(self):
+        manager = RTSPIngestionManager(lambda *_args: None, allowed_hosts={"camera.local"})
+
+        with self.assertRaises(ValueError):
+            manager.register("../camera", "rtsp://camera.local/live")
+        with self.assertRaises(ValueError):
+            manager.register("camera-1", "http://camera.local/live")
+
+
+class RTSPStreamEndpointTests(BaseTestCase):
+    TOKEN = "internal-test-token"
+
+    def request(self, method, **kwargs):
+        path = kwargs.pop("path", reverse("rtsp_streams"))
+        return getattr(self.client, method)(
+            path,
+            HTTP_X_INTERNAL_TOKEN=self.TOKEN,
+            **kwargs,
+        )
+
+    def test_requires_configured_token_and_authorization_header(self):
+        with patch("backend.views.rtsp_stream_manager", MagicMock()):
+            response = self.client.get(reverse("rtsp_streams"))
+            self.assertEqual(response.status_code, 401)
+
+            response = self.client.get(
+                reverse("rtsp_streams"), HTTP_X_INTERNAL_TOKEN="wrong-token"
+            )
+            self.assertEqual(response.status_code, 401)
+
+    @override_settings(INTERNAL_API_TOKEN=TOKEN)
+    def test_rejects_non_ascii_token_without_crashing(self):
+        response = self.client.get(
+            reverse("rtsp_streams"), HTTP_X_INTERNAL_TOKEN="tökén"
+        )
+        self.assertEqual(response.status_code, 401)
+
+    @override_settings(INTERNAL_API_TOKEN=TOKEN)
+    def test_get_reports_stream_metrics(self):
+        manager = MagicMock()
+        manager.metrics.return_value = (
+            RTSPStreamMetrics(
+                "front-door", True, 10, 9, 1, 0, 0, 1234.5
+            ),
+        )
+        with patch("backend.views.rtsp_stream_manager", manager):
+            response = self.request("get")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json()["streams"],
+            [
+                {
+                    "camera_id": "front-door",
+                    "connected": True,
+                    "frames_received": 10,
+                    "frames_processed": 9,
+                    "frames_dropped": 1,
+                    "reconnects": 0,
+                    "processing_errors": 0,
+                    "last_frame_at": 1234.5,
+                }
+            ],
+        )
+
+    @override_settings(INTERNAL_API_TOKEN=TOKEN)
+    def test_post_registers_stream_and_maps_errors(self):
+        manager = MagicMock()
+        manager.register.return_value = RTSPStreamMetrics(
+            "front-door", True, 0, 0, 0, 0, 0, None
+        )
+        with patch("backend.views.rtsp_stream_manager", manager):
+            response = self.request(
+                "post",
+                data={
+                    "camera_id": "front-door",
+                    "stream_url": "rtsp://camera.local:554/live",
+                },
+                content_type="application/json",
+            )
+            self.assertEqual(response.status_code, 202)
+            self.assertEqual(response.json()["camera_id"], "front-door")
+            manager.register.assert_called_once_with(
+                "front-door", "rtsp://camera.local:554/live"
+            )
+
+            manager.register.side_effect = PermissionError("not allowed")
+            response = self.request(
+                "post",
+                data={"camera_id": "x", "stream_url": "rtsp://other/live"},
+                content_type="application/json",
+            )
+            self.assertEqual(response.status_code, 403)
+
+            manager.register.side_effect = OverflowError("too many")
+            response = self.request(
+                "post",
+                data={"camera_id": "x", "stream_url": "rtsp://other/live"},
+                content_type="application/json",
+            )
+            self.assertEqual(response.status_code, 429)
+
+            manager.register.side_effect = ValueError("bad stream")
+            response = self.request("post", data="not json", content_type="application/json")
+            self.assertEqual(response.status_code, 400)
+
+    @override_settings(INTERNAL_API_TOKEN=TOKEN)
+    def test_delete_unregisters_stream(self):
+        manager = MagicMock()
+        base_url = reverse("rtsp_streams")
+        with patch("backend.views.rtsp_stream_manager", manager):
+            response = self.request("delete")
+            self.assertEqual(response.status_code, 400)
+
+            manager.unregister.return_value = False
+            response = self.request("delete", path=f"{base_url}?camera_id=missing")
+            self.assertEqual(response.status_code, 404)
+
+            manager.unregister.return_value = True
+            response = self.request("delete", path=f"{base_url}?camera_id=front-door")
+            self.assertEqual(response.status_code, 200)
+            manager.unregister.assert_called_with("front-door")
+
+    @override_settings(INTERNAL_API_TOKEN=TOKEN)
+    def test_returns_503_when_manager_unavailable(self):
+        with patch("backend.views.rtsp_stream_manager", None):
+            response = self.request("get")
+        self.assertEqual(response.status_code, 503)
 
 
 class ChatEndpointTests(BaseTestCase):
