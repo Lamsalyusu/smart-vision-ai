@@ -1,0 +1,27 @@
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+extend-exclude = ["144_2432214_YuyutsuLamsal_ObjectDetectionModel.ipynb"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "C90", "I", "UP", "B", "SIM", "TCH", "PT", "PTH", "ERA", "RET", "ARG"]
+ignore = ["E501", "E731", "E741", "C901", "SIM102", "SIM103", "ARG001", "ARG002", "PTH118", "PTH123"]
+extend-select = ["FLY", "PD", "PL", "TRY", "NPY", "RSE", "PERF", "TID", "LOG"]
+
+[tool.ruff.lint.flake8-type-checking]
+ignore = ["TC001", "TC002", "TC003"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "lf"
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+disallow_subclassing_any = false
+check_untyped_defs = true
+warn_redundant_casts = true
+warn_unused_ignores = false
+disable_error_code = ["misc", "no-any-return", "union-attr"]
