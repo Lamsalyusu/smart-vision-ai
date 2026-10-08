@@ -68,8 +68,9 @@ test("forwards captured image bytes and tracking session to inference", async ()
 test("does not fabricate detections when the inference service is unavailable", async () => {
   const originalUrl = process.env.VISION_API_URL;
   const originalNodeEnv = process.env.NODE_ENV;
+  const mutableEnv = process.env as Record<string, string | undefined>;
   process.env.VISION_API_URL = "";
-  process.env.NODE_ENV = "production";
+  mutableEnv.NODE_ENV = "production";
 
   try {
     const response = await POST(
@@ -82,8 +83,8 @@ test("does not fabricate detections when the inference service is unavailable", 
   } finally {
     if (originalUrl === undefined) delete process.env.VISION_API_URL;
     else process.env.VISION_API_URL = originalUrl;
-    if (originalNodeEnv === undefined) delete process.env.NODE_ENV;
-    else process.env.NODE_ENV = originalNodeEnv;
+    if (originalNodeEnv === undefined) delete mutableEnv.NODE_ENV;
+    else mutableEnv.NODE_ENV = originalNodeEnv;
   }
 });
 
