@@ -6,14 +6,12 @@ from typing import Optional, Sequence, Callable, Dict, Any, List, Tuple, Set
 from enum import Enum
 from abc import ABC, abstractmethod
 import math
-import time
 from collections import defaultdict, deque
 from scipy.spatial.transform import Rotation as R
 from scipy.optimize import minimize, least_squares
 from scipy.linalg import pinv, svd, cholesky, block_diag
 from scipy.sparse import csr_matrix, lil_matrix, csc_matrix
 from scipy.sparse.linalg import spsolve, lsqr, cg
-import warnings
 
 class LoopClosureMethod(Enum):
     BOW = "bag_of_words"
