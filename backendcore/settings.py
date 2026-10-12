@@ -4,17 +4,15 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-SECRET_KEY = os.getenv("SECRET_KEY")
-
-if not SECRET_KEY:
-    raise ValueError("SECRET_KEY is missing from .env")
-
 # Base configuration
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
 def get_env(name, default=None):
     return os.getenv(name, default)
+
+SECRET_KEY = get_env("SECRET_KEY", "django-insecure-smartvision-ai-evaluation-secret-key-2026")
+OFFLINE_MODE = get_env("OFFLINE_MODE", "False").lower() == "true"
 
 DEBUG = get_env("DJANGO_DEBUG", "False").lower() == "true"
 
