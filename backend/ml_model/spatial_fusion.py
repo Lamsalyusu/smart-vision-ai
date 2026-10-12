@@ -47,10 +47,12 @@ class CameraIntrinsics:
 class Spatial3DFusion:
     """Fuses 2D bounding detections with monocular depth maps for metric 3D perception."""
 
-    def __init__(self, fov_degrees=60.0, min_depth_m=0.35, max_depth_m=4.5):
+    def __init__(self, fov_degrees=60.0, min_depth_m=0.35, max_depth_m=4.5, camera_height_m=1.2, camera_pitch_deg=0.0):
         self.intrinsics = CameraIntrinsics(fov_degrees=fov_degrees)
         self.min_depth_m = min_depth_m
         self.max_depth_m = max_depth_m
+        self.camera_height_m = camera_height_m
+        self.camera_pitch_rad = np.radians(camera_pitch_deg)
 
     def _extract_robust_depth(self, roi):
         """Compute robust depth value using interquartile range (IQR) outlier filtering."""
@@ -123,6 +125,12 @@ class Spatial3DFusion:
             distance_m = np.sqrt(x_m**2 + y_m**2 + z_m**2)
             azimuth_deg = np.degrees(np.arctan2(x_m, z_m))
 
+            # Pitch compensation for elevation above ground level
+            cos_p = np.cos(self.camera_pitch_rad)
+            sin_p = np.sin(self.camera_pitch_rad)
+            elevation_ground_m = y_m * cos_p - z_m * sin_p + self.camera_height_m
+            elevation_deg = np.degrees(np.arctan2(y_m, max(1e-4, np.sqrt(x_m**2 + z_m**2))))
+
             det_copy["spatial_3d"] = {
                 "x_m": round(float(x_m), 2),
                 "y_m": round(float(y_m), 2),
@@ -131,6 +139,8 @@ class Spatial3DFusion:
                 "width_m": round(float(w_metric), 2),
                 "height_m": round(float(h_metric), 2),
                 "azimuth_deg": round(float(azimuth_deg), 1),
+                "elevation_deg": round(float(elevation_deg), 1),
+                "elevation_ground_m": round(float(elevation_ground_m), 2),
             }
 
             enriched.append(det_copy)

@@ -11,7 +11,6 @@ from backend.ml_model.spatial_fusion import Spatial3DFusion
 from backend.ml_model.scene_graph import SpatialSceneGraph
 from backend.repositories.detection_buffer import DetectionBatchBuffer
 from backend.ml_model.depth_estimation import depth_estimator
-from backend.ml_model.inference import detector
 
 LANDING_URL = "/"
 DETECT_URL = "/api/detect/"
@@ -192,10 +191,22 @@ class TrackingAndMathTests(TestCase):
         self.assertEqual(tracks_f2[0]["track_id"], t_id)
         self.assertEqual(tracks_f2[0]["hits"], 2)
 
+    def test_mahalanobis_gating_rejects_spurious_jump(self):
+        tracker = SortTracker(max_age=5, min_hits=1, iou_threshold=0.2, gating_threshold=10.0)
+        # Initialize track at (100, 100)
+        tracker.update([{"bbox": [100.0, 100.0, 150.0, 150.0], "class": "pen", "confidence": 0.9}])
+        # Candidate jump far away at (500, 500)
+        tracks_jump = tracker.update([{"bbox": [500.0, 500.0, 550.0, 550.0], "class": "pen", "confidence": 0.9}])
+        # The distant detection should create a new tracklet rather than matching the previous one
+        self.assertGreaterEqual(len(tracks_jump), 1)
+        self.assertNotEqual(tracks_jump[0]["track_id"], 1 if len(tracker.trackers) > 1 else 0)
+
 
 class SpatialFusionAndSceneGraphTests(TestCase):
     def test_spatial_metric_estimation(self):
-        fuser = Spatial3DFusion(fov_degrees=60.0, min_depth_m=0.5, max_depth_m=3.5)
+        fuser = Spatial3DFusion(
+            fov_degrees=60.0, min_depth_m=0.5, max_depth_m=3.5, camera_height_m=1.2, camera_pitch_deg=5.0
+        )
         depth_map = np.full((100, 100), 0.8, dtype=np.float32)
         dets = [{"bbox": [20.0, 20.0, 80.0, 80.0], "class": "chair", "confidence": 0.8}]
         enriched = fuser.estimate_spatial_metrics(dets, depth_map, (100, 100))
@@ -206,7 +217,10 @@ class SpatialFusionAndSceneGraphTests(TestCase):
         self.assertIn("x_m", spatial)
         self.assertIn("y_m", spatial)
         self.assertIn("z_m", spatial)
+        self.assertIn("elevation_ground_m", spatial)
+        self.assertIn("elevation_deg", spatial)
         self.assertGreater(spatial["distance_m"], 0.0)
+        self.assertGreater(spatial["elevation_ground_m"], 0.0)
 
     def test_scene_graph_builder(self):
         builder = SpatialSceneGraph(proximity_threshold_m=1.0)
@@ -230,6 +244,8 @@ class SpatialFusionAndSceneGraphTests(TestCase):
         self.assertEqual(len(graph["nodes"]), 2)
         self.assertEqual(len(graph["edges"]), 1)
         self.assertEqual(graph["edges"][0]["relation"], "interacting_with")
+        self.assertEqual(graph["nodes"][0]["degree_centrality"], 1.0)
+        self.assertEqual(graph["metrics"]["max_degree"], 1)
         self.assertIn("human_face", graph["summary_prompt"])
 
 

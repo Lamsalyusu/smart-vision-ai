@@ -19,10 +19,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
 from django_ratelimit.decorators import ratelimit
-from groq import Groq
 
 from backend.supabase_client import supabase_admin
-from .ml_model.inference import detector
 from backend.services.vision_service import vision_service
 from backend.services.chat_service import chat_service
 
