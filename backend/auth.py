@@ -1,4 +1,5 @@
-from jose import JWTError, jwt
+import jwt
+from jwt.exceptions import PyJWTError as JWTError
 from django.conf import settings
 
 def get_user_from_request(request):
