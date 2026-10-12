@@ -45,14 +45,16 @@ class SpatialSceneGraph:
                 n1 = nodes[i]
                 n2 = nodes[j]
 
-                spatial1 = n1.get("spatial")
-                spatial2 = n2.get("spatial")
+                c1 = self._get_coords_3d(n1.get("spatial"))
+                c2 = self._get_coords_3d(n2.get("spatial"))
 
-                if spatial1 and spatial2:
+                if c1 is not None and c2 is not None:
                     # Metric 3D spatial evaluation
-                    dx = spatial1["x_m"] - spatial2["x_m"]
-                    dy = spatial1["y_m"] - spatial2["y_m"]
-                    dz = spatial1["z_m"] - spatial2["z_m"]
+                    x1, y1, z1 = c1
+                    x2, y2, z2 = c2
+                    dx = x1 - x2
+                    dy = y1 - y2
+                    dz = z1 - z2
                     dist = float(np.sqrt(dx**2 + dy**2 + dz**2))
 
                     if dist <= self.proximity_threshold_m:
@@ -129,6 +131,21 @@ class SpatialSceneGraph:
             "summary_prompt": summary_prompt,
             "metrics": graph_metrics,
         }
+
+    @staticmethod
+    def _get_coords_3d(spatial):
+        """Safely extract (x, y, z) metric coordinates from spatial dictionaries."""
+        if not isinstance(spatial, dict):
+            return None
+        try:
+            x = spatial.get("x_m") if spatial.get("x_m") is not None else spatial.get("x")
+            y = spatial.get("y_m") if spatial.get("y_m") is not None else spatial.get("y")
+            z = spatial.get("z_m") if spatial.get("z_m") is not None else spatial.get("z")
+            if x is not None and y is not None and z is not None:
+                return float(x), float(y), float(z)
+        except (ValueError, TypeError):
+            return None
+        return None
 
     def _classify_relation(self, cls1, cls2, dy, dist_3d):
         """Domain heuristic to assign semantic predicates between detected classes."""
