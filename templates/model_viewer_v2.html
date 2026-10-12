@@ -1,0 +1,525 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="manifest" href="/static/manifest.json">
+<meta name="theme-color" content="#2563eb">
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/static/sw.js');
+}
+</script>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>3D Viewer - Smart Vision</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background: #0a0e1a; }
+        .card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; }
+        #viewer3d { background: #0d1117; border-radius: 10px; }
+        .viewer-info {
+            position: absolute; bottom: 12px; left: 12px;
+            background: rgba(0,0,0,0.7); padding: 6px 12px;
+            border-radius: 6px; font-size: 0.75rem; color: #8899aa;
+        }
+        .crop-preview img {
+            width: 100%; height: auto; display: block;
+            border-radius: 6px; border: 1px solid rgba(255,255,255,0.1);
+        }
+        .detected-badge {
+            display: inline-flex; padding: 2px 8px;
+            background: rgba(34,197,94,0.15); color: #22c55e;
+            border-radius: 9999px; font-size: 0.7rem; font-weight: 600;
+        }
+        .gen-progress { position: absolute; inset: 0; background: rgba(0,0,0,0.85); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10; }
+        .gen-progress.hidden { display: none; }
+        input[type="range"] { -webkit-appearance: none; width: 100%; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.1); outline: none; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #3b82f6; cursor: pointer; }
+        .class-item { padding: 8px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.06); }
+        .mode-toggle { display: flex; gap: 4px; }
+        .mode-toggle button {
+            flex: 1; padding: 8px 12px; border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 6px; font-size: 0.8rem; cursor: pointer;
+            background: transparent; color: #7a8a9e; font-family: inherit; font-weight: 500;
+        }
+        .mode-toggle button.active { background: #2563eb; color: #fff; border-color: #2563eb; }
+
+        @media (max-width: 768px) {
+            .container { padding-left: 1rem !important; padding-right: 1rem !important; }
+            .grid-cols-1.lg\:grid-cols-4 { display: flex !important; flex-direction: column !important; }
+            .lg\:col-span-1 { order: 2; }
+            .lg\:col-span-3 { order: 1; }
+            nav .container { flex-wrap: wrap; justify-content: center; gap: 0.5rem; }
+            #viewer3d { height: 300px !important; }
+            .card { padding: 1rem !important; }
+            .mode-toggle button { font-size: 0.75rem; padding: 6px 8px; }
+        }
+    </style>
+</head>
+<body class="min-h-screen text-white">
+
+    <nav class="border-b border-white/10 bg-black/30">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <a href="{% url 'camera_feed' %}" class="text-gray-400 hover:text-white text-sm">&larr; Back to Camera</a>
+            <span class="text-lg font-semibold">3D Object Viewer</span>
+            <span class="text-sm text-gray-500">{{ user.full_name }}</span>
+        </div>
+    </nav>
+
+    <main class="container mx-auto px-6 py-6">
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+
+            <!-- SIDEBAR -->
+            <div class="lg:col-span-1 space-y-4">
+
+                <div class="card p-5">
+                    <h3 class="text-sm font-semibold mb-3 text-gray-300">Detected Object</h3>
+                    <div id="noCropMsg" class="text-center py-6">
+                        <p class="text-xs text-gray-500">No detection yet.</p>
+                        <p class="text-xs text-gray-600 mt-1">Go to Camera Feed, detect an object, then click "View 3D".</p>
+                    </div>
+                    <div id="cropPreview" class="hidden">
+                        <div class="crop-preview"><img id="cropPreviewImg" src="" alt="Detected object crop" /></div>
+                        <div class="flex items-center justify-between mt-3">
+                            <p class="text-sm text-gray-300 font-medium" id="cropLabel"></p>
+                            <span class="detected-badge">DETECTED</span>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1" id="cropConfidence"></p>
+                    </div>
+                </div>
+
+                <div class="card p-5">
+                    <h3 class="text-sm font-semibold mb-3 text-gray-300">View Mode</h3>
+                    <div class="mode-toggle">
+                    <button id="modeMesh" onclick="switchMode('mesh')">3D Mesh</button>
+                    <button id="modePointCloud" class="active" onclick="switchMode('pointcloud')">Point Cloud</button>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-3" id="modeDesc">MiDaS estimates depth and creates a 3D point cloud.</p>
+                </div>
+
+                <div class="card p-5">
+                    <h3 class="text-sm font-semibold mb-4 text-gray-300">Controls</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="text-xs text-gray-500 block mb-1">Rotation Speed</label>
+                            <input type="range" id="rotationSpeed" min="0" max="0.02" step="0.001" value="0.005">
+                        </div>
+                        <div id="pointSizeControl" class="hidden">
+                            <label class="text-xs text-gray-500 block mb-1">Point Size</label>
+                            <input type="range" id="pointSizeSlider" min="0.5" max="5" step="0.1" value="2">
+                        </div>
+                        <div id="depthScaleControl" class="hidden">
+                            <label class="text-xs text-gray-500 block mb-1">Depth Intensity</label>
+                            <input type="range" id="depthScaleSlider" min="0.5" max="5" step="0.1" value="2">
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500 block mb-1">Zoom</label>
+                            <div class="flex gap-2">
+                                <button id="zoomIn" class="flex-1 px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-sm">Zoom In</button>
+                                <button id="zoomOut" class="flex-1 px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-sm">Zoom Out</button>
+                            </div>
+                        </div>
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" id="wireframeToggle" class="w-4 h-4 rounded">
+                            <span class="text-xs text-gray-400">Wireframe</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" id="autoRotate" checked class="w-4 h-4 rounded">
+                            <span class="text-xs text-gray-400">Auto Rotate</span>
+                        </label>
+                        <button id="resetView" class="w-full px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-sm">Reset View</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3D VIEWER -->
+            <div class="lg:col-span-3">
+                <div class="card p-5">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h2 class="text-xl font-semibold" id="viewerTitle">3D Object Viewer</h2>
+                            <p class="text-sm text-gray-500 mt-1" id="viewerDesc">Detect an object to generate its 3D model</p>
+                        </div>
+                        <span class="text-xs px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-full text-blue-400" id="methodBadge">-</span>
+                    </div>
+
+                    <div class="relative rounded-xl overflow-hidden" style="height: 560px;">
+                        <div id="viewer3d" class="w-full h-full"></div>
+                        <div class="viewer-info" id="viewerInfo" style="display:none;"><span id="infoLabel"></span></div>
+
+                        <div id="genProgress" class="gen-progress hidden">
+                            <div class="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+                            <p class="text-sm font-medium" id="genTitle">Generating 3D Model</p>
+                            <p class="text-xs text-gray-500 mt-1" id="genProgressText">Processing...</p>
+                        </div>
+
+                        <div id="emptyState" class="absolute inset-0 bg-black/60 flex items-center justify-center">
+                            <div class="text-center max-w-sm p-6">
+                                <h3 class="text-lg font-semibold mb-2">3D Object Viewer</h3>
+                                <p class="text-sm text-gray-400 mb-4">Detect an object from the camera feed to generate its 3D model.</p>
+                                <a href="{% url 'camera_feed' %}" class="inline-block mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium">Go to Camera Feed</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 grid grid-cols-3 gap-3">
+                        <div class="p-3 bg-white/5 rounded-lg text-center">
+                            <p class="text-xs text-gray-500" id="stat1Label">-</p>
+                            <p class="text-lg font-semibold mt-1" id="stat1Value">-</p>
+                        </div>
+                        <div class="p-3 bg-white/5 rounded-lg text-center">
+                            <p class="text-xs text-gray-500" id="stat2Label">-</p>
+                            <p class="text-lg font-semibold mt-1" id="stat2Value">-</p>
+                        </div>
+                        <div class="p-3 bg-white/5 rounded-lg text-center">
+                            <p class="text-xs text-gray-500" id="stat3Label">Method</p>
+                            <p class="text-lg font-semibold mt-1" id="stat3Value">-</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+<script>
+(function() {
+    'use strict';
+
+    var urlParams = new URLSearchParams(window.location.search);
+    var urlObject = urlParams.get('object');
+    var urlConfidence = urlParams.get('confidence');
+    var croppedImage = sessionStorage.getItem('smartvision_crop_image');
+    var croppedClass = sessionStorage.getItem('smartvision_crop_class');
+
+    var currentMode = 'pointcloud';
+    var currentImageData = null;
+    var currentClassName = null;
+
+    var objectClasses = [
+        { name:'sunglasses', label:'Sunglasses' },
+        { name:'knife', label:'Knife' },
+        { name:'water_bottle', label:'Water Bottle' },
+        { name:'pen', label:'Pen' },
+        { name:'chair', label:'Chair' },
+        { name:'human_face', label:'Human Face' },
+        { name:'mobile_phone', label:'Mobile Phone' },
+        { name:'helmet', label:'Helmet' },
+        { name:'fire', label:'Fire' },
+        { name:'can', label:'Can' }
+    ];
+
+    var scene, camera, renderer, controls, currentModel;
+    var pcMaterial = null;
+    var rotSpeed = 0.005, autoRotateOn = true;
+
+    function initViewer() {
+        var container = document.getElementById('viewer3d');
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0d1117);
+
+        camera = new THREE.PerspectiveCamera(55, container.clientWidth / container.clientHeight, 0.1, 100);
+        camera.position.set(0, 1, 4);
+
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        container.appendChild(renderer.domElement);
+
+        scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+        var dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        dirLight.position.set(5, 8, 5);
+        scene.add(dirLight);
+        var fillLight = new THREE.DirectionalLight(0x8888ff, 0.3);
+        fillLight.position.set(-5, 3, -5);
+        scene.add(fillLight);
+
+        var grid = new THREE.GridHelper(10, 20, 0x1a2a3a, 0x111d2a);
+        grid.position.y = -1.5;
+        scene.add(grid);
+
+        controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.08;
+        controls.minDistance = 1;
+        controls.maxDistance = 15;
+
+        window.addEventListener('resize', function() {
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        });
+
+        (function animate() {
+            requestAnimationFrame(animate);
+            if (currentModel && autoRotateOn) currentModel.rotation.y += rotSpeed;
+            controls.update();
+            renderer.render(scene, camera);
+        })();
+    }
+
+    function clearModel() {
+        if (currentModel) {
+            scene.remove(currentModel);
+            currentModel = null;
+        }
+        pcMaterial = null;
+        document.getElementById('pointSizeControl').classList.add('hidden');
+        document.getElementById('depthScaleControl').classList.add('hidden');
+    }
+
+    function getCookie(name) {
+        var value = null;
+        if (document.cookie) {
+            document.cookie.split(';').forEach(function(c) {
+                c = c.trim();
+                if (c.substring(0, name.length + 1) === (name + '=')) {
+                    value = decodeURIComponent(c.substring(name.length + 1));
+                }
+            });
+        }
+        return value;
+    }
+
+    function getClassLabel(className) {
+        for (var i = 0; i < objectClasses.length; i++) {
+            if (objectClasses[i].name === className) return objectClasses[i].label;
+        }
+        return className;
+    }
+
+    function generateMesh(imageBase64, className) {
+        document.getElementById('emptyState').style.display = 'none';
+        document.getElementById('genProgress').classList.remove('hidden');
+        document.getElementById('genTitle').textContent = 'Generating 3D Mesh';
+        document.getElementById('genProgressText').textContent =
+            'TripoSR is reconstructing ' + (className || 'object').replace('_', ' ') + ' in 3D... (10-30 seconds)';
+        clearModel();
+
+        fetch('/api/generate-3d-mesh/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ image_base64: imageBase64 })
+        })
+        .then(function(resp) { return resp.json(); })
+        .then(function(data) {
+            document.getElementById('genProgress').classList.add('hidden');
+
+            if (data.success && data.glb_url) {
+                var loader = new THREE.GLTFLoader();
+                loader.load(data.glb_url, function(gltf) {
+                    currentModel = gltf.scene;
+                    var box = new THREE.Box3().setFromObject(currentModel);
+                    var center = box.getCenter(new THREE.Vector3());
+                    var size = box.getSize(new THREE.Vector3());
+                    var maxDim = Math.max(size.x, size.y, size.z);
+                    var scale = 2.5 / maxDim;
+                    currentModel.scale.setScalar(scale);
+                    currentModel.position.sub(center.multiplyScalar(scale));
+                    scene.add(currentModel);
+
+                    var verts = 0, faces = 0;
+                    currentModel.traverse(function(child) {
+                        if (child.isMesh && child.geometry) {
+                            verts += child.geometry.attributes.position ? child.geometry.attributes.position.count : 0;
+                            faces += child.geometry.index ? child.geometry.index.count / 3 : 0;
+                        }
+                    });
+
+                    document.getElementById('viewerTitle').textContent = getClassLabel(className) + ' - 3D Mesh';
+                    document.getElementById('viewerDesc').textContent = 'Reconstructed using TripoSR AI model';
+                    document.getElementById('methodBadge').textContent = 'TripoSR';
+                    document.getElementById('infoLabel').textContent = verts.toLocaleString() + ' vertices | ' + Math.floor(faces).toLocaleString() + ' faces | GLB';
+                    document.getElementById('viewerInfo').style.display = 'block';
+                    document.getElementById('stat1Label').textContent = 'Vertices';
+                    document.getElementById('stat1Value').textContent = verts.toLocaleString();
+                    document.getElementById('stat2Label').textContent = 'Faces';
+                    document.getElementById('stat2Value').textContent = Math.floor(faces).toLocaleString();
+                    document.getElementById('stat3Label').textContent = 'Method';
+                    document.getElementById('stat3Value').textContent = 'TripoSR';
+
+                    camera.position.set(0, 1, 4);
+                    controls.reset();
+                }, undefined, function(err) {
+                    console.error('GLB load error:', err);
+                    alert('Failed to load 3D model. Switching to Point Cloud mode.');
+                    switchMode('pointcloud');
+                });
+            } else {
+                alert('3D mesh generation failed: ' + (data.error || 'Unknown error') + '\nSwitching to Point Cloud mode.');
+                switchMode('pointcloud');
+            }
+        })
+        .catch(function(err) {
+            document.getElementById('genProgress').classList.add('hidden');
+            console.error('Mesh generation error:', err);
+            alert('TripoSR failed. Switching to MiDaS Point Cloud.');
+            switchMode('pointcloud');
+        });
+    }
+
+    function generatePointCloud(imageBase64, className) {
+        document.getElementById('emptyState').style.display = 'none';
+        document.getElementById('genProgress').classList.remove('hidden');
+        document.getElementById('genTitle').textContent = 'Generating Point Cloud';
+        document.getElementById('genProgressText').textContent =
+            'Running MiDaS depth estimation on ' + (className || 'object').replace('_', ' ') + '...';
+        clearModel();
+
+        fetch('/api/generate-3d/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ image_base64: imageBase64 })
+        })
+        .then(function(resp) { return resp.json(); })
+        .then(function(data) {
+            document.getElementById('genProgress').classList.add('hidden');
+            if (data.success) {
+                var geo = new THREE.BufferGeometry();
+                geo.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(data.positions), 3));
+                geo.setAttribute('color', new THREE.Float32BufferAttribute(new Float32Array(data.colors), 3));
+                pcMaterial = new THREE.PointsMaterial({
+                    size: 2, vertexColors: true, sizeAttenuation: true, transparent: true, opacity: 0.9
+                });
+                currentModel = new THREE.Points(geo, pcMaterial);
+                scene.add(currentModel);
+
+                document.getElementById('pointSizeControl').classList.remove('hidden');
+                document.getElementById('depthScaleControl').classList.remove('hidden');
+                document.getElementById('viewerTitle').textContent = getClassLabel(className) + ' - Point Cloud';
+                document.getElementById('viewerDesc').textContent = 'Generated using MiDaS monocular depth estimation';
+                document.getElementById('methodBadge').textContent = 'MiDaS v3';
+                document.getElementById('infoLabel').textContent = data.point_count.toLocaleString() + ' points | MiDaS | ' + data.width + 'x' + data.height;
+                document.getElementById('viewerInfo').style.display = 'block';
+                document.getElementById('stat1Label').textContent = 'Points';
+                document.getElementById('stat1Value').textContent = data.point_count.toLocaleString();
+                document.getElementById('stat2Label').textContent = 'Resolution';
+                document.getElementById('stat2Value').textContent = data.width + 'x' + data.height;
+                document.getElementById('stat3Label').textContent = 'Method';
+                document.getElementById('stat3Value').textContent = 'MiDaS v3';
+
+                camera.position.set(0, 0, 4);
+                controls.reset();
+            } else {
+                alert('Point cloud generation failed: ' + (data.error || 'Unknown'));
+            }
+        })
+        .catch(function(err) {
+            document.getElementById('genProgress').classList.add('hidden');
+            console.error('MiDaS error:', err);
+            alert('Failed to generate point cloud.');
+        });
+    }
+
+    function generate(imageData, className) {
+        currentImageData = imageData;
+        currentClassName = className;
+        if (currentMode === 'mesh') {
+            generateMesh(imageData, className);
+        } else {
+            generatePointCloud(imageData, className);
+        }
+    }
+
+    window.switchMode = function(mode) {
+        currentMode = mode;
+        document.getElementById('modeMesh').classList.toggle('active', mode === 'mesh');
+        document.getElementById('modePointCloud').classList.toggle('active', mode === 'pointcloud');
+        if (mode === 'mesh') {
+            document.getElementById('modeDesc').textContent = 'TripoSR generates a full 3D mesh from the detected object.';
+        } else {
+            document.getElementById('modeDesc').textContent = 'MiDaS estimates depth and creates a 3D point cloud.';
+        }
+        if (currentImageData && currentClassName) {
+            generate(currentImageData, currentClassName);
+        }
+    };
+
+    function showCropAndGenerate(imageData, className, confidence) {
+        document.getElementById('noCropMsg').classList.add('hidden');
+        document.getElementById('cropPreview').classList.remove('hidden');
+        document.getElementById('cropPreviewImg').src = imageData;
+        document.getElementById('cropLabel').textContent = className.replace('_', ' ');
+        if (confidence) {
+            document.getElementById('cropConfidence').textContent =
+                parseFloat(confidence).toFixed(1) + '% confidence';
+        }
+        generate(imageData, className);
+    }
+
+    function showNoCropMessage(className, reason) {
+        var displayName = className.replace('_', ' ');
+        var emptyState = document.getElementById('emptyState');
+        emptyState.style.display = 'flex';
+        emptyState.innerHTML =
+            '<div class="text-center max-w-sm p-6">' +
+                '<h3 class="text-lg font-semibold mb-2 text-yellow-400">No saved image for ' + displayName + '</h3>' +
+                '<p class="text-sm text-gray-400 mb-4">' +
+                    'This detection was logged before image saving was enabled, or the crop expired. ' +
+                    'Detect this object live to generate its 3D model.' +
+                '</p>' +
+                '<a href="/camera/" class="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium">Go to Camera Feed</a>' +
+                '<p class="text-xs text-gray-600 mt-4">Reason: ' + reason + '</p>' +
+            '</div>';
+        document.getElementById('viewerTitle').textContent = 'No image available';
+        document.getElementById('viewerDesc').textContent = 'Detect this object from the camera feed';
+    }
+
+    document.getElementById('rotationSpeed').addEventListener('input', function(e) { rotSpeed = parseFloat(e.target.value); });
+    document.getElementById('autoRotate').addEventListener('change', function(e) { autoRotateOn = e.target.checked; });
+    document.getElementById('zoomIn').addEventListener('click', function() { camera.position.multiplyScalar(0.85); });
+    document.getElementById('zoomOut').addEventListener('click', function() { camera.position.multiplyScalar(1.15); });
+    document.getElementById('resetView').addEventListener('click', function() { camera.position.set(0, 1, 4); controls.reset(); });
+    document.getElementById('wireframeToggle').addEventListener('change', function(e) {
+        if (currentModel) currentModel.traverse(function(c) {
+            if (c.isMesh && c.material) c.material.wireframe = e.target.checked;
+        });
+    });
+    document.getElementById('pointSizeSlider').addEventListener('input', function(e) {
+        if (pcMaterial) pcMaterial.size = parseFloat(e.target.value);
+    });
+    document.getElementById('depthScaleSlider').addEventListener('input', function(e) {
+        if (currentModel && currentModel.isPoints) currentModel.scale.z = parseFloat(e.target.value) / 2;
+    });
+
+    function init() {
+        initViewer();
+
+        if (croppedImage && croppedClass) {
+            sessionStorage.removeItem('smartvision_crop_image');
+            sessionStorage.removeItem('smartvision_crop_class');
+            showCropAndGenerate(croppedImage, croppedClass, urlConfidence);
+        } else if (urlObject) {
+            document.getElementById('viewerTitle').textContent = 'Loading ' + urlObject.replace('_', ' ') + '...';
+            document.getElementById('viewerDesc').textContent = 'Fetching saved crop from database';
+
+            fetch('/api/get-crop/?object_class=' + encodeURIComponent(urlObject))
+                .then(function(resp) { return resp.json(); })
+                .then(function(data) {
+                    if (data.success && data.crop_image) {
+                        showCropAndGenerate(data.crop_image, data.object_class, data.confidence);
+                    } else {
+                        showNoCropMessage(urlObject, data.error || 'No saved crop found');
+                    }
+                })
+                .catch(function(err) {
+                    console.error('Fetch crop error:', err);
+                    showNoCropMessage(urlObject, 'Network error: ' + err.message);
+                });
+        }
+    }
+
+    window.addEventListener('DOMContentLoaded', init);
+})();
+</script>
+</body>
+</html>
