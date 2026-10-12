@@ -1,0 +1,15 @@
+[tool.ruff]
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "C90"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+disallow_subclassing_any = false
+check_untyped_defs = true
+warn_redundant_casts = true
+warn_unused_ignores = false
+disable_error_code = ["misc", "no-any-return", "union-attr"]

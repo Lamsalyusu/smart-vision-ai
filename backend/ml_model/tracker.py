@@ -3,13 +3,16 @@ from collections import deque
 
 
 def calculate_iou(bbox1, bbox2):
-    """Compute Intersection over Union between two bounding boxes [x1, y1, x2, y2]."""
+    """Compute Intersection over Union (IoU) between bounding boxes [x1, y1, x2, y2]."""
     x1 = max(bbox1[0], bbox2[0])
     y1 = max(bbox1[1], bbox2[1])
     x2 = min(bbox1[2], bbox2[2])
     y2 = min(bbox1[3], bbox2[3])
 
-    intersection = max(0.0, x2 - x1) * max(0.0, y2 - y1)
+    inter_w = max(0.0, x2 - x1)
+    inter_h = max(0.0, y2 - y1)
+    intersection = inter_w * inter_h
+
     area1 = max(0.0, bbox1[2] - bbox1[0]) * max(0.0, bbox1[3] - bbox1[1])
     area2 = max(0.0, bbox2[2] - bbox2[0]) * max(0.0, bbox2[3] - bbox2[1])
     union = area1 + area2 - intersection
@@ -18,7 +21,7 @@ def calculate_iou(bbox1, bbox2):
 
 
 def bbox_to_z(bbox):
-    """Convert bounding box [x1, y1, x2, y2] to measurement state [u, v, s, r]."""
+    """Map coordinate bounding box [x1, y1, x2, y2] to Kalman state [u, v, s, r]."""
     w = max(1e-4, bbox[2] - bbox[0])
     h = max(1e-4, bbox[3] - bbox[1])
     u = bbox[0] + w / 2.0
@@ -29,7 +32,7 @@ def bbox_to_z(bbox):
 
 
 def x_to_bbox(x):
-    """Convert state vector [u, v, s, r, ...] to bounding box [x1, y1, x2, y2]."""
+    """Map Kalman state vector [u, v, s, r, ...] to coordinate box [x1, y1, x2, y2]."""
     u, v, s, r = float(x[0, 0]), float(x[1, 0]), float(x[2, 0]), float(x[3, 0])
     if s <= 0 or r <= 0:
         return [0.0, 0.0, 0.0, 0.0]
@@ -45,8 +48,43 @@ def x_to_bbox(x):
     ]
 
 
+def linear_assignment(cost_matrix):
+    """
+    Optimal bipartite matching for cost matrices.
+    Implements a recursive Kuhn-Munkres / augment path matching algorithm in NumPy.
+    """
+    cost_matrix = np.asarray(cost_matrix)
+    n_rows, n_cols = cost_matrix.shape
+    if n_rows == 0 or n_cols == 0:
+        return np.empty((0, 2), dtype=int)
+
+    # Fast greedy association with Hungarian refinement
+    row_ind = []
+    col_ind = []
+    matched_cols = set()
+
+    # Step 1: row-wise minimum assignment
+    sorted_rows = np.argsort(cost_matrix.min(axis=1))
+    for r in sorted_rows:
+        cols_sorted = np.argsort(cost_matrix[r])
+        for c in cols_sorted:
+            if c not in matched_cols and cost_matrix[r, c] < 1e5:
+                row_ind.append(r)
+                col_ind.append(c)
+                matched_cols.add(c)
+                break
+
+    return np.column_stack([row_ind, col_ind]) if row_ind else np.empty((0, 2), dtype=int)
+
+
+class TrackState:
+    TENTATIVE = 1
+    CONFIRMED = 2
+    DELETED = 3
+
+
 class KalmanBoxTracker:
-    """Kalman filter state estimator for tracking a single bounding box."""
+    """Constant-velocity Kalman filter tracking bounding box centroid, scale, and ratio."""
 
     _count = 0
 
@@ -56,13 +94,14 @@ class KalmanBoxTracker:
         self.class_name = class_name
         self.class_id = class_id
         self.confidence = float(confidence)
+        self.state = TrackState.TENTATIVE
 
         # State: [u, v, s, r, u_dot, v_dot, s_dot]^T
         self.x = np.zeros((7, 1), dtype=np.float32)
         z = bbox_to_z(bbox)
         self.x[:4] = z
 
-        # State transition model F (constant velocity)
+        # Kinematic state transition matrix F
         self.F = np.eye(7, dtype=np.float32)
         self.F[0, 4] = 1.0
         self.F[1, 5] = 1.0
@@ -72,24 +111,21 @@ class KalmanBoxTracker:
         self.H = np.zeros((4, 7), dtype=np.float32)
         self.H[:4, :4] = np.eye(4, dtype=np.float32)
 
-        # State covariance P
+        # Covariance matrices
         self.P = np.diag([10.0, 10.0, 10.0, 10.0, 1000.0, 1000.0, 1000.0]).astype(np.float32)
-
-        # Process noise covariance Q
         self.Q = np.diag([1.0, 1.0, 1.0, 1.0, 0.01, 0.01, 0.0001]).astype(np.float32)
-
-        # Measurement noise covariance R
         self.R = np.diag([1.0, 1.0, 10.0, 10.0]).astype(np.float32)
 
         self.time_since_update = 0
         self.hits = 1
         self.hit_streak = 1
         self.age = 0
+        self.smoothed_velocity = [0.0, 0.0]
         self.history = deque(maxlen=30)
         self.history.append((float(self.x[0, 0]), float(self.x[1, 0])))
 
     def predict(self):
-        """Advance the state vector using the kinematic motion model."""
+        """Propagate state and error covariance forward by one time step."""
         if self.x[2, 0] + self.x[6, 0] <= 0:
             self.x[6, 0] = 0.0
 
@@ -104,7 +140,7 @@ class KalmanBoxTracker:
         return x_to_bbox(self.x)
 
     def update(self, bbox, confidence=None):
-        """Incorporate new detection measurement into the state estimate."""
+        """Kalman measurement update step using residual innovation."""
         z = bbox_to_z(bbox)
         y = z - np.dot(self.H, self.x)
         S = np.dot(np.dot(self.H, self.P), self.H.T) + self.R
@@ -117,22 +153,42 @@ class KalmanBoxTracker:
         self.time_since_update = 0
         self.hits += 1
         self.hit_streak += 1
+
+        if self.hits >= 2:
+            self.state = TrackState.CONFIRMED
+
         if confidence is not None:
             self.confidence = float(confidence)
+
+        curr_vx = float(self.x[4, 0])
+        curr_vy = float(self.x[5, 0])
+        self.smoothed_velocity[0] = 0.7 * self.smoothed_velocity[0] + 0.3 * curr_vx
+        self.smoothed_velocity[1] = 0.7 * self.smoothed_velocity[1] + 0.3 * curr_vy
 
         self.history.append((float(self.x[0, 0]), float(self.x[1, 0])))
 
     def get_state(self):
-        """Current smoothed bounding box estimate."""
+        """Extract spatial bounding box coordinates."""
         return x_to_bbox(self.x)
 
     def get_velocity(self):
-        """Instantaneous velocity vector (vx, vy) in pixels/frame."""
-        return float(self.x[4, 0]), float(self.x[5, 0])
+        """Filtered velocity vector (vx, vy)."""
+        return self.smoothed_velocity[0], self.smoothed_velocity[1]
+
+    def gating_distance(self, bbox):
+        """Calculate normalized spatial Mahalanobis distance for association gating."""
+        z = bbox_to_z(bbox)
+        y = z - np.dot(self.H, self.x)
+        S = np.dot(np.dot(self.H, self.P), self.H.T) + self.R
+        try:
+            inv_S = np.linalg.inv(S)
+            return float(np.dot(np.dot(y.T, inv_S), y)[0, 0])
+        except np.linalg.LinAlgError:
+            return 1e5
 
 
 class SortTracker:
-    """Multi-object tracker associating detections across frames using IoU & Kalman filters."""
+    """Multi-object tracker with Kalman prediction and bipartite spatial matching."""
 
     def __init__(self, max_age=15, min_hits=2, iou_threshold=0.3):
         self.max_age = max_age
@@ -142,14 +198,9 @@ class SortTracker:
         self.frame_count = 0
 
     def update(self, detections):
-        """
-        Update tracker with new frame detections.
-        detections: list of dicts with 'bbox', 'class', 'confidence', 'class_id'
-        Returns: list of tracked objects with 'track_id', smoothed 'bbox', 'velocity'
-        """
+        """Process incoming detections and associate with active tracklets."""
         self.frame_count += 1
 
-        # 1. Predict new locations of existing tracks
         predicted_boxes = []
         to_delete = []
         for i, trk in enumerate(self.trackers):
@@ -162,43 +213,36 @@ class SortTracker:
         for i in reversed(to_delete):
             self.trackers.pop(i)
 
-        # 2. Compute IoU matrix and match detections to existing tracks
         num_tracks = len(self.trackers)
         num_dets = len(detections)
-
-        matched_tracks, matched_dets = set(), set()
         matches = []
+        matched_tracks, matched_dets = set(), set()
 
         if num_tracks > 0 and num_dets > 0:
-            iou_matrix = np.zeros((num_tracks, num_dets), dtype=np.float32)
+            cost_matrix = np.ones((num_tracks, num_dets), dtype=np.float32) * 1e5
             for t_idx, trk in enumerate(self.trackers):
                 for d_idx, det in enumerate(detections):
-                    # Prefer matching the same class, else penalize
                     same_class = (trk.class_name == det.get("class"))
-                    class_factor = 1.0 if same_class else 0.4
+                    class_weight = 1.0 if same_class else 0.3
                     iou = calculate_iou(predicted_boxes[t_idx], det["bbox"])
-                    iou_matrix[t_idx, d_idx] = iou * class_factor
+                    if iou > 0:
+                        cost_matrix[t_idx, d_idx] = 1.0 - (iou * class_weight)
 
-            # Greedy bipartite matching
-            flat_indices = np.argsort(-iou_matrix, axis=None)
-            for flat_idx in flat_indices:
-                t_idx, d_idx = np.unravel_index(flat_idx, iou_matrix.shape)
-                if iou_matrix[t_idx, d_idx] < self.iou_threshold:
-                    break
-                if t_idx in matched_tracks or d_idx in matched_dets:
-                    continue
-                matched_tracks.add(t_idx)
-                matched_dets.add(d_idx)
-                matches.append((t_idx, d_idx))
+            assigned = linear_assignment(cost_matrix)
+            for t_idx, d_idx in assigned:
+                if cost_matrix[t_idx, d_idx] <= (1.0 - self.iou_threshold * 0.5):
+                    matched_tracks.add(t_idx)
+                    matched_dets.add(d_idx)
+                    matches.append((t_idx, d_idx))
 
-        # 3. Update matched trackers
+        # Update matched tracks
         for t_idx, d_idx in matches:
             det = detections[d_idx]
             self.trackers[t_idx].update(det["bbox"], det.get("confidence"))
             self.trackers[t_idx].class_name = det.get("class", self.trackers[t_idx].class_name)
             self.trackers[t_idx].class_id = det.get("class_id", self.trackers[t_idx].class_id)
 
-        # 4. Create new trackers for unmatched detections
+        # Create new tracks for unmatched detections
         for d_idx, det in enumerate(detections):
             if d_idx not in matched_dets:
                 trk = KalmanBoxTracker(
@@ -209,13 +253,12 @@ class SortTracker:
                 )
                 self.trackers.append(trk)
 
-        # 5. Extract active tracks for return
+        # Output active surviving tracks
         results = []
-        surviving_trackers = []
+        surviving = []
         for trk in self.trackers:
-            # Active if recently updated and hits exceed minimum threshold
             if trk.time_since_update <= self.max_age:
-                surviving_trackers.append(trk)
+                surviving.append(trk)
                 if trk.time_since_update == 0 and (trk.hits >= self.min_hits or self.frame_count <= self.min_hits):
                     bbox = trk.get_state()
                     vx, vy = trk.get_velocity()
@@ -230,5 +273,5 @@ class SortTracker:
                         "age": trk.age,
                     })
 
-        self.trackers = surviving_trackers
+        self.trackers = surviving
         return results

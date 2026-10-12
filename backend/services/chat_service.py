@@ -60,14 +60,28 @@ class ChatAssistantService:
         # Save query history
         if user_id:
             try:
-                supabase_admin.table("llm_queries").insert({
-                    "user_id": str(user_id),
-                    "message": user_message[:1000],
-                    "response": ai_text[:2000],
-                    "detection_context": context_prompt[:500],
-                }).execute()
+                from backend.models import LLMQuery, User
+                user_obj = User.objects.filter(id=user_id).first()
+                if user_obj:
+                    LLMQuery.objects.create(
+                        user=user_obj,
+                        query_text=user_message[:1000],
+                        llm_response=ai_text[:2000],
+                        context_objects=scene_graph.get("nodes"),
+                    )
             except Exception:
-                logger.exception("Failed to persist LLM query for user=%s", user_id)
+                logger.debug("Failed to persist LLM query to local ORM")
+
+            if supabase_admin and not getattr(settings, "OFFLINE_MODE", False):
+                try:
+                    supabase_admin.table("llm_queries").insert({
+                        "user_id": str(user_id),
+                        "query_text": user_message[:1000],
+                        "llm_response": ai_text[:2000],
+                        "context_objects": scene_graph.get("nodes"),
+                    }).execute()
+                except Exception:
+                    pass
 
         return {
             "response": ai_text,

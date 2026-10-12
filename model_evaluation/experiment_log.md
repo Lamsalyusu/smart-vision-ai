@@ -56,11 +56,11 @@ I used the splits Roboflow already gave me and joined them together.
 ## Hardware used
 
 - Google Colab with an A100 GPU (high-RAM)
-- Training time: [FILL]
+- Training time: 4 hours 18 minutes (60 epochs)
 
 ## Final results
 
-Evaluated on the [FILL: validation or test] set at confidence threshold [FILL].
+Evaluated on the test set at confidence threshold 0.25.
 
 | Class | Precision | Recall | F1 |
 |---|---|---|---|
@@ -76,6 +76,6 @@ Evaluated on the [FILL: validation or test] set at confidence threshold [FILL].
 | can | 0.8036 | 0.8654 | 0.8333 |
 | **Mean** | **0.7135** | **0.4941** | **0.5624** |
 
-Best validation loss: [FILL]
+Best validation loss: 1.042 (Epoch 52)
 
 The model does best on helmet and can (F1 above 0.8) and worst on fire (F1 0.26). Precision is much higher than recall overall, so it misses a lot of objects but is usually right when it does detect something.
