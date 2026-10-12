@@ -158,115 +158,64 @@ class ObjectDetector:
         all_scores = []
         all_classes = []
 
+        thresholds = np.array([self.CLASS_THRESHOLDS[name] for name in self.CLASS_NAMES])
+
         for scale_index, prediction in enumerate(predictions):
             grid_size = self.GRID_SIZES[scale_index]
             anchors = self.ANCHORS[scale_index]
 
-            prediction = prediction.numpy()[0]
-
-            prediction = prediction.reshape(
+            pred = prediction.numpy()[0].reshape(
                 grid_size,
                 grid_size,
                 3,
                 5 + self.NUM_CLASSES,
             )
 
-            for row in range(grid_size):
-                for column in range(grid_size):
-                    for anchor_index in range(3):
-                        values = prediction[
-                            row,
-                            column,
-                            anchor_index,
-                        ]
+            # Objectness and coordinate predictions
+            obj = self._sigmoid(pred[..., 4])
 
-                        objectness = self._sigmoid(
-                            values[4]
-                        )
+            col_grid, row_grid = np.meshgrid(
+                np.arange(grid_size),
+                np.arange(grid_size),
+            )
+            col_grid = np.expand_dims(col_grid, -1)
+            row_grid = np.expand_dims(row_grid, -1)
 
-                        if objectness < 0.10:
-                            continue
+            bx = (col_grid + self._sigmoid(pred[..., 0])) / grid_size
+            by = (row_grid + self._sigmoid(pred[..., 1])) / grid_size
 
-                        class_probabilities = self._sigmoid(
-                            values[5:]
-                        )
+            anchor_w = anchors[:, 0].reshape(1, 1, 3)
+            anchor_h = anchors[:, 1].reshape(1, 1, 3)
 
-                        class_id = int(
-                            np.argmax(class_probabilities)
-                        )
+            bw = anchor_w * np.exp(np.clip(pred[..., 2], -5.0, 5.0))
+            bh = anchor_h * np.exp(np.clip(pred[..., 3], -5.0, 5.0))
 
-                        class_score = class_probabilities[
-                            class_id
-                        ]
+            x1 = np.clip(bx - bw / 2.0, 0.0, 1.0)
+            y1 = np.clip(by - bh / 2.0, 0.0, 1.0)
+            x2 = np.clip(bx + bw / 2.0, 0.0, 1.0)
+            y2 = np.clip(by + bh / 2.0, 0.0, 1.0)
 
-                        confidence = (
-                            objectness * class_score
-                        )
+            class_probs = self._sigmoid(pred[..., 5:])
+            class_ids = np.argmax(class_probs, axis=-1)
+            class_scores = np.max(class_probs, axis=-1)
+            confidence = obj * class_scores
 
-                        class_name = self.CLASS_NAMES[class_id]
-                        threshold = self.CLASS_THRESHOLDS[
-                            class_name
-                        ]
+            cell_thresholds = thresholds[class_ids]
+            mask = (
+                (obj >= 0.10)
+                & (confidence >= cell_thresholds)
+                & (bw >= 0.01)
+                & (bh >= 0.01)
+            )
 
-                        if confidence < threshold:
-                            continue
-
-                        tx, ty, tw, th = values[:4]
-
-                        center_x = (
-                            column + self._sigmoid(tx)
-                        ) / grid_size
-
-                        center_y = (
-                            row + self._sigmoid(ty)
-                        ) / grid_size
-
-                        width = anchors[
-                            anchor_index,
-                            0,
-                        ] * np.exp(
-                            np.clip(tw, -5, 5)
-                        )
-
-                        height = anchors[
-                            anchor_index,
-                            1,
-                        ] * np.exp(
-                            np.clip(th, -5, 5)
-                        )
-
-                        if width < 0.01 or height < 0.01:
-                            continue
-
-                        x1 = max(
-                            0,
-                            center_x - width / 2,
-                        )
-
-                        y1 = max(
-                            0,
-                            center_y - height / 2,
-                        )
-
-                        x2 = min(
-                            1,
-                            center_x + width / 2,
-                        )
-
-                        y2 = min(
-                            1,
-                            center_y + height / 2,
-                        )
-
-                        all_boxes.append(
-                            [x1, y1, x2, y2]
-                        )
-                        all_scores.append(
-                            float(confidence)
-                        )
-                        all_classes.append(
-                            class_id
-                        )
+            if np.any(mask):
+                boxes = np.stack(
+                    [x1[mask], y1[mask], x2[mask], y2[mask]],
+                    axis=-1,
+                )
+                all_boxes.extend(boxes.tolist())
+                all_scores.extend(confidence[mask].tolist())
+                all_classes.extend(class_ids[mask].tolist())
 
         nms_results = self._apply_nms(
             all_boxes,
@@ -297,13 +246,8 @@ class ObjectDetector:
 
     @staticmethod
     def _sigmoid(value):
-        """Apply a numerically bounded sigmoid transformation."""
-
-        return 1 / (
-            1 + np.exp(
-                -np.clip(value, -500, 500)
-            )
-        )
+        """Numerically stable sigmoid for float32 arrays."""
+        return 1.0 / (1.0 + np.exp(-np.clip(value, -60.0, 60.0)))
 
     def _apply_nms(
         self,
