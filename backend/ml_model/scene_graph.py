@@ -14,16 +14,22 @@ class SpatialSceneGraph:
         Returns: dict with 'nodes', 'edges', 'summary_prompt', and 'graph_metrics'
         """
         nodes = []
-        for det in tracked_detections:
+        for idx, det in enumerate(tracked_detections):
+            # Guarantee unique track/node identifier even when raw detections lack tracking IDs
+            track_id = det.get("track_id")
+            if track_id is None or track_id == 0:
+                track_id = idx + 1
+
             node = {
-                "track_id": det.get("track_id", 0),
+                "track_id": track_id,
                 "class": det.get("class", "unknown"),
                 "confidence": round(float(det.get("confidence", 0.0)), 2),
                 "bbox": det.get("bbox", [0, 0, 0, 0]),
             }
 
-            if "spatial_3d" in det:
-                node["spatial"] = det["spatial_3d"]
+            spatial_data = det.get("spatial_3d") or det.get("spatial")
+            if spatial_data:
+                node["spatial"] = spatial_data
 
             if "velocity" in det:
                 node["velocity"] = det["velocity"]
@@ -32,6 +38,7 @@ class SpatialSceneGraph:
 
         edges = []
         n = len(nodes)
+        node_degrees = [0] * n
 
         for i in range(n):
             for j in range(i + 1, n):
@@ -42,19 +49,16 @@ class SpatialSceneGraph:
                 spatial2 = n2.get("spatial")
 
                 if spatial1 and spatial2:
+                    # Metric 3D spatial evaluation
                     dx = spatial1["x_m"] - spatial2["x_m"]
                     dy = spatial1["y_m"] - spatial2["y_m"]
                     dz = spatial1["z_m"] - spatial2["z_m"]
-                    dist_3d = float(np.sqrt(dx**2 + dy**2 + dz**2))
+                    dist = float(np.sqrt(dx**2 + dy**2 + dz**2))
 
-                    if dist_3d <= self.proximity_threshold_m:
-                        predicate = "adjacent_to"
-                        # Interaction heuristic for personal items near human face
-                        if "human_face" in (n1["class"], n2["class"]):
-                            predicate = "interacting_with"
-
-                        # Compute directional orientation
+                    if dist <= self.proximity_threshold_m:
+                        predicate = self._classify_relation(n1["class"], n2["class"], dy, dist)
                         rel_x = "left_of" if dx < -0.1 else ("right_of" if dx > 0.1 else "aligned_x")
+                        rel_y = "above" if dy > 0.1 else ("below" if dy < -0.1 else "same_level")
                         rel_z = "in_front_of" if dz < -0.1 else ("behind" if dz > 0.1 else "same_depth")
 
                         edges.append({
@@ -63,20 +67,51 @@ class SpatialSceneGraph:
                             "target_id": n2["track_id"],
                             "target_class": n2["class"],
                             "relation": predicate,
-                            "directional": f"{rel_x}, {rel_z}",
-                            "distance_m": round(dist_3d, 2),
+                            "directional": f"{rel_x}, {rel_y}, {rel_z}",
+                            "distance_m": round(dist, 2),
                         })
+                        node_degrees[i] += 1
+                        node_degrees[j] += 1
+
+                else:
+                    # 2D bounding box fallback when 3D depth is not available
+                    b1 = n1["bbox"]
+                    b2 = n2["bbox"]
+                    cx1, cy1 = (b1[0] + b1[2]) / 2.0, (b1[1] + b1[3]) / 2.0
+                    cx2, cy2 = (b2[0] + b2[2]) / 2.0, (b2[1] + b2[3]) / 2.0
+
+                    inter_x = max(0.0, min(b1[2], b2[2]) - max(b1[0], b2[0]))
+                    inter_y = max(0.0, min(b1[3], b2[3]) - max(b1[1], b2[1]))
+                    intersection = inter_x * inter_y
+
+                    # Normalize 2D centroid distance by mean bounding scale
+                    char_size = max(1.0, (b1[2] - b1[0] + b2[2] - b2[0]) / 2.0)
+                    dist_2d = float(np.sqrt((cx1 - cx2)**2 + (cy1 - cy2)**2)) / char_size
+
+                    if intersection > 0 or dist_2d <= 1.5:
+                        predicate = "overlapping_with" if intersection > 0 else "adjacent_to"
+                        if "human_face" in (n1["class"], n2["class"]):
+                            predicate = "interacting_with"
+
+                        rel_x = "left_of" if cx1 < cx2 - 20 else ("right_of" if cx1 > cx2 + 20 else "aligned_x")
+                        rel_y = "above" if cy1 < cy2 - 20 else ("below" if cy1 > cy2 + 20 else "same_level")
+
+                        edges.append({
+                            "source_id": n1["track_id"],
+                            "source_class": n1["class"],
+                            "target_id": n2["track_id"],
+                            "target_class": n2["class"],
+                            "relation": predicate,
+                            "directional": f"{rel_x}, {rel_y}",
+                            "distance_m": round(dist_2d, 2),
+                        })
+                        node_degrees[i] += 1
+                        node_degrees[j] += 1
 
         # Calculate topological node degree centrality
-        node_degrees = {n_item["track_id"]: 0 for n_item in nodes}
-        for edge in edges:
-            node_degrees[edge["source_id"]] += 1
-            node_degrees[edge["target_id"]] += 1
-
-        for n_item in nodes:
-            t_id = n_item["track_id"]
+        for i, n_item in enumerate(nodes):
             n_item["degree_centrality"] = (
-                round(float(node_degrees[t_id]) / float(n - 1), 2) if n > 1 else 0.0
+                round(float(node_degrees[i]) / float(n - 1), 2) if n > 1 else 0.0
             )
 
         summary_prompt = self._generate_prompt_context(nodes, edges)
@@ -85,7 +120,7 @@ class SpatialSceneGraph:
             "node_count": n,
             "edge_count": len(edges),
             "density": round(2.0 * len(edges) / (n * (n - 1)), 2) if n > 1 else 0.0,
-            "max_degree": max(node_degrees.values()) if node_degrees else 0,
+            "max_degree": max(node_degrees) if node_degrees else 0,
         }
 
         return {
@@ -94,6 +129,17 @@ class SpatialSceneGraph:
             "summary_prompt": summary_prompt,
             "metrics": graph_metrics,
         }
+
+    def _classify_relation(self, cls1, cls2, dy, dist_3d):
+        """Domain heuristic to assign semantic predicates between detected classes."""
+        pair = {cls1, cls2}
+        if "human_face" in pair:
+            if "sunglasses" in pair or "helmet" in pair:
+                return "worn_on"
+            return "interacting_with"
+        if "chair" in pair and dy > 0.05:
+            return "placed_on"
+        return "adjacent_to"
 
     def _generate_prompt_context(self, nodes, edges):
         if not nodes:
