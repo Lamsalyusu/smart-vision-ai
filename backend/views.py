@@ -23,6 +23,8 @@ from groq import Groq
 
 from backend.supabase_client import supabase_admin
 from .ml_model.inference import detector
+from backend.services.vision_service import vision_service
+from backend.services.chat_service import chat_service
 
 
 logger = logging.getLogger(__name__)
@@ -544,8 +546,6 @@ def detect_objects(request):
                 len(image_bytes),
             )
 
-            detections = detector.detect_from_bytes(image_bytes)
-
         elif "image_base64" in request.POST:
             image_data = request.POST["image_base64"]
 
@@ -560,8 +560,6 @@ def detect_objects(request):
                 len(image_bytes),
             )
 
-            detections = detector.detect_from_bytes(image_bytes)
-
         else:
             logger.warning(
                 "Detection request missing image | user=%s",
@@ -573,28 +571,15 @@ def detect_objects(request):
                 status=400,
             )
 
-        if user_id and detections:
-            for detection in detections:
-                try:
-                    (
-                        supabase_admin.table("detection_history")
-                        .insert({
-                            "user_id": str(user_id),
-                            "object_class": detection["class"],
-                            "confidence": round(
-                                detection["confidence"],
-                                4,
-                            ),
-                            "bbox": detection.get("bbox"),
-                        })
-                        .execute()
-                    )
+        session_key = request.session.get("session_token") or get_client_ip(request)
+        include_depth = request.POST.get("include_depth", "false").lower() == "true"
 
-                except Exception:
-                    logger.exception(
-                        "Failed to save detection history | user=%s",
-                        user_id,
-                    )
+        detections = vision_service.process_frame(
+            image_bytes,
+            session_key=session_key,
+            user_id=user_id,
+            include_depth=include_depth,
+        )
 
         logger.info(
             "Detection completed | user=%s | objects=%s",
@@ -699,57 +684,11 @@ def llm_chat(request):
                 status=400,
             )
 
-        detection_context = "No objects currently detected."
-
-        if detections:
-            objects = [
-                f"{detection['class']} "
-                f"({detection['confidence'] * 100:.0f}%)"
-                for detection in detections
-            ]
-
-            detection_context = (
-                f"Currently detected objects: {', '.join(objects)}."
-            )
-
-        client = Groq(api_key=settings.GROQ_API_KEY)
-
-        response = client.chat.completions.create(
-            model="llama-3.1-8b-instant",
-            messages=[
-                {
-                    "role": "user",
-                    "content": (
-                        "You are SmartVision AI assistant helping users "
-                        "understand objects detected by a real-time camera. "
-                        f"{detection_context} "
-                        "Keep responses concise.\n\n"
-                        f"User: {user_message}"
-                    ),
-                }
-            ],
+        chat_result = chat_service.generate_response(
+            user_message=user_message,
+            detections=detections,
+            user_id=user_id,
         )
-
-        ai_response = response.choices[0].message.content
-
-        if user_session:
-            try:
-                (
-                    supabase_admin.table("llm_queries")
-                    .insert({
-                        "user_id": str(user_id),
-                        "message": user_message[:1000],
-                        "response": ai_response[:2000],
-                        "detection_context": detection_context[:500],
-                    })
-                    .execute()
-                )
-
-            except Exception:
-                logger.exception(
-                    "Failed to save AI chat history | user=%s",
-                    user_id,
-                )
 
         logger.info(
             "AI chat completed | user=%s",
@@ -758,7 +697,8 @@ def llm_chat(request):
 
         return JsonResponse({
             "success": True,
-            "response": ai_response,
+            "response": chat_result["response"],
+            "scene_graph": chat_result.get("scene_graph"),
         })
 
     except json.JSONDecodeError:
