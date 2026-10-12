@@ -10,6 +10,8 @@ from backend.ml_model.tracker import SortTracker, calculate_iou, bbox_to_z, x_to
 from backend.ml_model.spatial_fusion import Spatial3DFusion
 from backend.ml_model.scene_graph import SpatialSceneGraph
 from backend.repositories.detection_buffer import DetectionBatchBuffer
+from backend.ml_model.depth_estimation import depth_estimator
+from backend.ml_model.inference import detector
 
 LANDING_URL = "/"
 DETECT_URL = "/api/detect/"
@@ -237,3 +239,126 @@ class BatchBufferTests(TestCase):
         with buffer._lock:
             self.assertEqual(len(buffer._buffer), 1)
             self.assertEqual(buffer._buffer[0]["object_class"], "fire")
+
+
+class ModelInferenceInternalTests(TestCase):
+    def test_sigmoid_numerical_bounds(self):
+        from backend.ml_model.inference import detector
+        res_zero = detector._sigmoid(np.array([0.0]))
+        self.assertAlmostEqual(float(res_zero[0]), 0.5)
+        res_large = detector._sigmoid(np.array([1000.0, -1000.0]))
+        self.assertAlmostEqual(float(res_large[0]), 1.0)
+        self.assertAlmostEqual(float(res_large[1]), 0.0)
+
+    def test_apply_nms_filtering(self):
+        from backend.ml_model.inference import detector
+        boxes = [
+            [0.1, 0.1, 0.3, 0.3],
+            [0.11, 0.11, 0.31, 0.31],  # Overlapping box, same class
+            [0.6, 0.6, 0.9, 0.9],      # Separate box
+        ]
+        scores = [0.95, 0.80, 0.88]
+        classes = [1, 1, 2]
+        res = detector._apply_nms(boxes, scores, classes, iou_threshold=0.3)
+        self.assertEqual(len(res["boxes"]), 2)
+        self.assertIn(1, res["classes"])
+        self.assertIn(2, res["classes"])
+
+    def test_apply_nms_empty(self):
+        from backend.ml_model.inference import detector
+        res = detector._apply_nms([], [], [])
+        self.assertEqual(res["boxes"], [])
+
+
+class DepthEstimationUnitTests(TestCase):
+    @patch.object(depth_estimator, "estimate_depth")
+    def test_generate_point_cloud_structure(self, mock_estimate):
+        fake_depth = np.full((50, 50), 0.7, dtype=np.float32)
+        fake_rgb = np.zeros((50, 50, 3), dtype=np.uint8)
+        mock_estimate.return_value = (fake_depth, fake_rgb)
+
+        pc = depth_estimator.generate_point_cloud(b"fake_bytes", max_points=100)
+        self.assertIn("positions", pc)
+        self.assertIn("colors", pc)
+        self.assertGreater(pc["point_count"], 0)
+        self.assertEqual(len(pc["positions"]), pc["point_count"] * 3)
+
+
+class AuthModuleTests(TestCase):
+    def test_get_user_missing_or_bad_bearer(self):
+        from backend.auth import get_user_from_request
+        from django.test import RequestFactory
+        factory = RequestFactory()
+
+        req = factory.get("/")
+        user, err = get_user_from_request(req)
+        self.assertIsNone(user)
+        self.assertEqual(err, "Missing Bearer token")
+
+        req_empty = factory.get("/", HTTP_AUTHORIZATION="Bearer ")
+        user, err = get_user_from_request(req_empty)
+        self.assertIsNone(user)
+        self.assertEqual(err, "Missing Bearer token")
+
+        req_invalid = factory.get("/", HTTP_AUTHORIZATION="Bearer invalid.token.value")
+        user, err = get_user_from_request(req_invalid)
+        self.assertIsNone(user)
+        self.assertIn("Invalid", err)
+
+
+class ViewsExtendedEndpointsTests(BaseTestCase):
+    def test_get_3d_model_success(self):
+        response = self.client.get("/api/3d-model/knife/")
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(body["class"], "knife")
+        self.assertIn("model_url", body)
+
+    def test_get_3d_model_unknown_class(self):
+        response = self.client.get("/api/3d-model/unknown_widget/")
+        self.assertEqual(response.status_code, 404)
+
+    def test_camera_feed_redirects_when_logged_out(self):
+        response = self.client.get("/camera/")
+        self.assertEqual(response.status_code, 302)
+
+    def test_model_viewer_redirects_when_logged_out(self):
+        response = self.client.get("/model-viewer/")
+        self.assertEqual(response.status_code, 302)
+
+    def test_logout_redirects(self):
+        response = self.client.get(reverse("logout"))
+        self.assertEqual(response.status_code, 302)
+
+    def test_unauthenticated_protected_endpoints(self):
+        # User stats
+        resp_stats = self.client.get(reverse("user_stats"))
+        self.assertEqual(resp_stats.status_code, 401)
+
+        # Clear history
+        resp_clear = self.client.post("/api/clear-history/")
+        self.assertEqual(resp_clear.status_code, 401)
+
+        # Get latest crop
+        resp_crop = self.client.get("/api/get-crop/?class=sunglasses")
+        self.assertEqual(resp_crop.status_code, 401)
+
+        # Save crop
+        resp_save = self.client.post("/api/save-crop/", data={})
+        self.assertEqual(resp_save.status_code, 401)
+
+    def test_generate_3d_view_missing_image(self):
+        resp = self.client.post(
+            "/api/generate-3d/",
+            data="{}",
+            content_type="application/json"
+        )
+        self.assertEqual(resp.status_code, 400)
+
+    def test_generate_3d_mesh_missing_image(self):
+        resp = self.client.post(
+            "/api/generate-3d-mesh/",
+            data="{}",
+            content_type="application/json"
+        )
+        self.assertEqual(resp.status_code, 400)
