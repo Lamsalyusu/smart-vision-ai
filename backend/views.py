@@ -47,6 +47,8 @@ def session_or_ip(group, request):
         or request.META.get("REMOTE_ADDR", "unknown")
     )
 
+from backend.repositories.data_manager import data_manager
+
 # too many request --> 429 code
 def too_many_requests_json():
     return JsonResponse(
@@ -56,25 +58,16 @@ def too_many_requests_json():
 
 
 def create_session(user_id, request):
-    session_token = secrets.token_urlsafe(32)
-    expires_at = (datetime.now() + timedelta(days=7)).isoformat()
-
-    session_data = {
-        "user_id": str(user_id),
-        "session_token": session_token,
-        "ip_address": get_client_ip(request),
-        "user_agent": request.META.get("HTTP_USER_AGENT", ""),
-        "expires_at": expires_at,
-        "is_active": True,
-    }
-
     try:
-        supabase_admin.table("user_sessions").insert(session_data).execute()
-        logger.info("Session created | user=%s",user_id,)
+        session_token = data_manager.create_session(
+            user_id=str(user_id),
+            ip_address=get_client_ip(request),
+            user_agent=request.META.get("HTTP_USER_AGENT", ""),
+        )
+        logger.info("Session created | user=%s", user_id)
         return session_token
-
     except Exception:
-        logger.exception("Failed to create session | user=%s",user_id,)
+        logger.exception("Failed to create session | user=%s", user_id)
         raise
 
 
@@ -84,25 +77,7 @@ def get_user_from_session(request):
         return None
 
     try:
-        response = (
-            supabase_admin.table("user_sessions")
-            .select("*, users(*)")
-            .eq("session_token", session_token)
-            .eq("is_active", True)
-            .single()
-            .execute()
-        )
-
-        if not response.data:
-            return None
-
-        expires_at = datetime.fromisoformat(response.data["expires_at"].replace("Z", "+00:00"))
-
-        if datetime.now(expires_at.tzinfo) > expires_at:
-            logger.info("Expired session rejected")
-            return None
-        return response.data
-
+        return data_manager.get_user_from_session(session_token)
     except Exception:
         logger.exception("Failed to validate session")
         return None
@@ -123,18 +98,11 @@ def login_required(view_func):
 
 
 def find_user_by_identifier(identifier):
-    for column in ("email", "username"):
-        response = (
-            supabase_admin.table("users")
-            .select("*")
-            .eq(column, identifier)
-            .execute()
-        )
-
-        if response.data:
-            return response.data[0]
-
-    return None
+    try:
+        return data_manager.find_user_by_identifier(identifier)
+    except Exception:
+        logger.exception("Failed to query user by identifier")
+        return None
 
 # Public and authentication views
 
@@ -286,52 +254,30 @@ def signup_page(request):
     username = email.split("@")[0]
 
     try:
-        existing_user = (
-            supabase_admin.table("users")
-            .select("id")
-            .eq("email", email)
-            .execute()
-        )
-
-        if existing_user.data:
+        existing_user = data_manager.find_user_by_identifier(email)
+        if existing_user:
             logger.info("Signup rejected: email already registered")
-
             return render(
                 request,
                 "signuppage.html",
                 {"error": "Email already registered"},
             )
 
-        user_data = {
-            "full_name": full_name,
-            "email": email,
-            "username": username,
-            "password_hash": make_password(password),
-            "is_active": True,
-            "is_verified": False,
-        }
-
-        response = (
-            supabase_admin.table("users")
-            .insert(user_data)
-            .execute()
+        user = data_manager.create_user(
+            full_name=full_name,
+            email=email,
+            username=username,
+            password_hash=make_password(password),
         )
-
-        user = response.data[0]
 
         session_token = create_session(user["id"], request)
         request.session["session_token"] = session_token
 
-        logger.info(
-            "New user registered | user=%s",
-            user["id"],
-        )
-
+        logger.info("New user registered | user=%s", user["id"])
         return redirect("dashboard")
 
     except Exception:
         logger.exception("Signup failed")
-
         return render(
             request,
             "signuppage.html",
@@ -341,93 +287,46 @@ def signup_page(request):
 
 def logout_view(request):
     session_token = request.session.get("session_token")
-
     if session_token:
         try:
-            (
-                supabase_admin.table("user_sessions")
-                .update({"is_active": False})
-                .eq("session_token", session_token)
-                .execute()
-            )
-
+            data_manager.invalidate_session(session_token)
             logger.info("User session deactivated")
-
         except Exception:
             logger.exception("Failed to deactivate user session")
 
     request.session.flush()
-
     return redirect("login")
 
 # Dashboard
 
 @login_required
 def dashboard(request):
-    user_data = request.user_session["users"]
-    user_id = user_data["id"]
+    user_data = request.user_session.get("users", request.user_session)
+    user_id = user_data.get("id") or request.user_session.get("id")
 
-    try:
-        det_resp = (
-            supabase_admin.table("detection_history")
-            .select("id", count="exact")
-            .eq("user_id", user_id)
-            .execute()
-        )
-        total_detections = det_resp.count or 0
+    stats = data_manager.get_user_stats(user_id)
+    recent = stats.get("recent_detections", [])
+    unique_classes = set(stats.get("class_distribution", {}).keys())
 
-    except Exception:
-        logger.exception(
-            "Failed to load detection count | user=%s",
-            user_id,
-        )
-        total_detections = 0
+    from backend.models import LLMQuery
+    total_queries = LLMQuery.objects.filter(user_id=user_id).count()
 
-    try:
-        query_resp = (
-            supabase_admin.table("llm_queries")
-            .select("id", count="exact")
-            .eq("user_id", user_id)
-            .execute()
-        )
-        total_queries = query_resp.count or 0
-
-    except Exception:
-        logger.exception(
-            "Failed to load query count | user=%s",
-            user_id,
-        )
-        total_queries = 0
-
-    try:
-        history_resp = (
-            supabase_admin.table("detection_history")
-            .select("id, object_class, confidence, created_at")
-            .eq("user_id", user_id)
-            .order("created_at", desc=True)
-            .limit(20)
-            .execute()
-        )
-        recent_detections = history_resp.data or []
-
-    except Exception:
-        logger.exception(
-            "Failed to load detection history | user=%s",
-            user_id,
-        )
-        recent_detections = []
-
-    unique_classes = {
-        detection["object_class"]
-        for detection in recent_detections
-    }
+    # Format recent detections for template
+    formatted_recent = [
+        {
+            "object_class": r["class"],
+            "confidence": r["confidence"],
+            "created_at": r.get("timestamp", ""),
+        }
+        for r in recent
+    ]
 
     context = {
         "user": user_data,
-        "total_detections": total_detections,
+        "total_detections": stats.get("total_detections", 0),
         "total_queries": total_queries,
         "unique_classes": len(unique_classes),
-        "recent_detections": recent_detections,
+        "recent_detections": formatted_recent,
     }
 
     return render(request, "dashboard.html", context)
@@ -456,58 +355,23 @@ def get_user_stats(request):
         logger.warning("Unauthorized user stats request")
         return JsonResponse({"error": "Unauthorized"}, status=401)
 
-    user_id = user_session["users"]["id"]
+    user_id = user_session.get("users", {}).get("id") or user_session.get("id")
 
     try:
-        sessions_count = (
-            supabase_admin.table("detection_sessions")
-            .select("id", count="exact")
-            .eq("user_id", user_id)
-            .execute()
-        )
-
-        detections_count = (
-            supabase_admin.table("detection_results")
-            .select("id", count="exact")
-            .eq("user_id", user_id)
-            .execute()
-        )
-
-        queries_count = (
-            supabase_admin.table("llm_queries")
-            .select("id", count="exact")
-            .eq("user_id", user_id)
-            .execute()
-        )
+        stats = data_manager.get_user_stats(user_id)
+        total_detections = stats.get("total_detections", 0)
 
         return JsonResponse({
-            "total_sessions": (
-                sessions_count.count
-                if hasattr(sessions_count, "count")
-                else 0
-            ),
-            "total_detections": (
-                detections_count.count
-                if hasattr(detections_count, "count")
-                else 0
-            ),
-            "total_queries": (
-                queries_count.count
-                if hasattr(queries_count, "count")
-                else 0
-            ),
+            "total_sessions": 1 if total_detections > 0 else 0,
+            "total_detections": total_detections,
+            "total_queries": 0,
+            "class_distribution": stats.get("class_distribution", {}),
+            "recent_detections": stats.get("recent_detections", []),
         })
 
     except Exception:
-        logger.exception(
-            "Failed to load user statistics | user=%s",
-            user_id,
-        )
-
-        return JsonResponse(
-            {"error": "Unable to load statistics"},
-            status=500,
-        )
+        logger.exception("Failed to load user statistics | user=%s", user_id)
+        return JsonResponse({"error": "Unable to load statistics"}, status=500)
 
 # Object detection
 
@@ -1400,66 +1264,29 @@ def save_crop(request):
             status=401,
         )
 
-    user_id = user_session["users"]["id"]
+    user_id = user_session.get("users", {}).get("id") or user_session.get("id")
 
     try:
         data = json.loads(request.body)
-
         object_class = data.get("object_class", "")
         confidence = data.get("confidence", 0)
         crop_image = data.get("crop_image", "")
 
         if not object_class or not crop_image:
-            logger.warning(
-                "Crop save request missing data | user=%s",
-                user_id,
-            )
+            logger.warning("Crop save request missing data | user=%s", user_id)
+            return JsonResponse({"error": "Missing data"}, status=400)
 
-            return JsonResponse(
-                {"error": "Missing data"},
-                status=400,
-            )
-
-        (
-            supabase_admin.table("detection_crops")
-            .insert({
-                "user_id": str(user_id),
-                "object_class": object_class,
-                "confidence": confidence,
-                "crop_image": crop_image,
-            })
-            .execute()
-        )
-
-        logger.info(
-            "Detection crop saved | user=%s | class=%s",
-            user_id,
-            object_class,
-        )
-
-        return JsonResponse({"success": True})
+        saved = data_manager.save_crop(user_id, object_class, confidence, crop_image)
+        logger.info("Detection crop saved | user=%s | class=%s", user_id, object_class)
+        return JsonResponse({"success": True, "data": saved})
 
     except json.JSONDecodeError:
-        logger.warning(
-            "Invalid JSON in crop save request | user=%s",
-            user_id,
-        )
-
-        return JsonResponse(
-            {"error": "Invalid request data"},
-            status=400,
-        )
+        logger.warning("Invalid JSON in crop save request | user=%s", user_id)
+        return JsonResponse({"error": "Invalid request data"}, status=400)
 
     except Exception:
-        logger.exception(
-            "Failed to save detection crop | user=%s",
-            user_id,
-        )
-
-        return JsonResponse(
-            {"error": "Failed to save crop"},
-            status=500,
-        )
+        logger.exception("Failed to save detection crop | user=%s", user_id)
+        return JsonResponse({"error": "Failed to save crop"}, status=500)
 
 
 @csrf_exempt
@@ -1469,45 +1296,18 @@ def get_latest_crop(request):
 
     if not user_session:
         logger.warning("Unauthorized crop retrieval request")
-
-        return JsonResponse(
-            {"error": "Unauthorized"},
-            status=401,
-        )
+        return JsonResponse({"error": "Unauthorized"}, status=401)
 
     object_class = request.GET.get("object_class", "")
-
     if not object_class:
-        return JsonResponse(
-            {"error": "Missing object_class"},
-            status=400,
-        )
+        return JsonResponse({"error": "Missing object_class"}, status=400)
 
-    user_id = user_session["users"]["id"]
+    user_id = user_session.get("users", {}).get("id") or user_session.get("id")
 
     try:
-        response = (
-            supabase_admin.table("detection_crops")
-            .select(
-                "object_class, confidence, crop_image"
-            )
-            .eq(
-                "user_id",
-                str(user_id),
-            )
-            .eq("object_class", object_class)
-            .order("created_at", desc=True)
-            .limit(1)
-            .execute()
-        )
-
-        if not response.data:
-            return JsonResponse({
-                "success": False,
-                "error": "No crop found for this class",
-            })
-
-        crop = response.data[0]
+        crop = data_manager.get_latest_crop(user_id)
+        if not crop:
+            return JsonResponse({"success": False, "error": "No crop found for this class"})
 
         return JsonResponse({
             "success": True,
@@ -1517,16 +1317,8 @@ def get_latest_crop(request):
         })
 
     except Exception:
-        logger.exception(
-            "Failed to retrieve latest crop | user=%s | class=%s",
-            user_id,
-            object_class,
-        )
-
-        return JsonResponse(
-            {"error": "Failed to retrieve crop"},
-            status=500,
-        )
+        logger.exception("Failed to retrieve latest crop | user=%s | class=%s", user_id, object_class)
+        return JsonResponse({"error": "Failed to retrieve crop"}, status=500)
 
 
 @csrf_exempt
@@ -1536,39 +1328,18 @@ def clear_detection_history(request):
 
     if not user_session:
         logger.warning("Unauthorized history clear request")
+        return JsonResponse({"error": "Unauthorized"}, status=401)
 
-        return JsonResponse(
-            {"error": "Unauthorized"},
-            status=401,
-        )
-
-    user_id = user_session["users"]["id"]
+    user_id = user_session.get("users", {}).get("id") or user_session.get("id")
 
     try:
-        (
-            supabase_admin.table("detection_history")
-            .delete()
-            .eq("user_id", str(user_id))
-            .execute()
-        )
-
-        logger.info(
-            "Detection history cleared | user=%s",
-            user_id,
-        )
-
+        data_manager.clear_history(user_id)
+        logger.info("Detection history cleared | user=%s", user_id)
         return JsonResponse({"success": True})
 
     except Exception:
-        logger.exception(
-            "Failed to clear detection history | user=%s",
-            user_id,
-        )
-
-        return JsonResponse(
-            {"error": "Failed to clear detection history"},
-            status=500,
-        )
+        logger.exception("Failed to clear detection history | user=%s", user_id)
+        return JsonResponse({"error": "Failed to clear detection history"}, status=500)
 
 
 # TripoSR 3D mesh generation

@@ -1,15 +1,15 @@
 import threading
 import time
 import logging
-from backend.supabase_client import supabase_admin
+from backend.repositories.data_manager import data_manager
 
 logger = logging.getLogger(__name__)
 
 
 class DetectionBatchBuffer:
-    """Thread-safe batching buffer for high-frequency detection telemetry."""
+    """Thread-safe write-behind telemetry buffer for high-frequency camera inference."""
 
-    def __init__(self, flush_interval_sec=4.0, max_batch_size=25):
+    def __init__(self, flush_interval_sec=3.0, max_batch_size=20):
         self.flush_interval_sec = flush_interval_sec
         self.max_batch_size = max_batch_size
         self._buffer = []
@@ -17,7 +17,7 @@ class DetectionBatchBuffer:
         self._last_flush = time.time()
 
     def add(self, user_id, detection):
-        """Append detection record to buffer and flush if batch size threshold is reached."""
+        """Queue detection record and flush if batch criteria met."""
         if not user_id:
             return
 
@@ -39,7 +39,7 @@ class DetectionBatchBuffer:
             self.flush()
 
     def flush(self):
-        """Flush accumulated records to Supabase in a single batch request."""
+        """Asynchronously commit buffered telemetry."""
         with self._lock:
             if not self._buffer:
                 return
@@ -47,16 +47,20 @@ class DetectionBatchBuffer:
             self._buffer.clear()
             self._last_flush = time.time()
 
-        def _async_send():
-            if not supabase_admin:
-                return
+        def _persist_records():
             try:
-                supabase_admin.table("detection_history").insert(records_to_send).execute()
-                logger.debug("Flushed %d detection records to database", len(records_to_send))
+                for rec in records_to_send:
+                    data_manager.save_detection_record(
+                        user_id=rec["user_id"],
+                        object_class=rec["object_class"],
+                        confidence=rec["confidence"],
+                        bbox=rec.get("bbox"),
+                    )
+                logger.debug("Successfully flushed %d detection telemetry records", len(records_to_send))
             except Exception:
-                logger.debug("Failed to flush detection batch buffer")
+                logger.debug("Telemetry buffer persistence encountered transient error")
 
-        threading.Thread(target=_async_send, daemon=True).start()
+        threading.Thread(target=_persist_records, daemon=True).start()
 
 
 detection_buffer = DetectionBatchBuffer()

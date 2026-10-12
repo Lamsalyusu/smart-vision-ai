@@ -2,17 +2,16 @@ import numpy as np
 
 
 class SpatialSceneGraph:
-    """Builds a semantic spatial-temporal scene graph from tracked detections."""
+    """Constructs a relational spatial scene graph from multi-object tracked detections."""
 
     def __init__(self, proximity_threshold_m=0.6):
         self.proximity_threshold_m = proximity_threshold_m
 
     def build(self, tracked_detections):
         """
-        Construct nodes and relational edges for detected and tracked objects.
-
+        Construct nodes and relational spatial edges.
         tracked_detections: list of dicts with 'track_id', 'class', 'bbox', 'spatial_3d', 'velocity'
-        Returns: dict with 'nodes', 'edges', and 'summary_prompt'
+        Returns: dict with 'nodes', 'edges', 'summary_prompt', and 'graph_metrics'
         """
         nodes = []
         for det in tracked_detections:
@@ -39,7 +38,6 @@ class SpatialSceneGraph:
                 n1 = nodes[i]
                 n2 = nodes[j]
 
-                # 3D Euclidean distance between objects if available
                 spatial1 = n1.get("spatial")
                 spatial2 = n2.get("spatial")
 
@@ -51,9 +49,13 @@ class SpatialSceneGraph:
 
                     if dist_3d <= self.proximity_threshold_m:
                         predicate = "adjacent_to"
-                        # Interaction heuristic: knife/phone/bottle near human face
+                        # Interaction heuristic for personal items near human face
                         if "human_face" in (n1["class"], n2["class"]):
                             predicate = "interacting_with"
+
+                        # Compute directional orientation
+                        rel_x = "left_of" if dx < -0.1 else ("right_of" if dx > 0.1 else "aligned_x")
+                        rel_z = "in_front_of" if dz < -0.1 else ("behind" if dz > 0.1 else "same_depth")
 
                         edges.append({
                             "source_id": n1["track_id"],
@@ -61,15 +63,23 @@ class SpatialSceneGraph:
                             "target_id": n2["track_id"],
                             "target_class": n2["class"],
                             "relation": predicate,
+                            "directional": f"{rel_x}, {rel_z}",
                             "distance_m": round(dist_3d, 2),
                         })
 
         summary_prompt = self._generate_prompt_context(nodes, edges)
 
+        graph_metrics = {
+            "node_count": n,
+            "edge_count": len(edges),
+            "density": round(2.0 * len(edges) / (n * (n - 1)), 2) if n > 1 else 0.0,
+        }
+
         return {
             "nodes": nodes,
             "edges": edges,
             "summary_prompt": summary_prompt,
+            "metrics": graph_metrics,
         }
 
     def _generate_prompt_context(self, nodes, edges):
