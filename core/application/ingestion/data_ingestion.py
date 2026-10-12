@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import numpy as np
+import cv2
 from dataclasses import dataclass, field
 from typing import Optional, Sequence, Callable, Dict, Any, List, Tuple, Set
 from enum import Enum
