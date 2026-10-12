@@ -10,11 +10,11 @@ backend/ml_model/scene_graph.py               50      2  96.00%   77, 85
 backend/ml_model/spatial_fusion.py            51      2  96.08%   21, 63
 backend/ml_model/tracker.py                  141      7  95.04%   35, 94, 101, 158, 163, 187, 189
 backend/models.py                              0      0 100.00%
-backend/repositories/detection_buffer.py      36     15  58.33%   22, 39, 43-57
-backend/services/chat_service.py              22      4  81.82%   52-60
+backend/repositories/detection_buffer.py      38     17  55.26%   22, 39, 43-59
+backend/services/chat_service.py              45     22  51.11%   28, 56-58, 62-70, 79-97
 backend/services/vision_service.py            40     12  70.00%   24-30, 53-60, 64-65
-backend/supabase_client.py                     4      0 100.00%
+backend/supabase_client.py                    16      4  75.00%   13-14, 19-20
 backend/urls.py                                3      0 100.00%
 backend/views.py                             564    415  26.42%   39, 52, 59-78, 86-108, 119-120, 126-137, 142-145, 162, 179-233, 242-335, 343-361, 367-433, 438, 447, 453-507, 518-519, 541-543, 609, 628-641, 655-656, 715-721, 732-832, 840-851, 857-949, 957-965, 971-1088, 1096-1140, 1147-1241, 1246-1380, 1394-1459, 1468-1526, 1535-1568, 1579-1729
 -------------------------------------------------------------------------
-TOTAL                                       1177    613  47.92%
+TOTAL                                       1214    637  47.53%
