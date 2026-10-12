@@ -1,0 +1,29 @@
+SmartVision AI - Model Evaluation Report
+Model: Custom YOLO (CSPDarknet + FPN)
+Parameters: 7,924,199
+Training epochs: 60
+Best valid loss: 1.
+IMG_SIZE=640
+NUM_CLASSES=10
+BATCH_SIZE=16
+IMG_SIZE = 640
+NUM_CHANNELS = 3
+LEARNING_RATE = 0.001
+MAX_BOXES = 50
+LR schedule: Cosine annealing (warmup: 5 epochs)
+Augmentations: flip, brightness, contrast, saturation, hue, scale, noise, cutout
+
+Class            Precision     Recall         F1
+--------------------------------------------------
+sunglasses          0.7187     0.3770     0.4946
+knife               0.7273     0.2883     0.4129
+water_bottle        0.8929     0.4386     0.5882
+pen                 0.8231     0.3645     0.5052
+chair               0.8625     0.6699     0.7541
+human_face          0.5579     0.4943     0.5242
+mobile_phone        0.6389     0.3333     0.4381
+helmet              0.9140     0.7391     0.8173
+fire                0.1961     0.3701     0.2564
+can                 0.8036     0.8654     0.8333
+--------------------------------------------------
+Mean                0.7135     0.4941     0.5624
