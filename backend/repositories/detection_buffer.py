@@ -48,11 +48,13 @@ class DetectionBatchBuffer:
             self._last_flush = time.time()
 
         def _async_send():
+            if not supabase_admin:
+                return
             try:
                 supabase_admin.table("detection_history").insert(records_to_send).execute()
                 logger.debug("Flushed %d detection records to database", len(records_to_send))
             except Exception:
-                logger.exception("Failed to flush detection batch buffer")
+                logger.debug("Failed to flush detection batch buffer")
 
         threading.Thread(target=_async_send, daemon=True).start()
 
