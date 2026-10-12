@@ -1,0 +1,68 @@
+# Third-Party Dependencies and Intellectual Property Notice
+
+This document provides legal and licensing disclosures for all third-party software, pre-trained weights, models, and dataset sources utilized by the **SmartVision AI** project.
+
+---
+
+## 1. Machine Learning Models & Architectures
+
+### Custom YOLO Model
+* **Architecture**: CSPDarknet backbone + SPPF + FPN Neck (`backend/ml_model/model.py`).
+* **Implementation**: Developed in TensorFlow/Keras 2.x by Yuyutsu Lamsal.
+* **Weights**: Trained by the author on Google Colab (`backend/ml_model/weights/best_weights.weights.h5`).
+* **License**: MIT License (project author).
+
+### MiDaS (Monocular Depth Estimation)
+* **Author / Organization**: Intel Intelligent Systems Lab (ISL) / René Ranftl et al.
+* **Repository**: `https://github.com/isl-org/MiDaS`
+* **Model**: MiDaS v2.1 Small
+* **License**: MIT License
+* **Terms**: Free for research and commercial evaluation.
+
+### TripoSR (Single-Image 3D Mesh Reconstruction)
+* **Authors / Organization**: Stability AI & Tripo AI
+* **Repository**: `https://github.com/VAST-AI-Research/TripoSR`
+* **License**: MIT License
+
+---
+
+## 2. Dataset Sources & Attribution
+
+The object detection model was trained across 10 object categories using public community datasets sourced via Roboflow Universe:
+
+| Class | Source Project | Provider | Upstream License |
+| :--- | :--- | :--- | :--- |
+| **Sunglasses** | `sunglasses-tvknx-wlwcu` (v1) | Roboflow Universe | CC BY 4.0 / Open Community |
+| **Knife** | `knifedetectionv4-6pfwh` (v3) | Roboflow Universe | CC BY 4.0 / Open Community |
+| **Water Bottle** | `water-bottle-qginj-6glhq` (v4) | Roboflow Universe | CC BY 4.0 / Open Community |
+| **Pen** | `pen-kkqzs-tvftk` (v3) | Roboflow Universe | CC BY 4.0 / Open Community |
+| **Chair** | `chair-walws-ziqgx` (v1) | Roboflow Universe | CC BY 4.0 / Open Community |
+| **Human Face** | `face-detection-mik1i-iuvar` (v1) | Roboflow Universe | CC BY 4.0 / Open Community |
+| **Mobile Phone** | `e-waste-mobile-phones-drlac` (v3) | Roboflow Universe | CC BY 4.0 / Open Community |
+| **Helmet** | `helmet-motorcycle-detection-pro0q-ozzzn` (v3) | Roboflow Universe | CC BY 4.0 / Open Community |
+| **Fire** | `fire-8klur-fceqf` (v3) | Roboflow Universe | CC BY 4.0 / Open Community |
+| **Can** | `cans-avukd-b09pf` (v5) | Roboflow Universe | CC BY 4.0 / Open Community |
+
+*Note: All datasets were merged, filtered, and re-annotated for the 10-class COCO target format.*
+
+---
+
+## 3. Frontend Libraries & CDN Assets
+
+* **Three.js** (v0.128.0): MIT License (Mr.doob and Three.js authors)
+* **OrbitControls.js & GLTFLoader.js**: MIT License
+* **Tailwind CSS CDN**: MIT License (Tailwind Labs Inc.)
+* **Space Grotesk & Inter Fonts**: SIL Open Font License 1.1 (Google Fonts)
+* **Google Material Symbols**: Apache License 2.0
+
+---
+
+## 4. Backend Frameworks & Dependencies
+
+* **Django** (v6.x): 3-Clause BSD License
+* **TensorFlow / Keras** (v2.x): Apache License 2.0
+* **PyTorch / Torchvision**: Modified BSD License
+* **OpenCV (opencv-python)**: Apache License 2.0 / 3-Clause BSD
+* **NumPy**: 3-Clause BSD License
+* **Groq Python SDK**: MIT License
+* **Supabase Python Client**: MIT License

@@ -1,6 +1,6 @@
 # SmartVision Model Card
 
-**Yuyutsu Lamsal (2432214)**
+**Author: Yuyutsu Lamsal**
 
 ## Dataset source
 
