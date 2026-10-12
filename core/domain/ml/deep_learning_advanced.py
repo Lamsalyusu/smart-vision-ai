@@ -345,7 +345,7 @@ class Sequential(Module):
 
 
 class MultiHeadAttention(Module):
-    def __ __init__(
+    def __init__(
         self,
         embed_dim: int,
         num_heads: int,

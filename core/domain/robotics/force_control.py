@@ -159,7 +159,7 @@ class ImpedanceController(BaseForceController):
         current_vel = np.concatenate([
             np.zeros(3),
             np.zeros(3)
-        )
+        ])
 
         desired_wrench = K @ pos_error_vec + D @ (-current_vel)
         desired_wrench = desired_wrench + target.wrench
