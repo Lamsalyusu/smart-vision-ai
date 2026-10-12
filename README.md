@@ -117,3 +117,6 @@ cp .env.example .env
 
 - **Project License**: MIT License (see [LICENSE](file:///home/yuyutsu/Desktop/smart-vision-ai/LICENSE))
 - **Third-Party Disclosures**: See [THIRD_PARTY_LICENSES.md](file:///home/yuyutsu/Desktop/smart-vision-ai/THIRD_PARTY_LICENSES.md) for full licensing information regarding dataset sources (Roboflow Universe) and dependencies (Intel MiDaS, Three.js).
+
+
+![Coverage Badge](coverage-badge.svg)
