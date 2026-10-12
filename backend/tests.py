@@ -248,6 +248,19 @@ class SpatialFusionAndSceneGraphTests(TestCase):
         self.assertEqual(graph["metrics"]["max_degree"], 1)
         self.assertIn("human_face", graph["summary_prompt"])
 
+    def test_scene_graph_2d_fallback_without_depth(self):
+        builder = SpatialSceneGraph()
+        items = [
+            {"class": "chair", "confidence": 0.8, "bbox": [10.0, 10.0, 50.0, 50.0]},
+            {"class": "water_bottle", "confidence": 0.85, "bbox": [20.0, 20.0, 40.0, 60.0]},
+        ]
+        graph = builder.build(items)
+        self.assertEqual(len(graph["nodes"]), 2)
+        # Unique track IDs should have been assigned automatically
+        self.assertNotEqual(graph["nodes"][0]["track_id"], graph["nodes"][1]["track_id"])
+        self.assertGreaterEqual(len(graph["edges"]), 1)
+        self.assertIn(graph["edges"][0]["relation"], ["overlapping_with", "adjacent_to"])
+
 
 class BatchBufferTests(TestCase):
     def test_buffer_accumulates_and_clears(self):
