@@ -329,13 +329,21 @@
       ctx.lineWidth = 3;
       ctx.strokeRect(mx1, y1, w, h);
 
-      // Label
-      const label =
+      // Label with track ID and optional distance
+      let label = "";
+      if (det.track_id) {
+        label += `#${det.track_id} `;
+      }
+      label +=
         det.class.replace("_", " ") +
         " " +
         (det.confidence * 100).toFixed(0) +
         "%";
-      ctx.font = "bold 14px Inter, sans-serif";
+      if (det.spatial_3d && det.spatial_3d.distance_m) {
+        label += ` · ${det.spatial_3d.distance_m}m`;
+      }
+
+      ctx.font = "bold 13px Inter, sans-serif";
       const textWidth = ctx.measureText(label).width;
 
       ctx.fillStyle = color;
@@ -343,6 +351,18 @@
 
       ctx.fillStyle = "#fff";
       ctx.fillText(label, mx1 + 6, y1 - 7);
+
+      // Draw motion velocity indicator if active
+      if (det.velocity && (Math.abs(det.velocity[0]) > 1.5 || Math.abs(det.velocity[1]) > 1.5)) {
+        const cx = mx1 + w / 2;
+        const cy = y1 + h / 2;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx - det.velocity[0] * 3, cy + det.velocity[1] * 3);
+        ctx.strokeStyle = "#fbbf24";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
     });
   }
   function updateDetectedObjectsList() {
@@ -369,12 +389,21 @@
 
     detectedObjectsList.innerHTML = uniqueDetections
       .map(
-        (o) => `
+        (o) => {
+          const trackLabel = o.track_id
+            ? `<span style="font-size: 0.7rem; background: rgba(255,255,255,0.15); padding: 1px 5px; border-radius: 4px; margin-right: 4px;">#${o.track_id}</span>`
+            : "";
+          const distLabel =
+            o.spatial_3d && o.spatial_3d.distance_m
+              ? ` · ${o.spatial_3d.distance_m}m`
+              : "";
+          return `
                 <div class="object-card ${selectedObject === o.class ? "selected" : ""}" data-object="${o.class}">
                     <span class="material-symbols-outlined" style="font-size: 2rem; color: ${CLASS_COLORS[o.class] || "#137fec"}; margin-bottom: 0.5rem;">verified</span>
-                    <p style="font-size: 0.875rem; font-weight: 600; text-transform: capitalize; margin-bottom: 0.25rem;">${o.class.replace("_", " ")}</p>
-                    <p style="font-size: 0.75rem; color: #92adc9;">${(o.confidence * 100).toFixed(0)}%</p>
-                </div>`,
+                    <p style="font-size: 0.875rem; font-weight: 600; text-transform: capitalize; margin-bottom: 0.25rem;">${trackLabel}${o.class.replace("_", " ")}</p>
+                    <p style="font-size: 0.75rem; color: #92adc9;">${(o.confidence * 100).toFixed(0)}%${distLabel}</p>
+                </div>`;
+        },
       )
       .join("");
 
