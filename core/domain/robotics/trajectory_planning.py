@@ -640,5 +640,4 @@ class PathFollower:
         return cmd
 
 
-import heapq
 import random

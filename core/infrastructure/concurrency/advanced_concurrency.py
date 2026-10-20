@@ -399,7 +399,7 @@ class ActorSupervisor:
             try:
                 await actor.start()
                 await self._monitor(actor)
-            except Exception as e:
+            except Exception:
                 if not self._should_restart(actor_id):
                     raise
                 await self._restart(actor_id, actor_factory)
@@ -572,7 +572,7 @@ class CircuitBreaker:
                 self.failure_count = 0
                 self.state = "closed"
             return result
-        except self.expected_exception as e:
+        except self.expected_exception:
             with self.lock:
                 self.failure_count += 1
                 self.last_failure_time = time.time()
@@ -610,7 +610,7 @@ class AsyncCircuitBreaker:
                 self.failure_count = 0
                 self.state = "closed"
             return result
-        except self.expected_exception as e:
+        except self.expected_exception:
             async with self.lock:
                 self.failure_count += 1
                 self.last_failure_time = time.time()

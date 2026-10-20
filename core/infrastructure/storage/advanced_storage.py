@@ -250,7 +250,7 @@ class BaseStorage(ABC):
 
             return success
 
-        except Exception as e:
+        except Exception:
             with self._stats_lock:
                 self._stats['errors'] += 1
             return False

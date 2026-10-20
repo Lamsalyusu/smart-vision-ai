@@ -444,7 +444,6 @@ class MeshExporter:
     @staticmethod
     def export_gltf(mesh: Mesh, path: str):
         import json
-        import base64
 
         def pack_vec3(arr):
             return base64.b64encode(struct.pack('<fff', *arr)).decode()
