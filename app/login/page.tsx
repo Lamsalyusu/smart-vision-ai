@@ -42,7 +42,7 @@ export default function LoginPage() {
 
   const fillDemo = () => {
     setIdentifier("demo");
-    setPassword("REDACTED");
+    setPassword("");
     setError("");
   };
 
@@ -112,7 +112,7 @@ export default function LoginPage() {
                   required
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
-                  placeholder="e.g. yuyutsu or demo@smartvision.ai"
+                  placeholder="e.g. demo or demo@smartvision.local"
                   className="w-full px-4 py-3 pl-10 rounded-xl bg-slate-900/80 border border-white/10 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
                 />
                 <User className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />

@@ -66,11 +66,6 @@ export function hashPassword(password: string): string {
 export function verifyPassword(password: string, storedHash: string): boolean {
   if (!storedHash || !password) return false;
 
-  // Legacy / demo hash fallback
-  if (storedHash === "") {
-    return password === "REDACTED" || password === "REDACTED";
-  }
-
   const parts = storedHash.split("$");
   if (parts.length !== 3) {
     // Simple hash fallback for backwards compatibility during migration
