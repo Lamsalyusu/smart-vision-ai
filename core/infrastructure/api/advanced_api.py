@@ -190,7 +190,7 @@ class Application:
             for exc_type, handler in self.router.exception_handlers.items():
                 if isinstance(e, exc_type):
                     return await handler(request, e) if inspect.iscoroutinefunction(handler) else handler(request, e)
-            return Response(status_code=500, body=f"Internal Server Error: {str(e)}".encode())
+            return Response(status_code=500, body=b"Internal Server Error")
 
     async def startup(self):
         for handler in self.startup_handlers:
