@@ -42,14 +42,14 @@ class WebSocketAndWebhookTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(manager.total_connections, 1)
 
     def test_webhook_hmac_signature(self):
-        dispatcher = WebhookDispatcher(secret="enterprise_secret_key_2026")
+        dispatcher = WebhookDispatcher(secret="test-webhook-secret-do-not-use-in-production")
         data = b'{"event":"ZONE_BREACH","track_id":42}'
 
         sig = dispatcher.compute_signature(data)
         self.assertIsInstance(sig, str)
 
         # Manually compute expected HMAC-SHA256
-        expected = hmac.new(b"enterprise_secret_key_2026", data, hashlib.sha256).hexdigest()
+        expected = hmac.new(b"test-webhook-secret-do-not-use-in-production", data, hashlib.sha256).hexdigest()
         self.assertEqual(sig, expected)
 
     async def test_invalid_webhook_url_is_added_to_dead_letter_queue(self):
