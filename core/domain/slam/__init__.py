@@ -2,7 +2,7 @@
 
 from .ekf_slam import ExtendedKalmanFilterSLAM
 from .lie_algebra import SE3, SO3
-from .loop_closure import VisualVocabularyTree
+from .loop_closure import VocabularyTree as VisualVocabularyTree
 from .occupancy_grid import OccupancyGrid3D
 from .pose_graph import PoseGraphEdge, PoseGraphOptimizer
 from .visual_odometry import VisualOdometryEstimator
