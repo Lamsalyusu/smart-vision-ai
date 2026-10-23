@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+# SECURITY WARNING: This module supports SerializationFormat.PICKLE via pickle.dumps/pickle.loads.
+# pickle is NOT secure against maliciously crafted data and can lead to arbitrary code execution.
+# Only use PICKLE for trusted internal payloads. Prefer SerializationFormat.JSON for any data
+# that may originate from untrusted sources (network, user input, persistent storage).
+
 import numpy as np
 from dataclasses import dataclass, field
 from typing import Optional, Sequence, Callable, Dict, Any, List, Tuple, Set
