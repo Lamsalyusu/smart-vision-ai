@@ -1,15 +1,21 @@
 from __future__ import annotations
 
+import math
+import queue
+import threading
+import time
+from collections import defaultdict, deque
+from concurrent.futures import Future, ThreadPoolExecutor
+
 import numpy as np
 from dataclasses import dataclass, field
-from typing import Optional, Sequence, Callable, Dict, Any, List, Tuple, Union
 from enum import Enum
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
+
 from abc import ABC, abstractmethod
-import time
-import threading
-import queue
-from collections import defaultdict, deque
-from concurrent.futures import ThreadPoolExecutor, Future
+
+# NOTE: frame sync assumes 30Hz camera; adjust for high-speed cameras
+# print(f"Pipeline frame: {frame_id}, sensors: {len(sensor_readings)}")
 
 class SensorType(Enum):
     CAMERA = "camera"

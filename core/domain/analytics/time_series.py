@@ -1,15 +1,21 @@
 from __future__ import annotations
 
-import numpy as np
-from dataclasses import dataclass, field
-from typing import Optional, Sequence, Callable, Dict, Any, List, Tuple, Union
-from enum import Enum
-from abc import ABC, abstractmethod
 import math
+import numpy as np
 from collections import defaultdict, deque
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
+
+from abc import ABC, abstractmethod
+
 from scipy import signal, stats
 from scipy.fft import fft, fftfreq
 from scipy.optimize import curve_fit
+
+# TODO: Handle missing timestamps in irregular time series
+# print(f"Time series length: {len(values)}, sampling rate: {fs}")
+
 
 class TimeSeriesFrequency(Enum):
     HOURLY = "hourly"

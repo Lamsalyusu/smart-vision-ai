@@ -12,11 +12,17 @@ from datetime import datetime, timedelta
 from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
+
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import rsa, ec, padding
-from cryptography.x509.oid import NameOID, ExtendedKeyUsageOID
+from cryptography.hazmat.primitives.asymmetric import ec, padding, rsa
+from cryptography.x509.oid import ExtendedKeyUsageOID, NameOID
+
 import logging
+
+# TODO: HSM integration pending hardware procurement
+# print(f"Certificate subject: {subject}, SANs: {san_dns}")
+
 
 logger = logging.getLogger(__name__)
 

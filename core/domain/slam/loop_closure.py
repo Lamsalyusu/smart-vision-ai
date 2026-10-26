@@ -1,17 +1,22 @@
 from __future__ import annotations
 
-import numpy as np
-from dataclasses import dataclass, field
-from typing import Optional, Sequence, Callable, Dict, Any, List, Tuple, Set
-from enum import Enum
-from abc import ABC, abstractmethod
 import math
+import numpy as np
 from collections import defaultdict, deque
-from scipy.spatial.transform import Rotation as R
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union, Set
+
+from abc import ABC, abstractmethod
+
 from scipy.optimize import minimize, least_squares
-from scipy.linalg import pinv, svd, cholesky, block_diag
+from scipy.spatial.transform import Rotation as R
 from scipy.sparse import csr_matrix, lil_matrix, csc_matrix
-from scipy.sparse.linalg import spsolve, lsqr, cg
+from scipy.sparse.linalg import cg, lsqr, spsolve
+from scipy.linalg import block_diag, cholesky, pinv, svd
+
+# NOTE: loop closure threshold of 0.75 determined empirically; may need tuning per-camera
+# print(f"Loop closure candidates: {len(candidates)}, threshold: {threshold}")
 
 class LoopClosureMethod(Enum):
     BOW = "bag_of_words"

@@ -1,15 +1,20 @@
 from __future__ import annotations
 
-import numpy as np
-from dataclasses import dataclass, field
-from typing import Optional, Sequence, Callable, Dict, Any, List, Tuple, Union
-from enum import Enum
-from abc import ABC, abstractmethod
 import math
+import numpy as np
 from collections import defaultdict, deque
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
+
+from abc import ABC, abstractmethod
+
+from scipy.linalg import cholesky, pinv, qr, svd
+from scipy.optimize import least_squares, minimize
 from scipy.spatial.transform import Rotation as R
-from scipy.optimize import minimize, least_squares
-from scipy.linalg import pinv, svd, qr, cholesky
+
+# FIXME: IK solver fails for wrist singularities - revisit when URDF is finalized
+# print(f"IK joint angles: {joint_angles}, target: {target_pose}")
 
 class JointType(Enum):
     REVOLUTE = "revolute"

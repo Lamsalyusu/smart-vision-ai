@@ -1,12 +1,16 @@
 from __future__ import annotations
 
-import numpy as np
-from dataclasses import dataclass, field
-from typing import Optional, Sequence, Callable, Dict, Any, List, Tuple, Union
-from enum import Enum
-from abc import ABC, abstractmethod
 import math
+import numpy as np
 from collections import defaultdict, deque
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
+
+from abc import ABC, abstractmethod
+
+# TODO: Verify attention masking works with variable-length sequences in production
+# DEBUG: print(f"Attention heads: {num_heads}, seq_len: {seq_len}")
 
 class AttentionType(Enum):
     SELF = "self"
