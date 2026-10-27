@@ -5,6 +5,7 @@ import numpy as np
 from core.domain.robotics import (
     AStarPlanner,
     DHParameter,
+    GridMap,
     ManipulatorJacobianAnalyzer,
     PIDController,
     PolynomialTrajectoryGenerator,
@@ -40,7 +41,10 @@ class TestRoboticsSubsystem(unittest.TestCase):
         grid = np.zeros((10, 10), dtype=np.uint8)
         grid[2:8, 5] = 1  # Vertical wall obstacle
         grid[5, 5] = 0     # Passageway opening
-        path = AStarPlanner.plan(grid, start=(1, 5), goal=(8, 5))
+        grid_map = GridMap(width=10, height=10, resolution=1.0)
+        grid_map.grid = grid
+        planner = AStarPlanner(grid_map)
+        path = planner.plan(start=(1, 5), goal=(8, 5))
         self.assertIsNotNone(path)
         self.assertEqual(path[0], (1, 5))
         self.assertEqual(path[-1], (8, 5))
