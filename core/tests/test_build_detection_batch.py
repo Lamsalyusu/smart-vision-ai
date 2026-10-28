@@ -45,7 +45,7 @@ class BuildDetectionBatchTests(unittest.TestCase):
             )
 
     def test_rejects_non_numeric_confidence(self) -> None:
-        with self.assertRaisesRegex(TypeError, "confidence must be numeric"):
+        with self.assertRaisesRegex(ValueError, "confidence must be numeric"):
             self.use_case.execute(
                 "camera-1",
                 12,
