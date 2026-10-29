@@ -1,0 +1,1 @@
+"""Domain model shared by SmartVision use cases."""
