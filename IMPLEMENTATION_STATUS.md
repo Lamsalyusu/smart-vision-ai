@@ -26,8 +26,12 @@ capabilities.
   tracking-preservation signal when a frame is skipped.
 - **Implemented:** POSIX shared-memory NV12/RGB ring with bounded slots, leases,
   process attachment using a shared lock, and overwrite/drop policy.
+- **Implemented:** Camera stream metadata registry, AIMD bitrate policy, and an
+  application ingress coordinator connecting registration, admission, and the
+  shared-memory ring.
 - **Remaining:** WebRTC SFU, RTSP bridge, VP8/H.264 packetization, and measured
-  50-camera adaptive-bitrate integration.
+  50-camera adaptive-bitrate media integration. The current registry and
+  bitrate controller do not negotiate or transmit media.
 - **Remaining:** GPU/CUDA IPC path and live connection between media ingress,
   ring buffers, inference workers, and tracker state.
 
@@ -53,6 +57,9 @@ capabilities.
 - **Implemented:** Priority/model-isolated batching policy, circuit breaker,
   KS/Wasserstein drift monitor, bounded annotation queue, and transport-neutral
   Raft election/log state machine.
+- **Implemented:** In-process concurrent ingress harness for up to 100 camera
+  producers, reporting submission throughput and P50/P99 latency. It does not
+  measure network-to-inference latency.
 - **Remaining:** Triton client/server deployment, TensorRT compilation,
   multi-GPU scheduling, and inference fallback adapters.
 - **Remaining:** Durable Raft storage, network transport, membership changes,
@@ -64,9 +71,12 @@ capabilities.
 
 ## Phase 5: Spatial Web Client
 
+- **Implemented:** Browser-local replay of up to 240 camera detection snapshots,
+  with timeline controls, trajectory canvas, and per-frame detection inspection.
+- **Remaining:** The replay view is not backed by a server history API and stores
+  no video frames.
 - **Remaining:** WebGPU compute/render pipelines, million-point-cloud
   performance measurements, and fallback rendering.
-- **Remaining:** Spatial timeline replay UI and history API integration.
 - **Remaining:** Rust/WASM geometry module, build pipeline, and client-side
   correctness/performance tests. Rust tooling is unavailable in this checkout.
 
@@ -74,17 +84,22 @@ capabilities.
 
 - **Implemented:** Seeded synthetic box-sequence generator with noise, misses,
   occlusions, and false positives; MOTA/MOTP/IDF1 evaluation.
-- **Implemented:** 101 core unit tests and Ruff checks for `core/` at the last
-  validated checkpoint.
+- **Implemented:** 117 core unit tests and Ruff checks for `core/` at the last
+  validated checkpoint. A strict MyPy CI gate covers the dependency-light
+  perception and tracking primitives.
+- **Implemented:** GitHub Actions runs protobuf generation, core Ruff, the
+  narrow strict MyPy gate, and core tests.
 - **Remaining:** Synthetic image rendering and tracker benchmark integration.
-- **Remaining:** Mutation testing, strict MyPy/Sonar CI gates, repository-wide
-  zero-warning checks, and automated CI workflows.
+- **Remaining:** Mutation testing, repository-wide strict MyPy/Sonar gates, and
+  zero-warning checks. Strict MyPy was assessed and reported 106 issues across
+  generated protobufs, NumPy/SciPy code, tests, and legacy code, so CI does not
+  claim to gate those areas yet.
 - **Remaining:** Distributed 100-stream WebRTC stress harness and measured
   end-to-end P99 latency.
 
 ## Environment and Repository Notes
 
-- `origin/main` was at 167 commits when this status was written; the requested
+- `origin/main` was at 173 commits when this status was updated; the requested
   200 commits have not been fabricated.
 - The meaningful codebase remains far below 100,000 lines; no generated or
   duplicated filler is counted toward that target.
