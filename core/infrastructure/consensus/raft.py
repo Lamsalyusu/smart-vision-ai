@@ -164,7 +164,6 @@ class RaftNode:
             )
 
         self.role = RaftRole.FOLLOWER
-        self.voted_for = request.leader_id
         if request.previous_log_index > self.last_log_index:
             return AppendEntriesResponse(
                 self.current_term, self.node_id, False, self.last_log_index

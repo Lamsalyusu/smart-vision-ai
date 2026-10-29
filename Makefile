@@ -1,12 +1,17 @@
-.PHONY: help install run test coverage benchmark proto-python docker-build docker-up docker-down clean
+.PHONY: help install run test test-core lint-core type-check-core coverage benchmark proto-python docker-build docker-up docker-down clean
 
 PYTHON ?= .venv/bin/python
+RUFF ?= ruff
+MYPY ?= mypy
 
 help:
 	@echo "SmartVision AI Developer & Evaluation Commands:"
 	@echo "  make install     - Install requirements and setup environment"
 	@echo "  make run         - Start the local development server (port 8000)"
 	@echo "  make test        - Run the unit test suite (33 tests)"
+	@echo "  make test-core   - Run the architecture core unit tests"
+	@echo "  make lint-core   - Lint core Python modules"
+	@echo "  make type-check-core - Strictly type-check dependency-light domain code"
 	@echo "  make coverage    - Run tests with coverage and print report"
 	@echo "  make benchmark   - Run latency and throughput profiler"
 	@echo "  make proto-python - Generate Python protobuf clients (requires protoc)"
@@ -22,6 +27,15 @@ run:
 
 test:
 	$(PYTHON) manage.py test
+
+test-core:
+	$(PYTHON) -m unittest discover -s core/tests -q
+
+lint-core:
+	$(RUFF) check core
+
+type-check-core:
+	$(MYPY) --strict --disable-error-code no-any-return core/domain/perception core/domain/tracking/state.py core/domain/tracking/association.py
 
 coverage:
 	$(PYTHON) -m coverage run manage.py test
