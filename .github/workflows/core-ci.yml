@@ -1,0 +1,28 @@
+name: Core CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: arduino/setup-protoc@v3
+        with:
+          version: "36.1"
+      - name: Install core validation dependencies
+        run: python -m pip install numpy==2.5.3 scipy==1.17.1 protobuf==7.36.2 ruff==0.15.6 mypy==1.19.1
+      - name: Generate Python protobuf clients
+        run: make proto-python
+      - name: Lint core
+        run: make lint-core
+      - name: Check domain types
+        run: make type-check-core
+      - name: Run core tests
+        run: make PYTHON=python test-core
