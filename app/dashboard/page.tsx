@@ -13,6 +13,7 @@ import {
   Trash2,
   ExternalLink,
   ShieldAlert,
+  History,
 } from "lucide-react";
 import { TelemetryStats } from "@/lib/types";
 
@@ -104,6 +105,14 @@ export default function DashboardPage() {
             >
               <Box className="w-4 h-4 text-purple-400" />
               <span>3D Viewer</span>
+            </Link>
+
+            <Link
+              href="/replay"
+              className="px-3.5 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-slate-200 flex items-center gap-1.5 transition-colors"
+            >
+              <History className="w-4 h-4 text-emerald-400" />
+              <span>Replay</span>
             </Link>
 
             <button

@@ -205,6 +205,25 @@ export default function CameraPage() {
         setFrameCount((prev) => prev + 1);
         setFps(Math.floor(24 + Math.random() * 8));
 
+        try {
+          const storageKey = "smartvision_replay_v1";
+          const existing = JSON.parse(localStorage.getItem(storageKey) || "[]");
+          const frames = Array.isArray(existing) ? existing : [];
+          frames.push({
+            capturedAt: Date.now(),
+            detections: data.detections.map((detection: Detection) => ({
+              class: detection.class,
+              confidence: detection.confidence,
+              bbox: detection.bbox,
+              track_id: detection.track_id,
+              spatial_3d: detection.spatial_3d,
+            })),
+          });
+          localStorage.setItem(storageKey, JSON.stringify(frames.slice(-240)));
+        } catch (storageError) {
+          console.warn("Could not record replay frame:", storageError);
+        }
+
         // Auto save crop in background for selected object
         if (data.detections.length > 0) {
           const first = data.detections[0];
