@@ -1,5 +1,6 @@
 import numpy as np
 from collections import deque
+from scipy.optimize import linear_sum_assignment
 
 
 def calculate_iou(bbox1, bbox2):
@@ -49,32 +50,20 @@ def x_to_bbox(x):
 
 
 def linear_assignment(cost_matrix):
-    """
-    Optimal bipartite matching for cost matrices.
-    Implements a recursive Kuhn-Munkres / augment path matching algorithm in NumPy.
-    """
+    """Return minimum-cost bipartite pairs using Jonker-Volgenant assignment."""
     cost_matrix = np.asarray(cost_matrix)
+    if cost_matrix.ndim != 2:
+        raise ValueError("cost matrix must be two-dimensional")
+    if not np.isfinite(cost_matrix).all():
+        raise ValueError("cost matrix must contain only finite values")
+
     n_rows, n_cols = cost_matrix.shape
     if n_rows == 0 or n_cols == 0:
         return np.empty((0, 2), dtype=int)
 
-    # Fast greedy association with Hungarian refinement
-    row_ind = []
-    col_ind = []
-    matched_cols = set()
-
-    # Step 1: row-wise minimum assignment
-    sorted_rows = np.argsort(cost_matrix.min(axis=1))
-    for r in sorted_rows:
-        cols_sorted = np.argsort(cost_matrix[r])
-        for c in cols_sorted:
-            if c not in matched_cols and cost_matrix[r, c] < 1e5:
-                row_ind.append(r)
-                col_ind.append(c)
-                matched_cols.add(c)
-                break
-
-    return np.column_stack([row_ind, col_ind]) if row_ind else np.empty((0, 2), dtype=int)
+    row_indices, column_indices = linear_sum_assignment(cost_matrix)
+    valid = cost_matrix[row_indices, column_indices] < 1e5
+    return np.column_stack((row_indices[valid], column_indices[valid])).astype(int)
 
 
 class TrackState:
