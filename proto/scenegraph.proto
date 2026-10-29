@@ -4,8 +4,8 @@ package smartvision.v1;
 
 option go_package = "github.com/Lamsalyusu/smart-vision-ai/gen/go/smartvision/v1;smartvisionv1";
 
-import "detection.proto";
-import "tracking3d.proto";
+import "proto/detection.proto";
+import "proto/tracking3d.proto";
 
 message SceneGraphNode {
   string node_id = 1;
