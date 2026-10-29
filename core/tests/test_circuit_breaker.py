@@ -4,6 +4,10 @@ import unittest
 from core.infrastructure.resilience import CircuitBreaker, CircuitOpenError, CircuitState
 
 
+def fail_operation() -> None:
+    raise ValueError("down")
+
+
 class FakeClock:
     def __init__(self) -> None:
         self.now = 0.0
@@ -25,10 +29,9 @@ class CircuitBreakerTests(unittest.TestCase):
         )
 
     def test_opens_after_failure_threshold_and_uses_jittered_delay(self) -> None:
-        operation = lambda: (_ for _ in ()).throw(ValueError("down"))
         for _ in range(2):
             with self.assertRaises(ValueError):
-                self.breaker.call(operation)
+                self.breaker.call(fail_operation)
 
         self.assertEqual(self.breaker.state, CircuitState.OPEN)
         with self.assertRaises(CircuitOpenError) as raised:
@@ -36,20 +39,18 @@ class CircuitBreakerTests(unittest.TestCase):
         self.assertEqual(raised.exception.retry_after_seconds, 2.5)
 
     def test_open_circuit_can_use_fallback(self) -> None:
-        operation = lambda: (_ for _ in ()).throw(ValueError("down"))
         for _ in range(2):
             with self.assertRaises(ValueError):
-                self.breaker.call(operation)
+                self.breaker.call(fail_operation)
 
         result = self.breaker.call(lambda: "unreachable", lambda error: error.retry_after_seconds)
 
         self.assertEqual(result, 2.5)
 
     def test_half_open_probe_success_closes_and_resets_backoff(self) -> None:
-        operation = lambda: (_ for _ in ()).throw(ValueError("down"))
         for _ in range(2):
             with self.assertRaises(ValueError):
-                self.breaker.call(operation)
+                self.breaker.call(fail_operation)
         self.clock.now = 2.5
 
         self.assertEqual(self.breaker.state, CircuitState.HALF_OPEN)
@@ -58,29 +59,27 @@ class CircuitBreakerTests(unittest.TestCase):
 
         for _ in range(2):
             with self.assertRaises(ValueError):
-                self.breaker.call(operation)
+                self.breaker.call(fail_operation)
         with self.assertRaises(CircuitOpenError) as raised:
             self.breaker.call(lambda: None)
         self.assertEqual(raised.exception.retry_after_seconds, 2.5)
 
     def test_failed_half_open_probe_doubles_recovery_delay(self) -> None:
-        operation = lambda: (_ for _ in ()).throw(ValueError("down"))
         for _ in range(2):
             with self.assertRaises(ValueError):
-                self.breaker.call(operation)
+                self.breaker.call(fail_operation)
         self.clock.now = 2.5
         with self.assertRaises(ValueError):
-            self.breaker.call(operation)
+            self.breaker.call(fail_operation)
 
         with self.assertRaises(CircuitOpenError) as raised:
             self.breaker.call(lambda: None)
         self.assertEqual(raised.exception.retry_after_seconds, 5.0)
 
     def test_allows_only_one_half_open_probe(self) -> None:
-        operation = lambda: (_ for _ in ()).throw(ValueError("down"))
         for _ in range(2):
             with self.assertRaises(ValueError):
-                self.breaker.call(operation)
+                self.breaker.call(fail_operation)
         self.clock.now = 2.5
         entered = threading.Event()
         release = threading.Event()
