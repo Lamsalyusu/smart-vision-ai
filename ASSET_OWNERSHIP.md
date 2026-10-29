@@ -59,7 +59,7 @@ All assets below were **created by the project author** specifically for this pr
 
 | Asset | Source | License | Attribution |
 |-------|--------|---------|-------------|
-| Custom YOLO weights (`backend/ml_model/weights/best_weights.weights.h5`) | Trained by author on Roboflow datasets | MIT (author) | Author-trained |
+| Custom YOLO weights (`legacy_django/backend/ml_model/weights/best_weights.weights.h5`) | Trained by author on Roboflow datasets | MIT (author) | Author-trained |
 | MiDaS v2.1 Small | Intel ISL / René Ranftl | MIT | Intel ISL |
 | TripoSR | Stability AI & Tripo AI | MIT | Stability AI |
 
