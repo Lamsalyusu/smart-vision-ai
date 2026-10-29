@@ -97,6 +97,18 @@ class RaftNodeTests(unittest.TestCase):
         self.assertFalse(response.success)
         self.assertEqual(response.term, 2)
 
+    def test_same_term_heartbeat_does_not_change_recorded_vote(self) -> None:
+        follower = RaftNode("follower", cluster_size=3)
+        follower.receive_vote_request(VoteRequest(1, "candidate-a", 0, 0))
+
+        follower.receive_append_entries(
+            AppendEntriesRequest(1, "leader-b", 0, 0, (), 0)
+        )
+
+        self.assertFalse(
+            follower.receive_vote_request(VoteRequest(1, "candidate-b", 0, 0)).granted
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
