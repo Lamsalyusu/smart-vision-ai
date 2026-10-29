@@ -1,0 +1,1 @@
+"""Adapters that connect the core to external systems and wire formats."""
