@@ -1,5 +1,4 @@
-"""Spatial perception application services."""
-
+from .cypher_query import QueryMatchResult, SpatialGraphQueryEngine
 from .temporal_scene_graph import (
     HazardZone,
     SpatialEntity,
@@ -10,7 +9,9 @@ from .temporal_scene_graph import (
 
 __all__ = [
     "HazardZone",
+    "QueryMatchResult",
     "SpatialEntity",
+    "SpatialGraphQueryEngine",
     "TemporalSceneGraph",
     "TemporalSceneSnapshot",
     "TemporalSpatialEdge",
