@@ -73,9 +73,9 @@ def solve_zhang_intrinsics(homographies: Sequence[Sequence[Sequence[float]]]) ->
         if homography.shape != (3, 3) or not np.isfinite(homography).all():
             raise ValueError("each homography must be a finite 3x3 matrix")
 
-        def constraint(first_column: int, second_column: int) -> np.ndarray:
-            first = homography[:, first_column]
-            second = homography[:, second_column]
+        def constraint(h: np.ndarray, first_column: int, second_column: int) -> np.ndarray:
+            first = h[:, first_column]
+            second = h[:, second_column]
             return np.array(
                 [
                     first[0] * second[0],
@@ -88,8 +88,8 @@ def solve_zhang_intrinsics(homographies: Sequence[Sequence[Sequence[float]]]) ->
                 dtype=np.float64,
             )
 
-        first = constraint(0, 1)
-        constraints.extend((first, constraint(0, 0) - constraint(1, 1)))
+        first = constraint(homography, 0, 1)
+        constraints.extend((first, constraint(homography, 0, 0) - constraint(homography, 1, 1)))
 
     design = np.vstack(constraints)
     if np.linalg.matrix_rank(design) < 5:
