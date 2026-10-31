@@ -14,7 +14,6 @@ help:
 	@echo "  make type-check-core - Strictly type-check dependency-light domain code"
 	@echo "  make coverage    - Run tests with coverage and print report"
 	@echo "  make benchmark   - Run latency and throughput profiler"
-	@echo "  make proto-python - Generate Python protobuf clients (requires protoc)"
 	@echo "  make docker-up   - Build and start containerized application"
 	@echo "  make docker-down - Stop Docker containers"
 	@echo "  make clean       - Remove cached bytecode and temporary files"
@@ -58,9 +57,6 @@ type-check:
 
 benchmark:
 	$(PYTHON) model_evaluation/benchmark_pipeline.py
-
-proto-python:
-	protoc -I . --python_out=. proto/frame.proto proto/detection.proto proto/tracking3d.proto proto/scenegraph.proto proto/camera_telemetry.proto
 
 docker-build:
 	docker compose build
