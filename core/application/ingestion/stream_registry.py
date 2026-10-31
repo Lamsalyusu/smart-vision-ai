@@ -1,7 +1,7 @@
-from dataclasses import dataclass
-from enum import Enum
 import math
 import threading
+from dataclasses import dataclass
+from enum import Enum
 
 
 class VideoCodec(str, Enum):
