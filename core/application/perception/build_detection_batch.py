@@ -41,9 +41,9 @@ class BuildDetectionBatch:
         track_id = payload.get("track_id")
 
         if not isinstance(class_name, str):
-            raise ValueError("detection class must be a string")
+            raise ValueError("detection class must be a string")  # noqa: TRY004
         if isinstance(confidence, bool) or not isinstance(confidence, Real):
-            raise ValueError("detection confidence must be numeric")
+            raise ValueError("detection confidence must be numeric")  # noqa: TRY004
         if not isinstance(bbox, Sequence) or isinstance(bbox, (str, bytes)) or len(bbox) != 4:
             raise ValueError("detection bbox must contain four coordinates")
         if any(isinstance(value, bool) or not isinstance(value, Real) for value in bbox):
