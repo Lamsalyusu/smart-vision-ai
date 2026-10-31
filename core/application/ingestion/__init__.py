@@ -1,4 +1,4 @@
-"""Application policies for camera frame ingestion."""
+"""Camera stream registration and admission control."""
 
 from .frame_admission import AdmissionDecision, FrameAdmissionScheduler
 from .stream_registry import (
@@ -8,17 +8,13 @@ from .stream_registry import (
 	CameraStreamRegistry,
 	VideoCodec,
 )
-from .frame_ingress import FrameIngressCoordinator, FrameIngressResult, IncomingFrame
 
 __all__ = [
-	"AdmissionDecision",
-	"FrameAdmissionScheduler",
 	"AdaptiveBitrateController",
+	"AdmissionDecision",
 	"BitrateDecision",
 	"CameraStream",
 	"CameraStreamRegistry",
+	"FrameAdmissionScheduler",
 	"VideoCodec",
-	"FrameIngressCoordinator",
-	"FrameIngressResult",
-	"IncomingFrame",
 ]
