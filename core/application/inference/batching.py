@@ -1,9 +1,8 @@
-from collections import defaultdict
-from dataclasses import dataclass
 import math
 import threading
+from collections import defaultdict
+from dataclasses import dataclass
 from typing import Generic, TypeVar
-
 
 Payload = TypeVar("Payload")
 
