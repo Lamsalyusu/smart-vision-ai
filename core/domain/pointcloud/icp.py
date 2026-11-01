@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import math
-from typing import Tuple
 import numpy as np
 
 
@@ -9,7 +7,7 @@ class IterativeClosestPoint:
     """Rigid 3D Point-to-Point and Point-to-Plane ICP Registration."""
 
     @staticmethod
-    def find_nearest_neighbors(src: np.ndarray, dst: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    def find_nearest_neighbors(src: np.ndarray, dst: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """Find Euclidean closest point correspondences from src to dst."""
         diff = src[:, np.newaxis, :] - dst[np.newaxis, :, :]
         dist_sq = np.sum(diff ** 2, axis=-1)
@@ -24,7 +22,7 @@ class IterativeClosestPoint:
         target: np.ndarray,
         max_iterations: int = 50,
         tolerance: float = 1e-5,
-    ) -> Tuple[np.ndarray, np.ndarray, float]:
+    ) -> tuple[np.ndarray, np.ndarray, float]:
         """Solves optimal rigid rotation R and translation t using Horn's SVD quaternion/matrix method."""
         src = source.copy()
         r_cum = np.eye(3, dtype=np.float64)

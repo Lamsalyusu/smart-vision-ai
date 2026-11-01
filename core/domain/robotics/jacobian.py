@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import math
-from typing import Tuple
+
 import numpy as np
 
 
@@ -16,7 +16,7 @@ class ManipulatorJacobianAnalyzer:
         return float(math.sqrt(max(0.0, det_m)))
 
     @staticmethod
-    def manipulability_ellipsoid(jacobian: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    def manipulability_ellipsoid(jacobian: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """Principal axes and lengths of the velocity manipulability ellipsoid via SVD."""
         u, s, _ = np.linalg.svd(jacobian)
         # Principal axes are columns of U, semi-axis lengths are singular values S

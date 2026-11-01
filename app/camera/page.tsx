@@ -29,6 +29,7 @@ export default function CameraPage() {
   const router = useRouter();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const lastFrameCompletedAtRef = useRef<number | null>(null);
 
   const [cameraActive, setCameraActive] = useState(false);
   const [detectionActive, setDetectionActive] = useState(false);
@@ -38,6 +39,7 @@ export default function CameraPage() {
   const [frameCount, setFrameCount] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [fps, setFps] = useState(0);
+  const [detectionError, setDetectionError] = useState<string | null>(null);
 
   // Chat Assistant State
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
@@ -83,6 +85,9 @@ export default function CameraPage() {
     setCameraActive(false);
     setDetectionActive(false);
     setCurrentDetections([]);
+    setDetectionError(null);
+    setFps(0);
+    lastFrameCompletedAtRef.current = null;
     clearCanvas();
     addChatMessage("system", "Camera stopped.");
   };
@@ -186,24 +191,47 @@ export default function CameraPage() {
 
   // Detection Processing Loop
   const processFrame = useCallback(async () => {
-    if (!videoRef.current || isProcessing) return;
+    const video = videoRef.current;
+    if (!video || video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA || isProcessing) return;
     setIsProcessing(true);
 
     try {
+      const frameCanvas = document.createElement("canvas");
+      frameCanvas.width = video.videoWidth;
+      frameCanvas.height = video.videoHeight;
+      const frameContext = frameCanvas.getContext("2d");
+      if (!frameContext || frameCanvas.width === 0 || frameCanvas.height === 0) {
+        throw new Error("Camera frame is not ready");
+      }
+      frameContext.drawImage(video, 0, 0, frameCanvas.width, frameCanvas.height);
+      const image = await new Promise<Blob | null>((resolve) =>
+        frameCanvas.toBlob(resolve, "image/jpeg", 0.85)
+      );
+      if (!image) throw new Error("Could not encode camera frame");
+
+      const body = new FormData();
+      body.append("image", image, "camera-frame.jpg");
+      body.append("include_depth", String(includeDepth));
       const res = await fetch("/api/detect", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          include_depth: includeDepth,
-        }),
+        body,
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || `Vision inference failed (${res.status})`);
+      }
       if (data.success && data.detections) {
+        setDetectionError(null);
         setCurrentDetections(data.detections);
         drawDetections(data.detections);
         setFrameCount((prev) => prev + 1);
-        setFps(Math.floor(24 + Math.random() * 8));
+        const completedAt = performance.now();
+        const previousCompletedAt = lastFrameCompletedAtRef.current;
+        if (previousCompletedAt !== null && completedAt > previousCompletedAt) {
+          setFps(Math.round(1000 / (completedAt - previousCompletedAt)));
+        }
+        lastFrameCompletedAtRef.current = completedAt;
 
         try {
           const storageKey = "smartvision_replay_v1";
@@ -232,6 +260,9 @@ export default function CameraPage() {
       }
     } catch (err) {
       console.warn("Frame detection error:", err);
+      setDetectionError(err instanceof Error ? err.message : "Vision inference failed");
+      setCurrentDetections([]);
+      drawDetections([]);
     } finally {
       setIsProcessing(false);
     }
@@ -338,9 +369,19 @@ export default function CameraPage() {
               {detectionActive ? "Detecting & Tracking" : cameraActive ? "Camera Active" : "Ready"}
             </span>
             {detectionActive && (
-              <span className="ml-2 text-xs font-mono px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                {fps} FPS
-              </span>
+              detectionError ? (
+                <span
+                  role="status"
+                  title={detectionError}
+                  className="ml-2 text-xs font-mono px-2 py-0.5 rounded-full bg-red-500/10 text-red-300 border border-red-500/20"
+                >
+                  Inference unavailable
+                </span>
+              ) : (
+                <span className="ml-2 text-xs font-mono px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                  {fps} FPS
+                </span>
+              )
             )}
           </div>
         </div>

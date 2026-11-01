@@ -3,7 +3,7 @@ from __future__ import annotations
 import heapq
 import math
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
+
 import numpy as np
 
 
@@ -13,9 +13,9 @@ class AStarPlanner:
     @staticmethod
     def plan(
         grid: np.ndarray,
-        start: Tuple[int, int],
-        goal: Tuple[int, int],
-    ) -> Optional[List[Tuple[int, int]]]:
+        start: tuple[int, int],
+        goal: tuple[int, int],
+    ) -> list[tuple[int, int]] | None:
         h, w = grid.shape
         sx, sy = start
         gx, gy = goal
@@ -23,11 +23,11 @@ class AStarPlanner:
         if grid[sy, sx] > 0 or grid[gy, gx] > 0:
             return None
 
-        open_set: List[Tuple[float, int, int]] = []
+        open_set: list[tuple[float, int, int]] = []
         heapq.heappush(open_set, (0.0, sx, sy))
 
-        came_from: Dict[Tuple[int, int], Tuple[int, int]] = {}
-        g_score: Dict[Tuple[int, int], float] = {(sx, sy): 0.0}
+        came_from: dict[tuple[int, int], tuple[int, int]] = {}
+        g_score: dict[tuple[int, int], float] = {(sx, sy): 0.0}
 
         def heuristic(x: int, y: int) -> float:
             return math.hypot(gx - x, gy - y)
@@ -75,11 +75,11 @@ class RRTStarPlanner:
         x: float
         y: float
         cost: float = 0.0
-        parent: Optional[RRTStarPlanner.Node] = None
+        parent: RRTStarPlanner.Node | None = None
 
     def __init__(
         self,
-        bounds: Tuple[float, float, float, float] = (0.0, 10.0, 0.0, 10.0),
+        bounds: tuple[float, float, float, float] = (0.0, 10.0, 0.0, 10.0),
         step_size: float = 0.5,
         search_radius: float = 1.2,
         max_iters: int = 500,
@@ -91,10 +91,10 @@ class RRTStarPlanner:
 
     def plan(
         self,
-        start: Tuple[float, float],
-        goal: Tuple[float, float],
-        obstacles: List[Tuple[float, float, float]],  # (x, y, radius)
-    ) -> Optional[List[Tuple[float, float]]]:
+        start: tuple[float, float],
+        goal: tuple[float, float],
+        obstacles: list[tuple[float, float, float]],  # (x, y, radius)
+    ) -> list[tuple[float, float]] | None:
         root = self.Node(start[0], start[1], cost=0.0)
         nodes = [root]
 
@@ -153,7 +153,7 @@ class RRTStarPlanner:
             if math.hypot(new_x - goal[0], new_y - goal[1]) <= self.step:
                 goal_node = self.Node(goal[0], goal[1], cost=new_node.cost + math.hypot(new_x - goal[0], new_y - goal[1]), parent=new_node)
                 path = []
-                curr: Optional[RRTStarPlanner.Node] = goal_node
+                curr: RRTStarPlanner.Node | None = goal_node
                 while curr is not None:
                     path.append((curr.x, curr.y))
                     curr = curr.parent

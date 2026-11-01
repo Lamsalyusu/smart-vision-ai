@@ -27,6 +27,17 @@ def _iou(first: Sequence[float], second: Sequence[float]) -> float:
     return intersection / union if union > 0 else 0.0
 
 
+def _bbox(record: dict[str, object]) -> tuple[float, ...]:
+    values = record.get("bbox")
+    try:
+        coordinates = np.asarray(values, dtype=np.float64)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("detection boxes must contain numeric coordinates") from exc
+    if coordinates.shape != (4,):
+        raise ValueError("detection boxes must contain four coordinates")
+    return tuple(float(value) for value in coordinates)
+
+
 def evaluate_tracking_sequence(
     ground_truth_frames: Sequence[Sequence[dict[str, object]]],
     prediction_frames: Sequence[Sequence[dict[str, object]]],
@@ -62,7 +73,7 @@ def evaluate_tracking_sequence(
             for prediction_index, prediction in enumerate(predictions):
                 if truth.get("class") != prediction.get("class"):
                     continue
-                overlap = _iou(truth["bbox"], prediction["bbox"])
+                overlap = _iou(_bbox(truth), _bbox(prediction))
                 overlaps[truth_index, prediction_index] = overlap
                 if overlap >= iou_threshold:
                     costs[truth_index, prediction_index] = 1.0 - overlap

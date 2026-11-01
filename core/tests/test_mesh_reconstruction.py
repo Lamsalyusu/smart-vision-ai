@@ -1,13 +1,14 @@
 import unittest
+
 import numpy as np
 
 from core.domain.spatial.mesh_reconstruction import (
-    PointCloudNormalEstimator,
-    VolumetricTSDFBuilder,
     MarchingCubesReconstructor,
-    TriangleMesh,
-    MeshPostProcessor,
     MeshExporter,
+    MeshPostProcessor,
+    PointCloudNormalEstimator,
+    TriangleMesh,
+    VolumetricTSDFBuilder,
 )
 
 
@@ -104,6 +105,7 @@ class TestMeshReconstructionPipeline(unittest.TestCase):
 class TestMeshReconstructionApi(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         import httpx
+
         from core.infrastructure.api.main import app
         self.transport = httpx.ASGITransport(app=app)
         self.client = httpx.AsyncClient(transport=self.transport, base_url="http://test")

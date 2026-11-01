@@ -1,13 +1,13 @@
 import unittest
+
 import numpy as np
 
 from core.domain.ml import (
-    Tensor,
-    Linear,
     Activations,
-    LossFunctions,
-    AdamW,
     Int8UniformQuantizer,
+    Linear,
+    LossFunctions,
+    Tensor,
 )
 
 

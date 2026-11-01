@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import math
-from typing import List, Tuple
+
 import numpy as np
 
 
@@ -62,9 +62,9 @@ class PolynomialTrajectoryGenerator:
         return np.array([a0, a1, a2, coeffs_345[0], coeffs_345[1], coeffs_345[2]], dtype=np.float64)
 
     @staticmethod
-    def evaluate_polynomial(coeffs: np.ndarray, t: float) -> Tuple[float, float, float]:
+    def evaluate_polynomial(coeffs: np.ndarray, t: float) -> tuple[float, float, float]:
         """Evaluates position q(t), velocity v(t), and acceleration a(t)."""
-        deg = len(coeffs) - 1
+        len(coeffs) - 1
         pos = sum(coeffs[i] * (t ** i) for i in range(len(coeffs)))
         vel = sum(i * coeffs[i] * (t ** (i - 1)) for i in range(1, len(coeffs)))
         acc = sum(i * (i - 1) * coeffs[i] * (t ** (i - 2)) for i in range(2, len(coeffs)))
@@ -78,7 +78,7 @@ class TrapezoidalVelocityProfile:
         self.v_max = abs(max_vel)
         self.a_max = abs(max_acc)
 
-    def plan(self, q0: float, q1: float) -> Tuple[float, float, float]:
+    def plan(self, q0: float, q1: float) -> tuple[float, float, float]:
         """Returns acceleration time ta, coasting time tc, and total duration tf."""
         d = q1 - q0
         dist = abs(d)

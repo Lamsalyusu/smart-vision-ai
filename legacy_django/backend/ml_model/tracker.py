@@ -194,81 +194,85 @@ class SortTracker:
     def update(self, detections):
         """Process incoming detections and associate with active tracklets."""
         self.frame_count += 1
+        predicted_boxes = self._predict_trackers()
+        matches, matched_detections = self._associate(predicted_boxes, detections)
+        self._update_matches(matches, detections)
+        self._create_unmatched_tracks(matched_detections, detections)
+        return self._collect_results()
 
+    def _predict_trackers(self):
         predicted_boxes = []
-        to_delete = []
-        for i, trk in enumerate(self.trackers):
-            pos = trk.predict()
-            if any(np.isnan(pos)):
-                to_delete.append(i)
-            else:
-                predicted_boxes.append(pos)
+        surviving = []
+        for tracker in self.trackers:
+            position = tracker.predict()
+            if not any(np.isnan(position)):
+                surviving.append(tracker)
+                predicted_boxes.append(position)
+        self.trackers = surviving
+        return predicted_boxes
 
-        for i in reversed(to_delete):
-            self.trackers.pop(i)
+    def _associate(self, predicted_boxes, detections):
+        matched_detections = set()
+        if not self.trackers or not detections:
+            return [], matched_detections
 
-        num_tracks = len(self.trackers)
-        num_dets = len(detections)
+        cost_matrix = np.ones((len(self.trackers), len(detections)), dtype=np.float32) * 1e5
+        for track_index, tracker in enumerate(self.trackers):
+            for detection_index, detection in enumerate(detections):
+                class_weight = 1.0 if tracker.class_name == detection.get("class") else 0.3
+                overlap = calculate_iou(predicted_boxes[track_index], detection["bbox"])
+                if overlap > 0 and tracker.gating_distance(detection["bbox"]) <= self.gating_threshold:
+                    cost_matrix[track_index, detection_index] = 1.0 - (overlap * class_weight)
+
         matches = []
-        matched_tracks, matched_dets = set(), set()
+        for track_index, detection_index in linear_assignment(cost_matrix):
+            if cost_matrix[track_index, detection_index] <= (1.0 - self.iou_threshold * 0.5):
+                matches.append((track_index, detection_index))
+                matched_detections.add(detection_index)
+        return matches, matched_detections
 
-        if num_tracks > 0 and num_dets > 0:
-            cost_matrix = np.ones((num_tracks, num_dets), dtype=np.float32) * 1e5
-            for t_idx, trk in enumerate(self.trackers):
-                for d_idx, det in enumerate(detections):
-                    same_class = (trk.class_name == det.get("class"))
-                    class_weight = 1.0 if same_class else 0.3
-                    iou = calculate_iou(predicted_boxes[t_idx], det["bbox"])
-                    if iou > 0:
-                        # Spatial Mahalanobis validation gate
-                        gate_dist = trk.gating_distance(det["bbox"])
-                        if gate_dist <= self.gating_threshold:
-                            cost_matrix[t_idx, d_idx] = 1.0 - (iou * class_weight)
+    def _update_matches(self, matches, detections):
+        for track_index, detection_index in matches:
+            detection = detections[detection_index]
+            tracker = self.trackers[track_index]
+            tracker.update(detection["bbox"], detection.get("confidence"))
+            tracker.class_name = detection.get("class", tracker.class_name)
+            tracker.class_id = detection.get("class_id", tracker.class_id)
 
-            assigned = linear_assignment(cost_matrix)
-            for t_idx, d_idx in assigned:
-                if cost_matrix[t_idx, d_idx] <= (1.0 - self.iou_threshold * 0.5):
-                    matched_tracks.add(t_idx)
-                    matched_dets.add(d_idx)
-                    matches.append((t_idx, d_idx))
-
-        # Update matched tracks
-        for t_idx, d_idx in matches:
-            det = detections[d_idx]
-            self.trackers[t_idx].update(det["bbox"], det.get("confidence"))
-            self.trackers[t_idx].class_name = det.get("class", self.trackers[t_idx].class_name)
-            self.trackers[t_idx].class_id = det.get("class_id", self.trackers[t_idx].class_id)
-
-        # Create new tracks for unmatched detections
-        for d_idx, det in enumerate(detections):
-            if d_idx not in matched_dets:
-                trk = KalmanBoxTracker(
-                    det["bbox"],
-                    class_name=det.get("class", "object"),
-                    confidence=det.get("confidence", 0.5),
-                    class_id=det.get("class_id", 0),
+    def _create_unmatched_tracks(self, matched_detections, detections):
+        for detection_index, detection in enumerate(detections):
+            if detection_index in matched_detections:
+                continue
+            self.trackers.append(
+                KalmanBoxTracker(
+                    detection["bbox"],
+                    class_name=detection.get("class", "object"),
+                    confidence=detection.get("confidence", 0.5),
+                    class_id=detection.get("class_id", 0),
                 )
-                self.trackers.append(trk)
+            )
 
-        # Output active surviving tracks
+    def _collect_results(self):
         results = []
         surviving = []
-        for trk in self.trackers:
-            if trk.time_since_update <= self.max_age:
-                surviving.append(trk)
-                if trk.time_since_update == 0 and (trk.hits >= self.min_hits or self.frame_count <= self.min_hits):
-                    bbox = trk.get_state()
-                    vx, vy = trk.get_velocity()
-                    results.append({
-                        "track_id": trk.id,
-                        "class": trk.class_name,
-                        "class_id": trk.class_id,
-                        "confidence": trk.confidence,
-                        "bbox": [round(c, 1) for c in bbox],
-                        "velocity": [round(vx, 2), round(vy, 2)],
-                        "hits": trk.hits,
-                        "age": trk.age,
-                    })
-
+        for tracker in self.trackers:
+            if tracker.time_since_update > self.max_age:
+                continue
+            surviving.append(tracker)
+            if tracker.time_since_update != 0 or not (
+                tracker.hits >= self.min_hits or self.frame_count <= self.min_hits
+            ):
+                continue
+            velocity_x, velocity_y = tracker.get_velocity()
+            results.append({
+                "track_id": tracker.id,
+                "class": tracker.class_name,
+                "class_id": tracker.class_id,
+                "confidence": tracker.confidence,
+                "bbox": [round(coordinate, 1) for coordinate in tracker.get_state()],
+                "velocity": [round(velocity_x, 2), round(velocity_y, 2)],
+                "hits": tracker.hits,
+                "age": tracker.age,
+            })
         self.trackers = surviving
         return results

@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import time
 from abc import ABC, abstractmethod
+from collections.abc import Callable, Coroutine
 from dataclasses import dataclass, field
-from typing import Any, Callable, Coroutine, Type, TypeVar
+from typing import Any, TypeVar
 
 
 @dataclass(frozen=True, slots=True)
@@ -25,11 +26,9 @@ class EventBusPort(ABC):
     """Hexagonal Port for Domain Event Publishing and Subscribing."""
 
     @abstractmethod
-    def subscribe(self, event_cls: Type[TEvent], handler: EventHandler[TEvent]) -> None:
+    def subscribe(self, event_cls: type[TEvent], handler: EventHandler[TEvent]) -> None:
         """Register a handler for a domain event type."""
-        pass
 
     @abstractmethod
     async def publish(self, event: DomainEvent) -> None:
         """Publish a domain event asynchronously to all registered subscribers."""
-        pass

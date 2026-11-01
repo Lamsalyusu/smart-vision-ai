@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import numpy as np
+
 from .rigid_body import RigidBody3D
 
 

@@ -1,13 +1,12 @@
 import unittest
+
 import numpy as np
 
 from core.domain.slam import (
-    SO3,
     SE3,
-    PoseGraphOptimizer,
-    OccupancyGrid3D,
-    VisualVocabularyTree,
+    SO3,
     ExtendedKalmanFilterSLAM,
+    OccupancyGrid3D,
 )
 
 

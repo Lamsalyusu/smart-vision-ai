@@ -2,7 +2,7 @@
 
 Real-time spatial perception and object detection web application built with **Next.js (App Router), TypeScript, Tailwind CSS, React, and Three.js**.
 
-The system performs multi-scale object detection across 10 classes, temporal multi-object tracking via SORT Kalman filtering, 2D-to-3D metric spatial fusion using calibrated camera intrinsics, and multimodal scene reasoning.
+The system performs image-based object detection across 10 classes, temporal multi-object tracking via SORT Kalman filtering, 2D-to-3D metric spatial fusion when depth is available, and multimodal scene reasoning.
 
 ---
 
@@ -25,7 +25,7 @@ The system performs multi-scale object detection across 10 classes, temporal mul
 - **Spatial Scene Graph**: Semantic relation graph $\mathcal{G} = (\mathcal{V}, \mathcal{E})$ computing spatial interactions (`adjacent_to`, `interacting_with`, `wearing`, `supporting`, `left_of`, `above`) for contextual AI reasoning (`lib/scene-graph.ts`).
 - **Multimodal AI Scene Assistant**: Real-time natural language reasoning over spatial scene graphs and perceived objects via `/api/chat`.
 - **Interactive 3D Visualizer**: Dual-mode Three.js WebGL visualizer with real-time OrbitControls, Point Cloud generation with depth/size sliders, and GLB mesh loader (`app/model-viewer/page.tsx`).
-- **Telemetry Console**: Complete dashboard providing latency stats, class distribution charts, and recent activity logs (`app/dashboard/page.tsx`).
+- **Telemetry Console**: Database-backed detection totals, class distributions, active sessions, and recent activity (`app/dashboard/page.tsx`). Unmeasured latency, tracking, and depth-accuracy values are shown as unavailable.
 
 ---
 
@@ -51,6 +51,14 @@ npm run dev
 ```
 
 Open `http://localhost:3000` (or `http://localhost:3001` if port 3000 is occupied) in your browser.
+
+Camera inference uses the CPU TensorFlow service and checked-in trained weights. For local Next.js development, start that service with Docker Compose:
+
+```bash
+docker compose up --build vision
+```
+
+`next dev` defaults to `http://localhost:8001/api/detect/`; the Compose web service uses `http://vision:8001/api/detect/`. Configure `VISION_API_URL` to a reachable inference service URL in production. Detection requests return `503` when no inference service is configured rather than displaying generated detections.
 
 ---
 
@@ -98,14 +106,9 @@ npx tsc --noEmit # Type-check TypeScript codebase
 
 ---
 
-## Verified Benchmarks
+## Performance Evidence
 
-| Module | Mean Latency | Throughput | Technology |
-| :--- | :--- | :--- | :--- |
-| **Object Detection Pipeline** | 6.38 ms | ~156 FPS | TypeScript / Vectorized |
-| **SORT Kalman Tracker** | 0.06 ms | >16,000 FPS | 7-State State Transition Matrix |
-| **2D-to-3D Metric Fusion** | 0.15 ms | >6,500 FPS | Pinhole Camera Intrinsics |
-| **Scene Graph Construction** | 0.20 ms | >5,000 FPS | Topological Predicate Graph |
+No production benchmark figures are currently published. The dashboard reports measured detection counts and labels performance or accuracy metrics as unavailable until they are collected from representative workloads. The TensorFlow detector has a CPU smoke test; it is not a throughput or accuracy benchmark.
 
 ---
 

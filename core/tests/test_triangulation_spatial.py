@@ -1,4 +1,5 @@
 import unittest
+
 import numpy as np
 
 from core.domain.spatial.triangulation import (

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import math
-from typing import Dict, List, Tuple
+
 import numpy as np
 
 
@@ -16,7 +16,7 @@ class ExtendedKalmanFilterSLAM:
 
         self.q = np.diag([process_noise_std ** 2, process_noise_std ** 2, (process_noise_std * 0.5) ** 2])
         self.r = np.diag([measurement_noise_std ** 2, (measurement_noise_std * 0.5) ** 2])
-        self.landmark_map: Dict[int, int] = {}  # landmark_id -> state_vector_offset
+        self.landmark_map: dict[int, int] = {}  # landmark_id -> state_vector_offset
 
     def predict(self, v: float, omega: float, dt: float) -> None:
         """EKF Motion Model Prediction step for differential drive robot."""

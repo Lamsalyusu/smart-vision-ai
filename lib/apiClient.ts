@@ -69,7 +69,7 @@ export async function saveCrop(cropData: {
   confidence: number;
   distance_m?: number;
   has_crop?: boolean;
-  payload?: any;
+  payload?: Record<string, unknown>;
 }) {
   const resp = await fetch(`${process.env.AUTH_API_URL ?? "http://localhost:8000"}/crops`, {
     method: "POST",
@@ -117,6 +117,27 @@ export async function recordDetection(
   if (!resp.ok) {
     const err = await resp.json();
     throw new Error(err.detail ?? "Failed to record detection");
+  }
+  return await resp.json();
+}
+
+export async function recordDetections(
+  detections: Array<{
+    class_name: string;
+    confidence: number;
+    distance_m?: number | null;
+    has_crop?: boolean;
+  }>
+) {
+  if (detections.length === 0) return { success: true, count: 0 };
+  const resp = await fetch(`${process.env.AUTH_API_URL ?? "http://localhost:8000"}/detections/batch`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ detections }),
+  });
+  if (!resp.ok) {
+    const err = await resp.json();
+    throw new Error(err.detail ?? "Failed to record detections");
   }
   return await resp.json();
 }

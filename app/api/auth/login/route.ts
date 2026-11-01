@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { login } from "@/lib/apiClient";
 import { dataManager } from "@/lib/store";
-import { SecurityAuditLog, verifyPassword } from "@/lib/auth-crypto";
+import { SecurityAuditLog } from "@/lib/auth-crypto";
 
 /**
  * Handles login requests.

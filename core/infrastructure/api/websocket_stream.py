@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
-from typing import Dict, List, Set
+
 from fastapi import WebSocket, WebSocketDisconnect
 
 logger = logging.getLogger(__name__)
@@ -13,8 +12,8 @@ class WebSocketConnectionManager:
     """Manages active streaming WebSocket subscribers with room channels and heartbeat ping."""
 
     def __init__(self) -> None:
-        self._active_connections: Set[WebSocket] = set()
-        self._channel_subscriptions: Dict[str, Set[WebSocket]] = {}
+        self._active_connections: set[WebSocket] = set()
+        self._channel_subscriptions: dict[str, set[WebSocket]] = {}
 
     async def connect(self, websocket: WebSocket, channel: str = "telemetry") -> None:
         await websocket.accept()
@@ -39,7 +38,7 @@ class WebSocketConnectionManager:
         for client in list(clients):
             try:
                 await client.send_text(message)
-            except Exception:
+            except (WebSocketDisconnect, RuntimeError):
                 stale_clients.append(client)
 
         for stale in stale_clients:

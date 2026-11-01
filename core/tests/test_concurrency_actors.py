@@ -64,7 +64,7 @@ class ActorConcurrencyTests(unittest.IsolatedAsyncioTestCase):
         class BlockableActor(Actor[int]):
             def __init__(self) -> None:
                 super().__init__("blockable", mailbox_capacity=2, strategy=MailboxFullStrategy.DROP_OLDEST)
-                self.processed = []
+                self.processed: list[int] = []
 
             async def receive(self, message: int) -> None:
                 await asyncio.sleep(0.05)

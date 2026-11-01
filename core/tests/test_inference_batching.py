@@ -21,6 +21,7 @@ class PriorityBatcherTests(unittest.TestCase):
         self.assertIsNone(self.batcher.take_ready_batch(0.5))
         batch = self.batcher.take_ready_batch(1.0)
 
+        assert batch is not None
         self.assertEqual([item.request_id for item in batch], ["a"])
 
     def test_schedules_highest_priority_ready_model_first(self) -> None:
@@ -29,6 +30,7 @@ class PriorityBatcherTests(unittest.TestCase):
 
         batch = self.batcher.take_ready_batch(1, force=True)
 
+        assert batch is not None
         self.assertEqual([item.request_id for item in batch], ["high"])
         self.assertEqual(self.batcher.queue_length, 1)
 
@@ -39,6 +41,7 @@ class PriorityBatcherTests(unittest.TestCase):
 
         batch = self.batcher.take_ready_batch(2)
 
+        assert batch is not None
         self.assertEqual([item.request_id for item in batch], ["high", "first"])
         self.assertTrue(all(item.model_name == "detector" for item in batch))
         self.assertEqual(self.batcher.queue_length, 1)
@@ -59,6 +62,9 @@ class PriorityBatcherTests(unittest.TestCase):
         second = self.batcher.take_ready_batch(0)
         final = self.batcher.take_ready_batch(0, force=True)
 
+        assert first is not None
+        assert second is not None
+        assert final is not None
         self.assertEqual(len(first), 2)
         self.assertEqual(len(second), 2)
         self.assertEqual(len(final), 1)

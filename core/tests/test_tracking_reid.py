@@ -40,7 +40,7 @@ class TrackingReIDTests(unittest.TestCase):
 
         # Blended vector should be normalized [0.5, 0.5] -> [1/sqrt(2), 1/sqrt(2)]
         curr = gallery.current_embedding
-        self.assertIsNotNone(curr)
+        assert curr is not None
         expected = 1.0 / math.sqrt(2)
         self.assertAlmostEqual(curr.vector[0], expected)
         self.assertAlmostEqual(curr.vector[1], expected)

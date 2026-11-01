@@ -21,6 +21,7 @@ from django.views.decorators.http import require_http_methods
 from django_ratelimit.decorators import ratelimit
 
 from backend.supabase_client import supabase_admin
+from backend.repositories.data_manager import data_manager
 from backend.services.vision_service import vision_service
 from backend.services.chat_service import chat_service
 
@@ -44,8 +45,6 @@ def session_or_ip(group, request):
         request.session.get("session_token")
         or request.META.get("REMOTE_ADDR", "unknown")
     )
-
-from backend.repositories.data_manager import data_manager
 
 # too many request --> 429 code
 def too_many_requests_json():
@@ -433,7 +432,11 @@ def detect_objects(request):
                 status=400,
             )
 
-        session_key = request.session.get("session_token") or get_client_ip(request)
+        session_key = (
+            request.headers.get("X-Tracking-Session")
+            or request.session.get("session_token")
+            or get_client_ip(request)
+        )
         include_depth = request.POST.get("include_depth", "false").lower() == "true"
 
         detections = vision_service.process_frame(
@@ -835,84 +838,22 @@ def github_callback(request):
 
     if error or not code:
         logger.warning("GitHub OAuth login cancelled or failed")
-
-        return render(
-            request,
-            "loginpage.html",
-            {"error": "GitHub login was cancelled or failed."},
-        )
+        return _github_login_error(request, "GitHub login was cancelled or failed.")
 
     try:
-        token_resp = http_requests.post(
-            "https://github.com/login/oauth/access_token",
-            data={
-                "code": code,
-                "client_id": settings.GITHUB_CLIENT_ID,
-                "client_secret": settings.GITHUB_CLIENT_SECRET,
-                "redirect_uri": settings.GITHUB_REDIRECT_URI,
-            },
-            headers={
-                "Accept": "application/json",
-            },
-        )
+        access_token = _exchange_github_code(code)
+        if not access_token:
+            return _github_login_error(request, "Failed to get token from GitHub.")
 
-        if token_resp.status_code != 200:
-            logger.warning("GitHub OAuth token request failed")
+        github_user = _fetch_github_user(access_token)
+        if not github_user:
+            return _github_login_error(request, "Failed to get user info from GitHub.")
 
-            return render(
-                request,
-                "loginpage.html",
-                {"error": "Failed to get token from GitHub."},
-            )
-
-        access_token = token_resp.json().get("access_token")
-
-        user_resp = http_requests.get(
-            "https://api.github.com/user",
-            headers={
-                "Authorization": "Bearer " + access_token,
-            },
-        )
-
-        if user_resp.status_code != 200:
-            logger.warning("GitHub user info request failed")
-
-            return render(
-                request,
-                "loginpage.html",
-                {"error": "Failed to get user info from GitHub."},
-            )
-
-        github_user = user_resp.json()
-        email = github_user.get("email")
-
+        email = _resolve_github_email(github_user, access_token)
         if not email:
-            emails_resp = http_requests.get(
-                "https://api.github.com/user/emails",
-                headers={
-                    "Authorization": "Bearer " + access_token,
-                },
-            )
-
-            if emails_resp.status_code == 200:
-                for email_data in emails_resp.json():
-                    if (
-                        email_data.get("primary")
-                        and email_data.get("verified")
-                    ):
-                        email = email_data.get("email")
-                        break
-
-        if not email:
-            return render(
+            return _github_login_error(
                 request,
-                "loginpage.html",
-                {
-                    "error": (
-                        "Could not get email from GitHub. "
-                        "Make sure your email is public or verified."
-                    )
-                },
+                "Could not get email from GitHub. Make sure your email is public or verified."
             )
 
         name = (
@@ -928,11 +869,7 @@ def github_callback(request):
         )
 
         if not user:
-            return render(
-                request,
-                "loginpage.html",
-                {"error": "Failed to create account."},
-            )
+            return _github_login_error(request, "Failed to create account.")
 
         session_token = create_session(user["id"], request)
         request.session["session_token"] = session_token
@@ -947,11 +884,62 @@ def github_callback(request):
     except Exception:
         logger.exception("GitHub OAuth callback failed")
 
-        return render(
-            request,
-            "loginpage.html",
-            {"error": "GitHub login failed. Please try again."},
-        )
+        return _github_login_error(request, "GitHub login failed. Please try again.")
+
+
+def _github_login_error(request, message):
+    return render(request, "loginpage.html", {"error": message})
+
+
+def _exchange_github_code(code):
+    response = http_requests.post(
+        "https://github.com/login/oauth/access_token",
+        data={
+            "code": code,
+            "client_id": settings.GITHUB_CLIENT_ID,
+            "client_secret": settings.GITHUB_CLIENT_SECRET,
+            "redirect_uri": settings.GITHUB_REDIRECT_URI,
+        },
+        headers={"Accept": "application/json"},
+        timeout=10,
+    )
+    if response.status_code != 200:
+        logger.warning("GitHub OAuth token request failed")
+        return None
+    return response.json().get("access_token")
+
+
+def _fetch_github_user(access_token):
+    response = http_requests.get(
+        "https://api.github.com/user",
+        headers={"Authorization": "Bearer " + access_token},
+        timeout=10,
+    )
+    if response.status_code != 200:
+        logger.warning("GitHub user info request failed")
+        return None
+    return response.json()
+
+
+def _resolve_github_email(github_user, access_token):
+    email = github_user.get("email")
+    if email:
+        return email
+    response = http_requests.get(
+        "https://api.github.com/user/emails",
+        headers={"Authorization": "Bearer " + access_token},
+        timeout=10,
+    )
+    if response.status_code != 200:
+        return None
+    return next(
+        (
+            entry.get("email")
+            for entry in response.json()
+            if entry.get("primary") and entry.get("verified")
+        ),
+        None,
+    )
 
 
 def _find_or_create_oauth_user(email, full_name, provider):

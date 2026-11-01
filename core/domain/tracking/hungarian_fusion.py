@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import List, Optional, Tuple
+
 import numpy as np
 from scipy.optimize import linear_sum_assignment
 
@@ -11,9 +11,9 @@ from scipy.optimize import linear_sum_assignment
 class DetectionCandidate:
     detection_id: str
     class_name: str
-    bbox: Tuple[float, float, float, float]  # [x1, y1, x2, y2]
-    feature_embedding: Optional[np.ndarray] = None
-    velocity_2d: Optional[Tuple[float, float]] = None
+    bbox: tuple[float, float, float, float]  # [x1, y1, x2, y2]
+    feature_embedding: np.ndarray | None = None
+    velocity_2d: tuple[float, float] | None = None
 
 
 @dataclass
@@ -22,7 +22,7 @@ class TrackTarget:
     class_name: str
     state_mean: np.ndarray  # 8-state UKF [x, y, s, r, vx, vy, vs, vr]
     state_covariance: np.ndarray
-    feature_gallery: List[np.ndarray]
+    feature_gallery: list[np.ndarray]
     missed_frames: int = 0
 
 
@@ -51,7 +51,7 @@ class HungarianFusionMatcher:
         self.max_thresh = max_distance_threshold
 
     @staticmethod
-    def compute_iou(box_a: Tuple[float, float, float, float], box_b: Tuple[float, float, float, float]) -> float:
+    def compute_iou(box_a: tuple[float, float, float, float], box_b: tuple[float, float, float, float]) -> float:
         x_left = max(box_a[0], box_b[0])
         y_top = max(box_a[1], box_b[1])
         x_right = min(box_a[2], box_b[2])
@@ -88,9 +88,9 @@ class HungarianFusionMatcher:
 
     def match(
         self,
-        tracks: List[TrackTarget],
-        detections: List[DetectionCandidate],
-    ) -> Tuple[List[Tuple[int, int]], List[int], List[int]]:
+        tracks: list[TrackTarget],
+        detections: list[DetectionCandidate],
+    ) -> tuple[list[tuple[int, int]], list[int], list[int]]:
         """Compute optimal assignment matrix using Hungarian Algorithm.
 
         Returns:
@@ -152,7 +152,7 @@ class HungarianFusionMatcher:
         # Execute Hungarian Assignment
         row_ind, col_ind = linear_sum_assignment(cost_matrix)
 
-        matched_pairs: List[Tuple[int, int]] = []
+        matched_pairs: list[tuple[int, int]] = []
         unmatched_tracks = set(range(n_t))
         unmatched_detections = set(range(n_d))
 

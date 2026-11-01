@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any
 
 
 class RuleOperator(str, Enum):
@@ -25,7 +25,7 @@ class RuleCondition:
     operator: RuleOperator
     expected_value: Any
 
-    def evaluate(self, context: Dict[str, Any]) -> bool:
+    def evaluate(self, context: dict[str, Any]) -> bool:
         actual_val = context.get(self.field_name)
         if actual_val is None:
             return False
@@ -49,12 +49,12 @@ class RuleCondition:
 class SecurityPolicyRule:
     rule_id: str
     name: str
-    conditions: List[RuleCondition]
+    conditions: list[RuleCondition]
     logic: RuleLogical = RuleLogical.AND
     severity: str = "HIGH"
     action_type: str = "TRIGGER_ALARM"
 
-    def is_triggered(self, context: Dict[str, Any]) -> bool:
+    def is_triggered(self, context: dict[str, Any]) -> bool:
         if not self.conditions:
             return False
         evaluations = [c.evaluate(context) for c in self.conditions]
@@ -69,7 +69,7 @@ class PolicyEngine:
     """Enterprise Policy Evaluation Engine evaluating business security rules in real-time."""
 
     def __init__(self) -> None:
-        self._rules: Dict[str, SecurityPolicyRule] = {}
+        self._rules: dict[str, SecurityPolicyRule] = {}
 
     def register_rule(self, rule: SecurityPolicyRule) -> None:
         self._rules[rule.rule_id] = rule
@@ -77,7 +77,7 @@ class PolicyEngine:
     def unregister_rule(self, rule_id: str) -> None:
         self._rules.pop(rule_id, None)
 
-    def evaluate(self, context: Dict[str, Any]) -> List[Dict[str, Any]]:
+    def evaluate(self, context: dict[str, Any]) -> list[dict[str, Any]]:
         """Evaluate context against all active policies and return triggered security actions."""
         triggered = []
         for rule in self._rules.values():

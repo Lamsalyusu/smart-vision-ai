@@ -81,10 +81,10 @@ export interface DetectionCropRecord {
 export interface TelemetryStats {
   total_detections: number;
   active_sessions: number;
-  fps_mean: number;
+  fps_mean?: number | null;
   class_distribution: Record<string, number>;
-  tracking_efficiency: number;
-  spatial_depth_accuracy: string;
+  tracking_efficiency?: number | null;
+  spatial_depth_accuracy?: string | null;
   recent_activity: Array<{
     id: string;
     class: string;

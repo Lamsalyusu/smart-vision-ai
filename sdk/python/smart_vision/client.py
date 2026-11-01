@@ -1,12 +1,17 @@
 from __future__ import annotations
 
-import asyncio
-import json
-from typing import Any, AsyncGenerator, Dict, List, Optional
+from typing import Any
+
 import httpx
 
-from .exceptions import AuthenticationError, RateLimitExceededError, SmartVisionException
-from .models import DetectionRecord, MeshReconstructionResult, SpatialTrackRecord, TelemetryPacket
+from .exceptions import (
+    AuthenticationError,
+    RateLimitExceededError,
+    SmartVisionException,
+)
+from .models import (
+    MeshReconstructionResult,
+)
 
 
 class SmartVisionClient:
@@ -15,7 +20,7 @@ class SmartVisionClient:
     def __init__(
         self,
         base_url: str = "http://localhost:8000",
-        api_token: Optional[str] = None,
+        api_token: str | None = None,
         timeout: float = 10.0,
     ) -> None:
         self.base_url = base_url.rstrip("/")
@@ -23,7 +28,7 @@ class SmartVisionClient:
         self.timeout = timeout
         self._headers = {"Authorization": f"Bearer {api_token}"} if api_token else {}
 
-    async def get_health(self) -> Dict[str, Any]:
+    async def get_health(self) -> dict[str, Any]:
         """Check API service health status."""
         async with httpx.AsyncClient(base_url=self.base_url, timeout=self.timeout) as client:
             resp = await client.get("/health")
@@ -34,7 +39,7 @@ class SmartVisionClient:
     async def reconstruct_3d_mesh(
         self,
         object_class: str = "chair",
-        points: Optional[List[List[float]]] = None,
+        points: list[list[float]] | None = None,
         voxel_size: float = 0.08,
         smoothing_iterations: int = 2,
     ) -> MeshReconstructionResult:

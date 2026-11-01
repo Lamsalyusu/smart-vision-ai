@@ -16,7 +16,7 @@ class PlaneEstimate:
 
 
 def fit_ground_plane_ransac(
-    points: Sequence[Sequence[float]],
+    points: Sequence[Sequence[float]] | np.ndarray,
     distance_threshold: float,
     iterations: int = 200,
     min_inliers: int = 3,
@@ -74,7 +74,7 @@ def fit_ground_plane_ransac(
         raise ValueError("refined plane has too few inliers")
     rmse = float(np.sqrt(np.mean(residuals[refined_inliers] ** 2)))
     return PlaneEstimate(
-        normal=tuple(float(value) for value in normal),
+        normal=(float(normal[0]), float(normal[1]), float(normal[2])),
         offset=offset,
         inlier_indices=tuple(int(index) for index in refined_inliers),
         root_mean_squared_error=rmse,

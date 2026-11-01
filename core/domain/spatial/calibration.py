@@ -5,8 +5,10 @@ from collections.abc import Sequence
 
 import numpy as np
 
+PointArray = Sequence[Sequence[float]] | np.ndarray
 
-def _point_array(points: Sequence[Sequence[float]], name: str, minimum: int) -> np.ndarray:
+
+def _point_array(points: PointArray, name: str, minimum: int) -> np.ndarray:
     values = np.asarray(points, dtype=np.float64)
     if values.ndim != 2 or values.shape[1] != 2 or values.shape[0] < minimum:
         raise ValueError(f"{name} must contain at least {minimum} 2D points")
@@ -35,8 +37,8 @@ def _normalize_points(points: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
 
 
 def estimate_homography(
-    source_points: Sequence[Sequence[float]],
-    target_points: Sequence[Sequence[float]],
+    source_points: PointArray,
+    target_points: PointArray,
 ) -> np.ndarray:
     """Estimate source-to-target planar mapping with normalized DLT."""
     source = _point_array(source_points, "source points", 4)
@@ -63,12 +65,12 @@ def estimate_homography(
     return homography / norm
 
 
-def solve_zhang_intrinsics(homographies: Sequence[Sequence[Sequence[float]]]) -> np.ndarray:
+def solve_zhang_intrinsics(homographies: Sequence[PointArray]) -> np.ndarray:
     """Recover a 3x3 camera intrinsic matrix from planar-view homographies."""
     if len(homographies) < 3:
         raise ValueError("Zhang calibration requires at least three homographies")
 
-    constraints = []
+    constraints: list[np.ndarray] = []
     for homography_values in homographies:
         homography = np.asarray(homography_values, dtype=np.float64)
         if homography.shape != (3, 3) or not np.isfinite(homography).all():
@@ -124,8 +126,8 @@ def solve_zhang_intrinsics(homographies: Sequence[Sequence[Sequence[float]]]) ->
 
 
 def estimate_fundamental_matrix(
-    first_points: Sequence[Sequence[float]],
-    second_points: Sequence[Sequence[float]],
+    first_points: PointArray,
+    second_points: PointArray,
 ) -> np.ndarray:
     """Estimate a rank-two fundamental matrix using normalized 8-point DLT."""
     first = _point_array(first_points, "first-image points", 8)
@@ -154,9 +156,9 @@ def estimate_fundamental_matrix(
 
 
 def symmetric_epipolar_distance(
-    fundamental_matrix: Sequence[Sequence[float]],
-    first_point: Sequence[float],
-    second_point: Sequence[float],
+    fundamental_matrix: PointArray,
+    first_point: Sequence[float] | np.ndarray,
+    second_point: Sequence[float] | np.ndarray,
 ) -> float:
     matrix = np.asarray(fundamental_matrix, dtype=np.float64)
     first = np.asarray(first_point, dtype=np.float64)
@@ -179,9 +181,9 @@ def symmetric_epipolar_distance(
 
 
 def sampson_epipolar_distance(
-    fundamental_matrix: Sequence[Sequence[float]],
-    first_point: Sequence[float],
-    second_point: Sequence[float],
+    fundamental_matrix: PointArray,
+    first_point: Sequence[float] | np.ndarray,
+    second_point: Sequence[float] | np.ndarray,
 ) -> float:
     """Calculate the first-order Sampson approximation to reprojection distance for epipolar constraint."""
     matrix = np.asarray(fundamental_matrix, dtype=np.float64)
