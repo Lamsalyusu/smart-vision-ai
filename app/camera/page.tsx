@@ -233,11 +233,10 @@ export default function CameraPage() {
         }
         lastFrameCompletedAtRef.current = completedAt;
 
-        try {
-          const storageKey = "smartvision_replay_v1";
-          const existing = JSON.parse(localStorage.getItem(storageKey) || "[]");
-          const frames = Array.isArray(existing) ? existing : [];
-          frames.push({
+        fetch("/api/replay", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
             capturedAt: Date.now(),
             detections: data.detections.map((detection: Detection) => ({
               class: detection.class,
@@ -246,11 +245,10 @@ export default function CameraPage() {
               track_id: detection.track_id,
               spatial_3d: detection.spatial_3d,
             })),
-          });
-          localStorage.setItem(storageKey, JSON.stringify(frames.slice(-240)));
-        } catch (storageError) {
-          console.warn("Could not record replay frame:", storageError);
-        }
+          }),
+        }).catch((replayError) => {
+          console.warn("Could not persist replay frame:", replayError);
+        });
 
         // Auto save crop in background for selected object
         if (data.detections.length > 0) {
