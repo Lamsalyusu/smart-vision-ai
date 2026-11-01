@@ -1,5 +1,6 @@
 import { Detection, SceneGraph, SceneGraphEdge, SceneGraphNode } from "./types";
 
+// Builds a simple relation graph between detections (e.g. human face wearing sunglasses, holding phone)
 export class SpatialSceneGraph {
   public proximityThresholdM: number;
 
@@ -83,6 +84,30 @@ export class SpatialSceneGraph {
 
             nodeDegrees[i] += 1;
             nodeDegrees[j] += 1;
+          }
+
+          // Collision Trajectory & Time-to-Collision (TTC)
+          if (n1.velocity && n2.velocity) {
+            const dvx = n2.velocity[0] - n1.velocity[0];
+            const dvy = n2.velocity[1] - n1.velocity[1];
+            const vRelSq = dvx * dvx + dvy * dvy;
+            if (vRelSq > 0.01) {
+              const closingSpeed = -(dx * dvx + dy * dvy);
+              if (closingSpeed > 0) {
+                const ttc = closingSpeed / vRelSq;
+                if (ttc <= 3.0) {
+                  edges.push({
+                    source_id: n1.track_id,
+                    source_class: n1.class,
+                    target_id: n2.track_id,
+                    target_class: n2.class,
+                    relation: "collision_risk",
+                    directional: `TTC ~${Math.round(ttc * 10) / 10}s`,
+                    distance_m: Math.round(dist * 100) / 100,
+                  });
+                }
+              }
+            }
           }
         } else {
           // 2D bounding box fallback
