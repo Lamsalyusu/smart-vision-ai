@@ -38,9 +38,7 @@ class DataRepositoryManager:
             and supabase_admin is not None
         )
 
-    # -------------------------------------------------------------------------
     # Authentication & Session Management
-    # -------------------------------------------------------------------------
 
     def create_user(
         self,
@@ -233,9 +231,7 @@ class DataRepositoryManager:
             except Exception:
                 pass
 
-    # -------------------------------------------------------------------------
     # Telemetry, Detections & Crops
-    # -------------------------------------------------------------------------
 
     def save_detection_record(
         self,
