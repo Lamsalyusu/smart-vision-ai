@@ -163,3 +163,47 @@ export async function clearHistory() {
   }
   return await resp.json();
 }
+
+export interface ReplayFrameRecord {
+  capturedAt: number;
+  detections: Array<{
+    class: string;
+    confidence: number;
+    bbox: [number, number, number, number];
+    track_id?: number;
+    spatial_3d?: Record<string, number> | null;
+  }>;
+}
+
+export async function saveReplayFrame(
+  sessionId: string,
+  frame: ReplayFrameRecord
+) {
+  const resp = await fetch(`${process.env.AUTH_API_URL ?? "http://localhost:8000"}/replay/frames`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      session_id: sessionId,
+      captured_at: frame.capturedAt,
+      detections: frame.detections,
+    }),
+  });
+  if (!resp.ok) throw new Error("Failed to persist replay frame");
+  return await resp.json();
+}
+
+export async function getReplayFrames(sessionId: string) {
+  const url = new URL(`${process.env.AUTH_API_URL ?? "http://localhost:8000"}/replay/frames`);
+  url.searchParams.set("session_id", sessionId);
+  const resp = await fetch(url.toString(), { cache: "no-store" });
+  if (!resp.ok) throw new Error("Failed to load replay history");
+  return await resp.json();
+}
+
+export async function clearReplayFrames(sessionId: string) {
+  const url = new URL(`${process.env.AUTH_API_URL ?? "http://localhost:8000"}/replay/frames`);
+  url.searchParams.set("session_id", sessionId);
+  const resp = await fetch(url.toString(), { method: "DELETE" });
+  if (!resp.ok) throw new Error("Failed to clear replay history");
+  return await resp.json();
+}

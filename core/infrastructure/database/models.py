@@ -14,7 +14,16 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from typing import Any
 
-from sqlalchemy import JSON, Boolean, DateTime, Float, ForeignKey, Integer, String
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    DateTime,
+    Float,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .clock import utcnow_naive
@@ -100,6 +109,17 @@ class TelemetryStat(Base):
 
     def __repr__(self) -> str:
         return f"<Telemetry {self.key}={self.value}>"
+
+
+class ReplayFrameRecord(Base):
+    __tablename__ = "replay_frames"
+    __table_args__ = (Index("ix_replay_session_captured", "session_id", "captured_at"),)
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    session_id: Mapped[str] = mapped_column(String, nullable=False)
+    captured_at: Mapped[float] = mapped_column(Float, nullable=False)
+    detections: Mapped[list[dict[str, Any]]] = mapped_column(JSON, nullable=False)
+    recorded_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow_naive)
 
 
 class AuditLogRecord(Base):
