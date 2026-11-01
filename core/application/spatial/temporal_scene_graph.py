@@ -1,7 +1,7 @@
-from collections import deque
-from dataclasses import dataclass
 import math
-from typing import Sequence
+from collections import deque
+from collections.abc import Sequence
+from dataclasses import dataclass
 
 
 @dataclass(frozen=True, slots=True)
@@ -11,6 +11,7 @@ class SpatialEntity:
     position_xyz_m: tuple[float, float, float]
     bbox_xyxy: tuple[float, float, float, float]
     confidence: float = 1.0
+    velocity_xyz_mps: tuple[float, float, float] | None = None
 
     def __post_init__(self) -> None:
         values = (*self.position_xyz_m, *self.bbox_xyxy, self.confidence)
@@ -22,12 +23,16 @@ class SpatialEntity:
             raise ValueError("entity bounding box must have positive dimensions")
         if not 0 <= self.confidence <= 1:
             raise ValueError("confidence must be between zero and one")
+        if self.velocity_xyz_mps is not None and not all(math.isfinite(v) for v in self.velocity_xyz_mps):
+            raise ValueError("velocity coordinates must be finite")
 
 
 @dataclass(frozen=True, slots=True)
 class HazardZone:
     zone_id: str
     polygon_xz_m: tuple[tuple[float, float], ...]
+    max_dwell_seconds: float = float("inf")
+    severity: str = "critical"
 
     def __post_init__(self) -> None:
         if not self.zone_id or len(self.polygon_xz_m) < 3:
@@ -80,6 +85,7 @@ class TemporalSceneGraph:
         self._proximity_threshold = proximity_threshold_m
         self._occlusion_overlap_threshold = occlusion_overlap_threshold
         self._minimum_depth_delta = minimum_occlusion_depth_delta_m
+        self._zone_dwell_seconds: dict[tuple[int, str], float] = {}
 
     @property
     def history(self) -> tuple[TemporalSceneSnapshot, ...]:
@@ -98,6 +104,8 @@ class TemporalSceneGraph:
         entity_ids = [entity.track_id for entity in entities]
         if len(entity_ids) != len(set(entity_ids)):
             raise ValueError("track ids must be unique within a snapshot")
+
+        dt = timestamp_seconds - self._history[-1].timestamp_seconds if self._history else 0.033
 
         edges: list[TemporalSpatialEdge] = []
         previous_entities = (
@@ -125,6 +133,26 @@ class TemporalSceneGraph:
                             )
                         )
 
+                # Time-to-Collision (TTC) prediction
+                v1 = first.velocity_xyz_mps
+                v2 = second.velocity_xyz_mps
+                if v1 is not None and v2 is not None:
+                    dp = (second.position_xyz_m[0] - first.position_xyz_m[0],
+                          second.position_xyz_m[1] - first.position_xyz_m[1],
+                          second.position_xyz_m[2] - first.position_xyz_m[2])
+                    dv = (v2[0] - v1[0], v2[1] - v1[1], v2[2] - v1[2])
+                    v_rel_sq = dv[0]**2 + dv[1]**2 + dv[2]**2
+                    if v_rel_sq > 1e-4:
+                        closing_speed = -(dp[0]*dv[0] + dp[1]*dv[1] + dp[2]*dv[2])
+                        if closing_speed > 0:
+                            ttc = closing_speed / v_rel_sq
+                            if ttc <= 3.0:
+                                edges.append(
+                                    TemporalSpatialEdge(
+                                        str(first.track_id), str(second.track_id), "collision_risk", round(ttc, 2)
+                                    )
+                                )
+
                 overlap = self._overlap_ratio(first.bbox_xyxy, second.bbox_xyxy)
                 depth_delta = first.position_xyz_m[2] - second.position_xyz_m[2]
                 if (
@@ -138,14 +166,30 @@ class TemporalSceneGraph:
                         )
                     )
 
+        active_zone_occupants: set[tuple[int, str]] = set()
         for entity in entities:
             for zone in hazard_zones:
                 if self._contains(zone.polygon_xz_m, entity.position_xyz_m[0], entity.position_xyz_m[2]):
+                    active_zone_occupants.add((entity.track_id, zone.zone_id))
+                    dwell = self._zone_dwell_seconds.get((entity.track_id, zone.zone_id), 0.0) + dt
+                    self._zone_dwell_seconds[(entity.track_id, zone.zone_id)] = dwell
+
                     edges.append(
                         TemporalSpatialEdge(
                             str(entity.track_id), zone.zone_id, "inside_hazard_zone"
                         )
                     )
+                    if dwell >= zone.max_dwell_seconds:
+                        edges.append(
+                            TemporalSpatialEdge(
+                                str(entity.track_id), zone.zone_id, "dwell_exceeded", round(dwell, 2)
+                            )
+                        )
+
+        # Prune inactive occupants
+        for occupant in list(self._zone_dwell_seconds.keys()):
+            if occupant not in active_zone_occupants:
+                del self._zone_dwell_seconds[occupant]
 
         snapshot = TemporalSceneSnapshot(timestamp_seconds, tuple(entities), tuple(edges))
         self._history.append(snapshot)
