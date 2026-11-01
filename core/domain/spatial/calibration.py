@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from collections.abc import Sequence
 
 import numpy as np
@@ -175,3 +176,28 @@ def symmetric_epipolar_distance(
     if norm_second <= np.finfo(np.float64).eps or norm_first <= np.finfo(np.float64).eps:
         raise ValueError("epipolar line is degenerate")
     return abs(error) * np.sqrt(1.0 / norm_second**2 + 1.0 / norm_first**2)
+
+
+def sampson_epipolar_distance(
+    fundamental_matrix: Sequence[Sequence[float]],
+    first_point: Sequence[float],
+    second_point: Sequence[float],
+) -> float:
+    """Calculate the first-order Sampson approximation to reprojection distance for epipolar constraint."""
+    matrix = np.asarray(fundamental_matrix, dtype=np.float64)
+    first = np.asarray(first_point, dtype=np.float64)
+    second = np.asarray(second_point, dtype=np.float64)
+    if matrix.shape != (3, 3) or first.shape != (2,) or second.shape != (2,):
+        raise ValueError("expected a 3x3 matrix and two 2D points")
+    if not np.isfinite(matrix).all() or not np.isfinite(first).all() or not np.isfinite(second).all():
+        raise ValueError("epipolar inputs must be finite")
+
+    first_h = np.append(first, 1.0)
+    second_h = np.append(second, 1.0)
+    f_x1 = matrix @ first_h
+    ft_x2 = matrix.T @ second_h
+    numerator = float(second_h @ f_x1) ** 2
+    denominator = float(f_x1[0] ** 2 + f_x1[1] ** 2 + ft_x2[0] ** 2 + ft_x2[1] ** 2)
+    if denominator <= np.finfo(np.float64).eps:
+        raise ValueError("degenerate epipolar configuration")
+    return math.sqrt(numerator / denominator)
