@@ -13,109 +13,10 @@ class SpatialSceneGraph:
         tracked_detections: list of dicts with 'track_id', 'class', 'bbox', 'spatial_3d', 'velocity'
         Returns: dict with 'nodes', 'edges', 'summary_prompt', and 'graph_metrics'
         """
-        nodes = []
-        for idx, det in enumerate(tracked_detections):
-            # Guarantee unique track/node identifier even when raw detections lack tracking IDs
-            track_id = det.get("track_id")
-            if track_id is None or track_id == 0:
-                track_id = idx + 1
-
-            node = {
-                "track_id": track_id,
-                "class": det.get("class", "unknown"),
-                "confidence": round(float(det.get("confidence", 0.0)), 2),
-                "bbox": det.get("bbox", [0, 0, 0, 0]),
-            }
-
-            spatial_data = det.get("spatial_3d") or det.get("spatial")
-            if spatial_data:
-                node["spatial"] = spatial_data
-
-            if "velocity" in det:
-                node["velocity"] = det["velocity"]
-
-            nodes.append(node)
-
-        edges = []
+        nodes = [self._build_node(index, detection) for index, detection in enumerate(tracked_detections)]
+        edges, node_degrees = self._build_edges(nodes)
         n = len(nodes)
-        node_degrees = [0] * n
-
-        for i in range(n):
-            for j in range(i + 1, n):
-                n1 = nodes[i]
-                n2 = nodes[j]
-
-                c1 = self._get_coords_3d(n1.get("spatial"))
-                c2 = self._get_coords_3d(n2.get("spatial"))
-
-                if c1 is not None and c2 is not None:
-                    # Metric 3D spatial evaluation
-                    x1, y1, z1 = c1
-                    x2, y2, z2 = c2
-                    dx = x1 - x2
-                    dy = y1 - y2
-                    dz = z1 - z2
-                    dist = float(np.sqrt(dx**2 + dy**2 + dz**2))
-
-                    if dist <= self.proximity_threshold_m:
-                        predicate = self._classify_relation(n1["class"], n2["class"], dy, dist)
-                        rel_x = "left_of" if dx < -0.1 else ("right_of" if dx > 0.1 else "aligned_x")
-                        rel_y = "above" if dy > 0.1 else ("below" if dy < -0.1 else "same_level")
-                        rel_z = "in_front_of" if dz < -0.1 else ("behind" if dz > 0.1 else "same_depth")
-
-                        edges.append({
-                            "source_id": n1["track_id"],
-                            "source_class": n1["class"],
-                            "target_id": n2["track_id"],
-                            "target_class": n2["class"],
-                            "relation": predicate,
-                            "directional": f"{rel_x}, {rel_y}, {rel_z}",
-                            "distance_m": round(dist, 2),
-                        })
-                        node_degrees[i] += 1
-                        node_degrees[j] += 1
-
-                else:
-                    # 2D bounding box fallback when 3D depth is not available
-                    b1 = n1["bbox"]
-                    b2 = n2["bbox"]
-                    cx1, cy1 = (b1[0] + b1[2]) / 2.0, (b1[1] + b1[3]) / 2.0
-                    cx2, cy2 = (b2[0] + b2[2]) / 2.0, (b2[1] + b2[3]) / 2.0
-
-                    inter_x = max(0.0, min(b1[2], b2[2]) - max(b1[0], b2[0]))
-                    inter_y = max(0.0, min(b1[3], b2[3]) - max(b1[1], b2[1]))
-                    intersection = inter_x * inter_y
-
-                    # Normalize 2D centroid distance by mean bounding scale
-                    char_size = max(1.0, (b1[2] - b1[0] + b2[2] - b2[0]) / 2.0)
-                    dist_2d = float(np.sqrt((cx1 - cx2)**2 + (cy1 - cy2)**2)) / char_size
-
-                    if intersection > 0 or dist_2d <= 1.5:
-                        predicate = "overlapping_with" if intersection > 0 else "adjacent_to"
-                        if "human_face" in (n1["class"], n2["class"]):
-                            predicate = "interacting_with"
-
-                        rel_x = "left_of" if cx1 < cx2 - 20 else ("right_of" if cx1 > cx2 + 20 else "aligned_x")
-                        rel_y = "above" if cy1 < cy2 - 20 else ("below" if cy1 > cy2 + 20 else "same_level")
-
-                        edges.append({
-                            "source_id": n1["track_id"],
-                            "source_class": n1["class"],
-                            "target_id": n2["track_id"],
-                            "target_class": n2["class"],
-                            "relation": predicate,
-                            "directional": f"{rel_x}, {rel_y}",
-                            "distance_m": round(dist_2d, 2),
-                        })
-                        node_degrees[i] += 1
-                        node_degrees[j] += 1
-
-        # Calculate topological node degree centrality
-        for i, n_item in enumerate(nodes):
-            n_item["degree_centrality"] = (
-                round(float(node_degrees[i]) / float(n - 1), 2) if n > 1 else 0.0
-            )
-
+        self._add_degree_centrality(nodes, node_degrees)
         summary_prompt = self._generate_prompt_context(nodes, edges)
 
         graph_metrics = {
@@ -131,6 +32,103 @@ class SpatialSceneGraph:
             "summary_prompt": summary_prompt,
             "metrics": graph_metrics,
         }
+
+    @staticmethod
+    def _build_node(index, detection):
+        track_id = detection.get("track_id")
+        if track_id is None or track_id == 0:
+            track_id = index + 1
+        node = {
+            "track_id": track_id,
+            "class": detection.get("class", "unknown"),
+            "confidence": round(float(detection.get("confidence", 0.0)), 2),
+            "bbox": detection.get("bbox", [0, 0, 0, 0]),
+        }
+        spatial_data = detection.get("spatial_3d") or detection.get("spatial")
+        if spatial_data:
+            node["spatial"] = spatial_data
+        if "velocity" in detection:
+            node["velocity"] = detection["velocity"]
+        return node
+
+    def _build_edges(self, nodes):
+        edges = []
+        node_degrees = [0] * len(nodes)
+        for first_index in range(len(nodes)):
+            for second_index in range(first_index + 1, len(nodes)):
+                edge = self._build_edge(nodes[first_index], nodes[second_index])
+                if edge is None:
+                    continue
+                edges.append(edge)
+                node_degrees[first_index] += 1
+                node_degrees[second_index] += 1
+        return edges, node_degrees
+
+    def _build_edge(self, first, second):
+        first_coords = self._get_coords_3d(first.get("spatial"))
+        second_coords = self._get_coords_3d(second.get("spatial"))
+        if first_coords is not None and second_coords is not None:
+            return self._build_3d_edge(first, second, first_coords, second_coords)
+        return self._build_2d_edge(first, second)
+
+    def _build_3d_edge(self, first, second, first_coords, second_coords):
+        x1, y1, z1 = first_coords
+        x2, y2, z2 = second_coords
+        dx, dy, dz = x1 - x2, y1 - y2, z1 - z2
+        distance = float(np.sqrt(dx**2 + dy**2 + dz**2))
+        if distance > self.proximity_threshold_m:
+            return None
+        relation = self._classify_relation(first["class"], second["class"], dy, distance)
+        direction_x = "left_of" if dx < -0.1 else ("right_of" if dx > 0.1 else "aligned_x")
+        direction_y = "above" if dy > 0.1 else ("below" if dy < -0.1 else "same_level")
+        direction_z = "in_front_of" if dz < -0.1 else ("behind" if dz > 0.1 else "same_depth")
+        return {
+            "source_id": first["track_id"],
+            "source_class": first["class"],
+            "target_id": second["track_id"],
+            "target_class": second["class"],
+            "relation": relation,
+            "directional": f"{direction_x}, {direction_y}, {direction_z}",
+            "distance_m": round(distance, 2),
+        }
+
+    def _build_2d_edge(self, first, second):
+        first_box, second_box = first["bbox"], second["bbox"]
+        center_x1 = (first_box[0] + first_box[2]) / 2.0
+        center_y1 = (first_box[1] + first_box[3]) / 2.0
+        center_x2 = (second_box[0] + second_box[2]) / 2.0
+        center_y2 = (second_box[1] + second_box[3]) / 2.0
+        intersection_x = max(0.0, min(first_box[2], second_box[2]) - max(first_box[0], second_box[0]))
+        intersection_y = max(0.0, min(first_box[3], second_box[3]) - max(first_box[1], second_box[1]))
+        intersection = intersection_x * intersection_y
+        char_size = max(1.0, (first_box[2] - first_box[0] + second_box[2] - second_box[0]) / 2.0)
+        distance = float(np.sqrt((center_x1 - center_x2) ** 2 + (center_y1 - center_y2) ** 2)) / char_size
+        if intersection == 0 and distance > 1.5:
+            return None
+        relation = "overlapping_with" if intersection > 0 else "adjacent_to"
+        if "human_face" in (first["class"], second["class"]):
+            relation = "interacting_with"
+        direction_x = "left_of" if center_x1 < center_x2 - 20 else ("right_of" if center_x1 > center_x2 + 20 else "aligned_x")
+        direction_y = "above" if center_y1 < center_y2 - 20 else ("below" if center_y1 > center_y2 + 20 else "same_level")
+        return {
+            "source_id": first["track_id"],
+            "source_class": first["class"],
+            "target_id": second["track_id"],
+            "target_class": second["class"],
+            "relation": relation,
+            "directional": f"{direction_x}, {direction_y}",
+            "distance_m": round(distance, 2),
+        }
+
+    @staticmethod
+    def _add_degree_centrality(nodes, node_degrees):
+        node_count = len(nodes)
+        for index, node in enumerate(nodes):
+            node["degree_centrality"] = (
+                round(float(node_degrees[index]) / float(node_count - 1), 2)
+                if node_count > 1
+                else 0.0
+            )
 
     @staticmethod
     def _get_coords_3d(spatial):

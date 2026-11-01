@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
-import { dataManager } from "@/lib/store";
+import { getStats } from "@/lib/apiClient";
 
 export async function GET() {
-  const stats = dataManager.getStats();
-  return NextResponse.json({
-    success: true,
-    stats,
-  });
+  try {
+    const stats = await getStats();
+    return NextResponse.json({ success: true, stats });
+  } catch {
+    return NextResponse.json(
+      { success: false, error: "Telemetry service is unavailable" },
+      { status: 503 }
+    );
+  }
 }

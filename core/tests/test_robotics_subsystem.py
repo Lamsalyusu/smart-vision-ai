@@ -1,14 +1,14 @@
 import unittest
+
 import numpy as np
 
 from core.domain.robotics import (
-    DHParameter,
-    SerialManipulatorKinematics,
-    ManipulatorJacobianAnalyzer,
-    PolynomialTrajectoryGenerator,
     AStarPlanner,
+    DHParameter,
+    ManipulatorJacobianAnalyzer,
     PIDController,
-    LinearQuadraticRegulator,
+    PolynomialTrajectoryGenerator,
+    SerialManipulatorKinematics,
 )
 
 
@@ -32,7 +32,7 @@ class TestRoboticsSubsystem(unittest.TestCase):
         coeffs = PolynomialTrajectoryGenerator.quintic_spline(
             q0=0.0, q1=1.0, v0=0.0, v1=0.0, acc0=0.0, acc1=0.0, duration=2.0
         )
-        pos, vel, acc = PolynomialTrajectoryGenerator.evaluate_polynomial(coeffs, t=2.0)
+        pos, vel, _acc = PolynomialTrajectoryGenerator.evaluate_polynomial(coeffs, t=2.0)
         self.assertAlmostEqual(pos, 1.0, delta=1e-4)
         self.assertAlmostEqual(vel, 0.0, delta=1e-4)
 

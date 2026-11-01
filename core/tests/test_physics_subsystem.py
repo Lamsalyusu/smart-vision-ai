@@ -1,11 +1,11 @@
 import unittest
+
 import numpy as np
 
 from core.domain.physics import (
-    RigidBody3D,
-    NumericalPhysicsIntegrator,
     GJKCollisionDetector,
-    ContactImpulseSolver,
+    NumericalPhysicsIntegrator,
+    RigidBody3D,
 )
 
 

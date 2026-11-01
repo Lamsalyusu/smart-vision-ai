@@ -4,7 +4,6 @@ import math
 from collections import deque
 from dataclasses import dataclass
 from enum import Enum
-from typing import Deque, Dict, List, Optional, Tuple
 
 
 class AnomalyType(str, Enum):
@@ -39,10 +38,10 @@ class TrajectoryBehaviorAnalyzer:
         self.max_accel = max_accel_threshold
         self.loiter_time = loitering_time_seconds
         self.loiter_radius = loitering_radius
-        self._tracks_history: Dict[int, Deque[Tuple[float, float, float]]] = {}  # track_id -> deque of (x, y, ts)
+        self._tracks_history: dict[int, deque[tuple[float, float, float]]] = {}  # track_id -> deque of (x, y, ts)
 
-    def update_position(self, track_id: int, pos: Tuple[float, float], timestamp: float) -> List[BehavioralAnomalyEvent]:
-        anomalies: List[BehavioralAnomalyEvent] = []
+    def update_position(self, track_id: int, pos: tuple[float, float], timestamp: float) -> list[BehavioralAnomalyEvent]:
+        anomalies: list[BehavioralAnomalyEvent] = []
         if track_id not in self._tracks_history:
             self._tracks_history[track_id] = deque(maxlen=self.window)
 

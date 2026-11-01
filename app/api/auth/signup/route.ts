@@ -1,10 +1,6 @@
 
 // app/api/auth/signup/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { signup } from "@/lib/apiClient";
-
-
-
 import { dataManager } from "@/lib/store";
 import { hashPassword, SecurityAuditLog, UserRole } from "@/lib/auth-crypto";
 

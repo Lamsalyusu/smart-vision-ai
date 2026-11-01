@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, List, Optional, Tuple
 
 
 class ZoneType(str, Enum):
@@ -26,7 +25,7 @@ class GeofenceBreachEvent:
     track_id: int
     severity: BreachSeverity
     timestamp: float
-    point_2d: Tuple[float, float]
+    point_2d: tuple[float, float]
     dwell_duration_seconds: float
     message: str
 
@@ -38,11 +37,11 @@ class GeofenceZone:
         self,
         zone_id: str,
         name: str,
-        polygon_vertices: List[Tuple[float, float]],
+        polygon_vertices: list[tuple[float, float]],
         zone_type: ZoneType = ZoneType.RESTRICTED,
         dwell_time_threshold_seconds: float = 3.0,
-        min_altitude: Optional[float] = None,
-        max_altitude: Optional[float] = None,
+        min_altitude: float | None = None,
+        max_altitude: float | None = None,
     ) -> None:
         if len(polygon_vertices) < 3:
             raise ValueError("Polygon geofence must have at least 3 vertices")
@@ -53,15 +52,15 @@ class GeofenceZone:
         self.dwell_threshold = dwell_time_threshold_seconds
         self.min_alt = min_altitude
         self.max_alt = max_altitude
-        self._dwell_tracker: Dict[int, float] = {}  # track_id -> first_seen_time
+        self._dwell_tracker: dict[int, float] = {}  # track_id -> first_seen_time
 
-    def contains_point(self, point: Tuple[float, float], altitude: Optional[float] = None) -> bool:
+    def contains_point(self, point: tuple[float, float], altitude: float | None = None) -> bool:
         """Ray-casting algorithm for point-in-polygon containment."""
-        if altitude is not None:
-            if self.min_alt is not None and altitude < self.min_alt:
-                return False
-            if self.max_alt is not None and altitude > self.max_alt:
-                return False
+        if altitude is not None and (
+            (self.min_alt is not None and altitude < self.min_alt)
+            or (self.max_alt is not None and altitude > self.max_alt)
+        ):
+            return False
 
         px, py = point
         n = len(self.vertices)
@@ -70,13 +69,15 @@ class GeofenceZone:
         p1x, p1y = self.vertices[0]
         for i in range(1, n + 1):
             p2x, p2y = self.vertices[i % n]
-            if py > min(p1y, p2y):
-                if py <= max(p1y, p2y):
-                    if px <= max(p1x, p2x):
-                        if p1y != p2y:
-                            x_inters = (py - p1y) * (p2x - p1x) / (p2y - p1y) + p1x
-                            if p1x == p2x or px <= x_inters:
-                                inside = not inside
+            if (
+                py > min(p1y, p2y)
+                and py <= max(p1y, p2y)
+                and px <= max(p1x, p2x)
+                and p1y != p2y
+            ):
+                x_inters = (py - p1y) * (p2x - p1x) / (p2y - p1y) + p1x
+                if p1x == p2x or px <= x_inters:
+                    inside = not inside
             p1x, p1y = p2x, p2y
 
         return inside
@@ -84,10 +85,10 @@ class GeofenceZone:
     def evaluate_track(
         self,
         track_id: int,
-        point: Tuple[float, float],
-        altitude: Optional[float] = None,
-        now: Optional[float] = None,
-    ) -> Optional[GeofenceBreachEvent]:
+        point: tuple[float, float],
+        altitude: float | None = None,
+        now: float | None = None,
+    ) -> GeofenceBreachEvent | None:
         now_ts = now if now is not None else time.monotonic()
         is_inside = self.contains_point(point, altitude)
 
@@ -126,16 +127,16 @@ class GeofenceZone:
 class TripwireDetector:
     """Directional 2D Vector Tripwire for boundary crossing detection."""
 
-    def __init__(self, wire_id: str, point_a: Tuple[float, float], point_b: Tuple[float, float]) -> None:
+    def __init__(self, wire_id: str, point_a: tuple[float, float], point_b: tuple[float, float]) -> None:
         self.wire_id = wire_id
         self.pt_a = point_a
         self.pt_b = point_b
 
     @staticmethod
-    def _ccw(p1: Tuple[float, float], p2: Tuple[float, float], p3: Tuple[float, float]) -> bool:
+    def _ccw(p1: tuple[float, float], p2: tuple[float, float], p3: tuple[float, float]) -> bool:
         return (p3[1] - p1[1]) * (p2[0] - p1[0]) > (p2[1] - p1[1]) * (p3[0] - p1[0])
 
-    def has_crossed(self, prev_pos: Tuple[float, float], curr_pos: Tuple[float, float]) -> bool:
+    def has_crossed(self, prev_pos: tuple[float, float], curr_pos: tuple[float, float]) -> bool:
         """Check whether trajectory segment prev->curr intersects the tripwire segment A->B."""
         return (
             self._ccw(self.pt_a, prev_pos, curr_pos) != self._ccw(self.pt_b, prev_pos, curr_pos)

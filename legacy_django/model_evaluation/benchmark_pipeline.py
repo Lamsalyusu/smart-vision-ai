@@ -6,7 +6,6 @@ Measures latency percentiles (P50, P95, P99) and FPS for:
 3. 2D-to-3D Metric Spatial Fusion
 """
 
-import os
 import sys
 from pathlib import Path
 import time

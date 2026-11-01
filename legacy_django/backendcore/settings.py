@@ -18,7 +18,9 @@ DEBUG = get_env("DJANGO_DEBUG", "False").lower() == "true"
 
 ALLOWED_HOSTS = [
     host.strip()
-    for host in get_env("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
+    for host in get_env(
+        "DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,host.docker.internal"
+    ).split(",")
     if host.strip()
 ]
 
@@ -113,7 +115,7 @@ USE_TZ = True
 # Static files
 STATIC_URL = "static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
-STATIC_ROOT = BASE_DIR / "staticfiles"  
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # Email
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"

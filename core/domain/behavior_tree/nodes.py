@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any
 
 
 class NodeStatus(Enum):
@@ -14,7 +15,7 @@ class Blackboard:
     """Shared thread-safe key-value memory for Behavior Tree nodes."""
 
     def __init__(self) -> None:
-        self._data: Dict[str, Any] = {}
+        self._data: dict[str, Any] = {}
 
     def get(self, key: str, default: Any = None) -> Any:
         return self._data.get(key, default)
@@ -65,7 +66,7 @@ class ConditionNode(BehaviorNode):
 class Sequence(BehaviorNode):
     """Composite node: ticks children in order. Returns SUCCESS only if all children succeed."""
 
-    def __init__(self, name: str, children: List[BehaviorNode]) -> None:
+    def __init__(self, name: str, children: list[BehaviorNode]) -> None:
         super().__init__(name)
         self.children = children
 
@@ -82,7 +83,7 @@ class Sequence(BehaviorNode):
 class Selector(BehaviorNode):
     """Fallback composite node: ticks children in order. Returns SUCCESS on first child success."""
 
-    def __init__(self, name: str, children: List[BehaviorNode]) -> None:
+    def __init__(self, name: str, children: list[BehaviorNode]) -> None:
         super().__init__(name)
         self.children = children
 

@@ -8,23 +8,47 @@ services:
       - NODE_ENV=${NODE_ENV:-development}
       - SECRET_KEY=${SECRET_KEY}
       - AUTH_API_URL=http://auth:8000
+      - VISION_API_URL=${VISION_API_URL:-http://vision:8001/api/detect/}
       - REDIS_URL=redis://redis:6379/0
     volumes:
       - .:/app
     depends_on:
       auth:
         condition: service_started
+      vision:
+        condition: service_healthy
       redis:
         condition: service_healthy
 
+  vision:
+    build:
+      context: ./legacy_django
+      dockerfile: Dockerfile.vision
+    container_name: smart_vision_ai_vision
+    ports:
+      - "8001:8001"
+    environment:
+      - SECRET_KEY=${SECRET_KEY:-}
+      - DJANGO_DEBUG=${DJANGO_DEBUG:-False}
+      - DJANGO_ALLOWED_HOSTS=${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1,host.docker.internal,vision}
+      - OFFLINE_MODE=${OFFLINE_MODE:-true}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/')"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 90s
+
   auth:
     build:
-      context: ./core/infrastructure/api
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: core/infrastructure/api/Dockerfile
     container_name: smart_vision_ai_auth
     ports:
       - "8000:8000"
     environment:
+      - NODE_ENV=${NODE_ENV:-development}
+      - SECRET_KEY=${SECRET_KEY:-}
       - POSTGRES_USER=${POSTGRES_USER:-postgres}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
       - POSTGRES_DB=${POSTGRES_DB:-smart_vision_ai}

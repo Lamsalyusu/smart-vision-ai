@@ -1,20 +1,17 @@
 import unittest
+
 import numpy as np
 
 from core.domain.vision import (
-    ImageFilterKernel,
-    SpatialConvolutionEngine,
-    BilateralFilter,
-    CannyEdgeDetector,
-    MathematicalMorphology,
-    StructuringElement,
     ColorSpaceConverter,
-    AutoWhiteBalance,
-    HarrisCornerDetector,
     FastFeatureDetector,
-    PlanarHomographySolver,
-    ImageSegmentationEngine,
+    HarrisCornerDetector,
+    ImageFilterKernel,
+    MathematicalMorphology,
     PinholeCameraModel,
+    PlanarHomographySolver,
+    SpatialConvolutionEngine,
+    StructuringElement,
 )
 
 

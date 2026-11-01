@@ -4,7 +4,7 @@ import { SortTracker } from "../lib/tracker";
 import { detector } from "../lib/detector";
 import { spatialFuser } from "../lib/spatial-fusion";
 import { dataManager } from "../lib/store";
-import { hashPassword, verifyPassword, SecurityAuditLog } from "../lib/auth-crypto";
+import { hashPassword, verifyPassword } from "../lib/auth-crypto";
 
 test("Detector generates valid detection records", () => {
   const detections = detector.detect(640, 480, ["human_face", "sunglasses"]);
@@ -50,8 +50,9 @@ test("Spatial metric fuser estimates 3D world coordinates", () => {
   assert.ok(fused.length > 0);
   const with3D = fused.find((d) => d.spatial_3d);
   assert.ok(with3D);
-  assert.ok(typeof with3D.spatial_3d?.distance_m === "number");
-  assert.ok(with3D.spatial_3d?.distance_m! > 0);
+  const distance = with3D.spatial_3d?.distance_m;
+  assert.ok(typeof distance === "number");
+  assert.ok(distance > 0);
 });
 
 test("Auth crypto safely hashes and verifies passwords", async () => {

@@ -1,8 +1,10 @@
 import base64
 from unittest.mock import patch, MagicMock
 import numpy as np
+import cv2
 
 from django.core.cache import cache
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
@@ -36,6 +38,15 @@ class PublicPageTests(BaseTestCase):
         self.assertEqual(response.status_code, 302)
         self.assertIn(reverse("login"), response["Location"])
 
+    def test_github_oauth_cancel_returns_login_error(self):
+        response = self.client.get(reverse("github_callback"), {"error": "access_denied"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.context["error"],
+            "GitHub login was cancelled or failed.",
+        )
+
 
 class LoginTests(BaseTestCase):
     def test_missing_password_shows_error(self):
@@ -67,6 +78,42 @@ class DetectEndpointTests(BaseTestCase):
         response = self.client.post(DETECT_URL)
         self.assertEqual(response.status_code, 400)
         self.assertIn("error", response.json())
+
+    @patch("backend.views.vision_service.process_frame", return_value=[])
+    def test_uploaded_image_uses_forwarded_tracking_session(self, process_frame):
+        response = self.client.post(
+            DETECT_URL,
+            {"image": SimpleUploadedFile("frame.jpg", b"jpeg-frame", "image/jpeg")},
+            HTTP_X_TRACKING_SESSION="vision-session-1",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        process_frame.assert_called_once_with(
+            b"jpeg-frame",
+            session_key="vision-session-1",
+            user_id=None,
+            include_depth=False,
+        )
+
+    def test_real_model_processes_uploaded_camera_frame(self):
+        encoded_ok, encoded_image = cv2.imencode(
+            ".jpg", np.zeros((480, 640, 3), dtype=np.uint8)
+        )
+        self.assertTrue(encoded_ok)
+
+        response = self.client.post(
+            DETECT_URL,
+            {
+                "image": SimpleUploadedFile(
+                    "camera-frame.jpg", encoded_image.tobytes(), "image/jpeg"
+                )
+            },
+            HTTP_X_TRACKING_SESSION="model-smoke-session",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["success"])
+        self.assertIsInstance(response.json()["detections"], list)
 
     @patch("backend.services.vision_service.detector")
     def test_base64_image_returns_detections(self, mock_detector):

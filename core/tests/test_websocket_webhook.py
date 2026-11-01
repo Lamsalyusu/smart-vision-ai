@@ -52,6 +52,15 @@ class WebSocketAndWebhookTests(unittest.IsolatedAsyncioTestCase):
         expected = hmac.new(b"redacted-test-webhook-secret", data, hashlib.sha256).hexdigest()
         self.assertEqual(sig, expected)
 
+    async def test_invalid_webhook_url_is_added_to_dead_letter_queue(self):
+        dispatcher = WebhookDispatcher(max_retries=2)
+
+        delivered = await dispatcher.dispatch("http://[invalid", "test.event", {})
+
+        self.assertFalse(delivered)
+        self.assertEqual(len(dispatcher.dead_letter_queue), 1)
+        self.assertEqual(dispatcher.dead_letter_queue[0]["target_url"], "http://[invalid")
+
 
 if __name__ == "__main__":
     unittest.main()

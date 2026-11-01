@@ -1,4 +1,4 @@
-import { DetectionRecord, SpatialTrack, MeshReconstructionResponse } from "./types.js";
+import { MeshReconstructionResponse } from "./types.js";
 
 export class SmartVisionClient {
   private baseUrl: string;

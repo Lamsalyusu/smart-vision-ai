@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Dict, List, Set, Tuple
+
 import numpy as np
 
 from .marching_cubes import TriangleMesh
@@ -17,7 +17,7 @@ class MeshPostProcessor:
             return mesh
 
         # Build vertex adjacency map
-        adjacency: Dict[int, Set[int]] = defaultdict(set)
+        adjacency: dict[int, set[int]] = defaultdict(set)
         for i0, i1, i2 in mesh.faces:
             adjacency[i0].add(i1)
             adjacency[i0].add(i2)
@@ -51,9 +51,9 @@ class MeshPostProcessor:
 
         # Map vertices to grid cell keys
         cell_coords = np.floor(mesh.vertices / cluster_voxel_size).astype(np.int64)
-        cell_to_id: Dict[Tuple[int, int, int], int] = {}
-        cluster_verts: List[List[np.ndarray]] = []
-        vert_remap: Dict[int, int] = {}
+        cell_to_id: dict[tuple[int, int, int], int] = {}
+        cluster_verts: list[list[np.ndarray]] = []
+        vert_remap: dict[int, int] = {}
 
         for idx, coord in enumerate(cell_coords):
             key = (int(coord[0]), int(coord[1]), int(coord[2]))
@@ -69,7 +69,7 @@ class MeshPostProcessor:
         new_vertices = np.array([np.mean(pts, axis=0) for pts in cluster_verts], dtype=np.float64)
 
         # Re-index faces and eliminate degenerates
-        new_faces: List[Tuple[int, int, int]] = []
+        new_faces: list[tuple[int, int, int]] = []
         for i0, i1, i2 in mesh.faces:
             n0 = vert_remap[i0]
             n1 = vert_remap[i1]

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Tuple
+
 import numpy as np
 
 
@@ -20,9 +20,9 @@ class StereoTriangulationEngine:
         return np.dot(K2.T, np.dot(F, K1))
 
     @staticmethod
-    def decompose_essential_matrix(E: np.ndarray) -> List[Tuple[np.ndarray, np.ndarray]]:
+    def decompose_essential_matrix(E: np.ndarray) -> list[tuple[np.ndarray, np.ndarray]]:
         """Decompose Essential Matrix into 4 possible (R, t) hypothesis solutions via SVD."""
-        U, S, Vt = np.linalg.svd(E)
+        U, _S, Vt = np.linalg.svd(E)
         if np.linalg.det(U) < 0:
             U *= -1.0
         if np.linalg.det(Vt) < 0:
@@ -48,7 +48,7 @@ class StereoTriangulationEngine:
         return solutions
 
     @staticmethod
-    def triangulate_point_dlt(points_2d: List[Tuple[float, float]], cameras: List[CameraProjectionMatrix]) -> np.ndarray:
+    def triangulate_point_dlt(points_2d: list[tuple[float, float]], cameras: list[CameraProjectionMatrix]) -> np.ndarray:
         """Triangulate a 3D point from multiple 2D camera observations using SVD Direct Linear Transformation (DLT).
 
         Args:
@@ -84,9 +84,9 @@ class StereoTriangulationEngine:
         E: np.ndarray,
         K1: np.ndarray,
         K2: np.ndarray,
-        pt1: Tuple[float, float],
-        pt2: Tuple[float, float],
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        pt1: tuple[float, float],
+        pt2: tuple[float, float],
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Select the unique (R, t) solution among 4 candidates where 3D point has positive depth in both views."""
         solutions = cls.decompose_essential_matrix(E)
         P1 = np.dot(K1, np.hstack([np.eye(3), np.zeros((3, 1))]))
@@ -110,7 +110,7 @@ class StereoTriangulationEngine:
                 if pos_count > max_positive_depths:
                     max_positive_depths = pos_count
                     best_R, best_t, best_X = R, t, X_3d
-            except Exception:
+            except (ValueError, np.linalg.LinAlgError):
                 continue
 
         return best_R, best_t, best_X

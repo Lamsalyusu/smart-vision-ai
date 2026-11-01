@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import collections
 import time
-from typing import DefaultDict, Deque, Dict, Optional, Tuple
 
 
 class SlidingWindowRateLimiter:
@@ -11,9 +10,9 @@ class SlidingWindowRateLimiter:
     def __init__(self, max_requests: int = 60, window_seconds: float = 60.0) -> None:
         self.max_requests = max_requests
         self.window = window_seconds
-        self._buckets: DefaultDict[str, Deque[float]] = collections.defaultdict(collections.deque)
+        self._buckets: collections.defaultdict[str, collections.deque[float]] = collections.defaultdict(collections.deque)
 
-    def is_allowed(self, client_key: str, now: Optional[float] = None) -> Tuple[bool, int, float]:
+    def is_allowed(self, client_key: str, now: float | None = None) -> tuple[bool, int, float]:
         """Check whether request is within rate limits.
 
         Returns:
@@ -37,7 +36,7 @@ class SlidingWindowRateLimiter:
         reset_after = max(0.01, self.window - (current_time - oldest_ts))
         return False, 0, reset_after
 
-    def reset(self, client_key: Optional[str] = None) -> None:
+    def reset(self, client_key: str | None = None) -> None:
         if client_key:
             self._buckets.pop(client_key, None)
         else:
