@@ -10,31 +10,39 @@ interface ReplayFrame {
   detections: Detection[];
 }
 
-const STORAGE_KEY = "smartvision_replay_v1";
-
 export default function ReplayPage() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [frames, setFrames] = useState<ReplayFrame[]>([]);
   const [frameIndex, setFrameIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [replayError, setReplayError] = useState<string | null>(null);
   const currentFrame = frames[frameIndex];
 
   useEffect(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-      if (Array.isArray(saved)) {
-        const valid = saved.filter(
-          (frame): frame is ReplayFrame =>
-            Number.isFinite(frame?.capturedAt) && Array.isArray(frame?.detections)
-        );
-        window.requestAnimationFrame(() => {
-          setFrames(valid);
-          setFrameIndex(Math.max(0, valid.length - 1));
-        });
-      }
-    } catch {
-      localStorage.removeItem(STORAGE_KEY);
-    }
+    let cancelled = false;
+    fetch("/api/replay", { cache: "no-store" })
+      .then(async (response) => {
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || "Replay history unavailable");
+        return result.frames;
+      })
+      .then((saved: ReplayFrame[]) => {
+        if (cancelled) return;
+        const valid = Array.isArray(saved)
+          ? saved.filter((frame) => Number.isFinite(frame?.capturedAt) && Array.isArray(frame?.detections))
+          : [];
+        setFrames(valid);
+        setFrameIndex(Math.max(0, valid.length - 1));
+        setReplayError(null);
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) setReplayError(error instanceof Error ? error.message : "Replay history unavailable");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
@@ -124,11 +132,17 @@ export default function ReplayPage() {
     });
   }, [frames, frameIndex]);
 
-  const clearReplay = () => {
-    localStorage.removeItem(STORAGE_KEY);
-    setFrames([]);
-    setFrameIndex(0);
-    setPlaying(false);
+  const clearReplay = async () => {
+    try {
+      const response = await fetch("/api/replay", { method: "DELETE" });
+      if (!response.ok) throw new Error("Could not clear replay history");
+      setFrames([]);
+      setFrameIndex(0);
+      setPlaying(false);
+      setReplayError(null);
+    } catch (error) {
+      setReplayError(error instanceof Error ? error.message : "Could not clear replay history");
+    }
   };
 
   return (
@@ -154,11 +168,11 @@ export default function ReplayPage() {
       <section className="mx-auto max-w-7xl space-y-5 px-5 py-6">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <p className="text-xs text-[#92a197]">LOCAL CAPTURE · UP TO 240 FRAMES</p>
+            <p className="text-xs text-[#92a197]">SERVER HISTORY · UP TO 240 FRAMES · 30 DAY RETENTION</p>
             <h2 className="mt-1 text-xl font-semibold">Track history</h2>
           </div>
           <div className="flex items-center gap-2 text-xs text-[#92a197]">
-            <span>{frames.length.toLocaleString()} frames</span>
+            <span>{loading ? "Loading…" : `${frames.length.toLocaleString()} frames`}</span>
             {currentFrame && <span>· {new Date(currentFrame.capturedAt).toLocaleTimeString()}</span>}
           </div>
         </div>
@@ -205,6 +219,9 @@ export default function ReplayPage() {
               <span className="font-mono text-[11px] text-[#8d9d92]">{currentFrame?.detections.length ?? 0}</span>
             </div>
             <div className="max-h-[min(58vh,560px)] min-h-[300px] divide-y divide-white/5 overflow-y-auto">
+              {replayError && (
+                <p role="status" className="px-4 py-3 text-xs text-red-300">{replayError}</p>
+              )}
               {currentFrame?.detections.map((detection, index) => (
                 <div key={`${detection.track_id ?? detection.class}-${index}`} className="flex items-center justify-between gap-3 px-4 py-3">
                   <div className="min-w-0">

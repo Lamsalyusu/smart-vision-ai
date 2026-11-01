@@ -65,6 +65,12 @@ docker compose up --build vision
 
 `next dev` defaults to `http://localhost:8001/api/detect/`; the Compose web service uses `http://vision:8001/api/detect/`. Configure `VISION_API_URL` to a reachable inference service URL in production. Detection requests return `503` when no inference service is configured rather than displaying generated detections.
 
+Generate a private internal service token and place the same value in `INTERNAL_API_TOKEN` for the web and auth services. Replay metadata is scoped to the opaque browser session, capped at 240 frames per session, and retained for 30 days; video images are not stored.
+
+```bash
+openssl rand -hex 32
+```
+
 ---
 
 ## Project Structure
@@ -74,7 +80,7 @@ docker compose up --build vision
 │   ├── camera/           # Live camera feed with detection overlay & HUD
 │   ├── dashboard/        # Telemetry, analytics, and class statistics
 │   ├── model-viewer/     # Three.js 3D point cloud & GLB mesh viewer
-│   ├── replay/           # Spatial trajectory replay
+│   ├── replay/           # Session-scoped SQL-backed spatial trajectory replay
 │   └── api/              # API endpoints for detection, chat & 3D models
 ├── lib/                  # Core algorithms in TypeScript
 │   ├── detector.ts       # Object detection logic & class thresholds

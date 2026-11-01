@@ -1,8 +1,8 @@
 .PHONY: help install dev test test-py test-ts test-core lint lint-py lint-ts lint-core type-check type-check-core docker-up docker-down clean
 
-PYTHON ?= .venv/bin/python
-RUFF ?= $(dir $(PYTHON))ruff
-MYPY ?= $(dir $(PYTHON))mypy
+PYTHON ?= $(if $(wildcard .venv/bin/python),.venv/bin/python,python)
+RUFF ?= $(if $(wildcard .venv/bin/ruff),.venv/bin/ruff,ruff)
+MYPY ?= $(if $(wildcard .venv/bin/mypy),.venv/bin/mypy,mypy)
 
 help:
 	@echo "Smart Vision AI Build & Quality System:"
