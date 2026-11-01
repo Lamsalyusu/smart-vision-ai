@@ -27,6 +27,15 @@ from .multicam import (
 )
 from .point_cloud import BoundingBox3D, PointCloud3D
 from .transforms import CoordinateFrame, Quaternion, Transform3D, Vector3
+from .mesh_reconstruction import (
+    MarchingCubesReconstructor,
+    MeshExporter,
+    MeshPostProcessor,
+    PointCloudNormalEstimator,
+    TriangleMesh,
+    VolumetricTSDFBuilder,
+    VoxelGridMetadata,
+)
 
 __all__ = [
     "BoundingBox3D",
@@ -37,14 +46,21 @@ __all__ = [
     "CoordinateFrame",
     "CrossCameraAssociator",
     "GlobalTrackMatch",
+    "MarchingCubesReconstructor",
+    "MeshExporter",
+    "MeshPostProcessor",
     "MultiCameraObservation",
     "OrientedBox3D",
     "PlaneEstimate",
     "PointCloud3D",
+    "PointCloudNormalEstimator",
     "Quaternion",
     "ReprojectionObservation",
     "Transform3D",
+    "TriangleMesh",
     "Vector3",
+    "VolumetricTSDFBuilder",
+    "VoxelGridMetadata",
     "backproject_frustum_box",
     "estimate_fundamental_matrix",
     "estimate_homography",

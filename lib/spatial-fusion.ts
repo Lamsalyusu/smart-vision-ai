@@ -1,5 +1,7 @@
 import { Detection, Spatial3D } from "./types";
 
+// Pinhole camera back-projection helper to calculate estimated 3D position (X, Y, Z)
+// from 2D bounding boxes and camera FOV
 export class CameraIntrinsics {
   public width: number;
   public height: number;
