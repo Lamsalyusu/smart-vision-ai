@@ -1,0 +1,6403 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Smart Vision AI Spatial Perception Platform API",
+    "version": "2.4.0",
+    "description": "Enterprise API for Real-Time Edge Computer Vision, 3D Point Cloud Reconstruction, Multi-Camera SLAM, and Behavioral Analytics."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8000",
+      "description": "Local Edge Development Gateway"
+    },
+    {
+      "url": "https://api.smartvision.ai/v2",
+      "description": "Production Cloud Cluster"
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "HealthCheck",
+        "summary": "System health and cluster readiness check",
+        "responses": {
+          "200": {
+            "description": "Successful operation"
+          },
+          "400": {
+            "description": "Invalid input parameters"
+          },
+          "401": {
+            "description": "Unauthorized access"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/login": {
+      "post": {
+        "operationId": "UserLogin",
+        "summary": "User authentication and JWT session issuance",
+        "responses": {
+          "200": {
+            "description": "Successful operation"
+          },
+          "400": {
+            "description": "Invalid input parameters"
+          },
+          "401": {
+            "description": "Unauthorized access"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/signup": {
+      "post": {
+        "operationId": "UserSignup",
+        "summary": "User registration with RBAC role assignment",
+        "responses": {
+          "200": {
+            "description": "Successful operation"
+          },
+          "400": {
+            "description": "Invalid input parameters"
+          },
+          "401": {
+            "description": "Unauthorized access"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/session": {
+      "get": {
+        "operationId": "SessionInfo",
+        "summary": "Retrieve active authenticated session details",
+        "responses": {
+          "200": {
+            "description": "Successful operation"
+          },
+          "400": {
+            "description": "Invalid input parameters"
+          },
+          "401": {
+            "description": "Unauthorized access"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/detect": {
+      "post": {
+        "operationId": "ObjectDetection",
+        "summary": "Execute object detection and depth estimation pipeline",
+        "responses": {
+          "200": {
+            "description": "Successful operation"
+          },
+          "400": {
+            "description": "Invalid input parameters"
+          },
+          "401": {
+            "description": "Unauthorized access"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/mesh/reconstruct": {
+      "post": {
+        "operationId": "MeshReconstruct",
+        "summary": "Reconstruct 3D surface mesh from point cloud or object class",
+        "responses": {
+          "200": {
+            "description": "Successful operation"
+          },
+          "400": {
+            "description": "Invalid input parameters"
+          },
+          "401": {
+            "description": "Unauthorized access"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/webhooks/dispatch": {
+      "post": {
+        "operationId": "WebhookDispatch",
+        "summary": "Outbound reliable webhook event delivery",
+        "responses": {
+          "200": {
+            "description": "Successful operation"
+          },
+          "400": {
+            "description": "Invalid input parameters"
+          },
+          "401": {
+            "description": "Unauthorized access"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/admin/audit-logs": {
+      "get": {
+        "operationId": "AdminAuditLogs",
+        "summary": "Retrieve security audit trails (RBAC restricted)",
+        "responses": {
+          "200": {
+            "description": "Successful operation"
+          },
+          "400": {
+            "description": "Invalid input parameters"
+          },
+          "401": {
+            "description": "Unauthorized access"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/metrics": {
+      "get": {
+        "operationId": "PrometheusMetrics",
+        "summary": "Prometheus exposition format monitoring telemetry",
+        "responses": {
+          "200": {
+            "description": "Successful operation"
+          },
+          "400": {
+            "description": "Invalid input parameters"
+          },
+          "401": {
+            "description": "Unauthorized access"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "DetectionRecord_person": {
+        "type": "object",
+        "description": "Perception schema definition for detected class person",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "person"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_bicycle": {
+        "type": "object",
+        "description": "Perception schema definition for detected class bicycle",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "bicycle"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_car": {
+        "type": "object",
+        "description": "Perception schema definition for detected class car",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "car"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_motorcycle": {
+        "type": "object",
+        "description": "Perception schema definition for detected class motorcycle",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "motorcycle"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_airplane": {
+        "type": "object",
+        "description": "Perception schema definition for detected class airplane",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "airplane"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_bus": {
+        "type": "object",
+        "description": "Perception schema definition for detected class bus",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "bus"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_train": {
+        "type": "object",
+        "description": "Perception schema definition for detected class train",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "train"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_truck": {
+        "type": "object",
+        "description": "Perception schema definition for detected class truck",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "truck"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_boat": {
+        "type": "object",
+        "description": "Perception schema definition for detected class boat",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "boat"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_traffic_light": {
+        "type": "object",
+        "description": "Perception schema definition for detected class traffic light",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "traffic light"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_fire_hydrant": {
+        "type": "object",
+        "description": "Perception schema definition for detected class fire hydrant",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "fire hydrant"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_stop_sign": {
+        "type": "object",
+        "description": "Perception schema definition for detected class stop sign",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "stop sign"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_parking_meter": {
+        "type": "object",
+        "description": "Perception schema definition for detected class parking meter",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "parking meter"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_bench": {
+        "type": "object",
+        "description": "Perception schema definition for detected class bench",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "bench"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_bird": {
+        "type": "object",
+        "description": "Perception schema definition for detected class bird",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "bird"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_cat": {
+        "type": "object",
+        "description": "Perception schema definition for detected class cat",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "cat"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_dog": {
+        "type": "object",
+        "description": "Perception schema definition for detected class dog",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "dog"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_horse": {
+        "type": "object",
+        "description": "Perception schema definition for detected class horse",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "horse"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_sheep": {
+        "type": "object",
+        "description": "Perception schema definition for detected class sheep",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "sheep"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_cow": {
+        "type": "object",
+        "description": "Perception schema definition for detected class cow",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "cow"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_elephant": {
+        "type": "object",
+        "description": "Perception schema definition for detected class elephant",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "elephant"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_bear": {
+        "type": "object",
+        "description": "Perception schema definition for detected class bear",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "bear"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_zebra": {
+        "type": "object",
+        "description": "Perception schema definition for detected class zebra",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "zebra"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_giraffe": {
+        "type": "object",
+        "description": "Perception schema definition for detected class giraffe",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "giraffe"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_backpack": {
+        "type": "object",
+        "description": "Perception schema definition for detected class backpack",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "backpack"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_umbrella": {
+        "type": "object",
+        "description": "Perception schema definition for detected class umbrella",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "umbrella"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_handbag": {
+        "type": "object",
+        "description": "Perception schema definition for detected class handbag",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "handbag"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_tie": {
+        "type": "object",
+        "description": "Perception schema definition for detected class tie",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "tie"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_suitcase": {
+        "type": "object",
+        "description": "Perception schema definition for detected class suitcase",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "suitcase"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_frisbee": {
+        "type": "object",
+        "description": "Perception schema definition for detected class frisbee",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "frisbee"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_skis": {
+        "type": "object",
+        "description": "Perception schema definition for detected class skis",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "skis"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_snowboard": {
+        "type": "object",
+        "description": "Perception schema definition for detected class snowboard",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "snowboard"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_sports_ball": {
+        "type": "object",
+        "description": "Perception schema definition for detected class sports ball",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "sports ball"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_kite": {
+        "type": "object",
+        "description": "Perception schema definition for detected class kite",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "kite"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_baseball_bat": {
+        "type": "object",
+        "description": "Perception schema definition for detected class baseball bat",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "baseball bat"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_baseball_glove": {
+        "type": "object",
+        "description": "Perception schema definition for detected class baseball glove",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "baseball glove"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_skateboard": {
+        "type": "object",
+        "description": "Perception schema definition for detected class skateboard",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "skateboard"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_surfboard": {
+        "type": "object",
+        "description": "Perception schema definition for detected class surfboard",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "surfboard"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_tennis_racket": {
+        "type": "object",
+        "description": "Perception schema definition for detected class tennis racket",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "tennis racket"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_bottle": {
+        "type": "object",
+        "description": "Perception schema definition for detected class bottle",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "bottle"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_wine_glass": {
+        "type": "object",
+        "description": "Perception schema definition for detected class wine glass",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "wine glass"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_cup": {
+        "type": "object",
+        "description": "Perception schema definition for detected class cup",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "cup"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_fork": {
+        "type": "object",
+        "description": "Perception schema definition for detected class fork",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "fork"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_knife": {
+        "type": "object",
+        "description": "Perception schema definition for detected class knife",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "knife"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_spoon": {
+        "type": "object",
+        "description": "Perception schema definition for detected class spoon",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "spoon"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_bowl": {
+        "type": "object",
+        "description": "Perception schema definition for detected class bowl",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "bowl"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_banana": {
+        "type": "object",
+        "description": "Perception schema definition for detected class banana",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "banana"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_apple": {
+        "type": "object",
+        "description": "Perception schema definition for detected class apple",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "apple"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_sandwich": {
+        "type": "object",
+        "description": "Perception schema definition for detected class sandwich",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "sandwich"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_orange": {
+        "type": "object",
+        "description": "Perception schema definition for detected class orange",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "orange"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_broccoli": {
+        "type": "object",
+        "description": "Perception schema definition for detected class broccoli",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "broccoli"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_carrot": {
+        "type": "object",
+        "description": "Perception schema definition for detected class carrot",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "carrot"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_hot_dog": {
+        "type": "object",
+        "description": "Perception schema definition for detected class hot dog",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "hot dog"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_pizza": {
+        "type": "object",
+        "description": "Perception schema definition for detected class pizza",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "pizza"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_donut": {
+        "type": "object",
+        "description": "Perception schema definition for detected class donut",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "donut"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_cake": {
+        "type": "object",
+        "description": "Perception schema definition for detected class cake",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "cake"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_chair": {
+        "type": "object",
+        "description": "Perception schema definition for detected class chair",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "chair"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_couch": {
+        "type": "object",
+        "description": "Perception schema definition for detected class couch",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "couch"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_potted_plant": {
+        "type": "object",
+        "description": "Perception schema definition for detected class potted plant",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "potted plant"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_bed": {
+        "type": "object",
+        "description": "Perception schema definition for detected class bed",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "bed"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_dining_table": {
+        "type": "object",
+        "description": "Perception schema definition for detected class dining table",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "dining table"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_toilet": {
+        "type": "object",
+        "description": "Perception schema definition for detected class toilet",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "toilet"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_tv": {
+        "type": "object",
+        "description": "Perception schema definition for detected class tv",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "tv"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_laptop": {
+        "type": "object",
+        "description": "Perception schema definition for detected class laptop",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "laptop"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_mouse": {
+        "type": "object",
+        "description": "Perception schema definition for detected class mouse",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "mouse"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_remote": {
+        "type": "object",
+        "description": "Perception schema definition for detected class remote",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "remote"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_keyboard": {
+        "type": "object",
+        "description": "Perception schema definition for detected class keyboard",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "keyboard"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_cell_phone": {
+        "type": "object",
+        "description": "Perception schema definition for detected class cell phone",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "cell phone"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_microwave": {
+        "type": "object",
+        "description": "Perception schema definition for detected class microwave",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "microwave"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_oven": {
+        "type": "object",
+        "description": "Perception schema definition for detected class oven",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "oven"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_toaster": {
+        "type": "object",
+        "description": "Perception schema definition for detected class toaster",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "toaster"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_sink": {
+        "type": "object",
+        "description": "Perception schema definition for detected class sink",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "sink"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_refrigerator": {
+        "type": "object",
+        "description": "Perception schema definition for detected class refrigerator",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "refrigerator"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_book": {
+        "type": "object",
+        "description": "Perception schema definition for detected class book",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "book"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_clock": {
+        "type": "object",
+        "description": "Perception schema definition for detected class clock",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "clock"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_vase": {
+        "type": "object",
+        "description": "Perception schema definition for detected class vase",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "vase"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_scissors": {
+        "type": "object",
+        "description": "Perception schema definition for detected class scissors",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "scissors"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_teddy_bear": {
+        "type": "object",
+        "description": "Perception schema definition for detected class teddy bear",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "teddy bear"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_hair_drier": {
+        "type": "object",
+        "description": "Perception schema definition for detected class hair drier",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "hair drier"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      },
+      "DetectionRecord_toothbrush": {
+        "type": "object",
+        "description": "Perception schema definition for detected class toothbrush",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "class_name": {
+            "type": "string",
+            "enum": [
+              "toothbrush"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "bounding_box": {
+            "type": "object",
+            "properties": {
+              "xmin": {
+                "type": "number"
+              },
+              "ymin": {
+                "type": "number"
+              },
+              "xmax": {
+                "type": "number"
+              },
+              "ymax": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "xmin",
+              "ymin",
+              "xmax",
+              "ymax"
+            ]
+          },
+          "spatial_3d": {
+            "type": "object",
+            "properties": {
+              "x_meters": {
+                "type": "number"
+              },
+              "y_meters": {
+                "type": "number"
+              },
+              "z_meters": {
+                "type": "number"
+              },
+              "covariance_matrix": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "timestamp_iso": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "class_name",
+          "confidence",
+          "bounding_box"
+        ]
+      }
+    },
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      },
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key"
+      }
+    }
+  }
+}

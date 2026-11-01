@@ -102,5 +102,6 @@ export interface UserAccount {
   username: string;
   password_hash: string;
   auth_provider: string;
+  role?: string;
   created_at: string;
 }

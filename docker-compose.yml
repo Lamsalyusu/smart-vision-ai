@@ -3,13 +3,71 @@ services:
     build: .
     container_name: smart_vision_ai
     ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+      - SECRET_KEY=${SECRET_KEY}
+      - AUTH_API_URL=http://auth:8000
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - .:/app
+    depends_on:
+      auth:
+        condition: service_started
+      redis:
+        condition: service_healthy
+
+  auth:
+    build:
+      context: ./core/infrastructure/api
+      dockerfile: Dockerfile
+    container_name: smart_vision_ai_auth
+    ports:
       - "8000:8000"
     environment:
-      - DJANGO_DEBUG=True
-      - DJANGO_ALLOWED_HOSTS=*
-      - OFFLINE_MODE=True
-      - SECRET_KEY=docker-evaluation-smartvision-secret-key-2026
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - POSTGRES_DB=${POSTGRES_DB:-smart_vision_ai}
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=${POSTGRES_PORT:-5432}
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  db:
+    image: postgres:15-alpine
+    container_name: smart_vision_ai_db
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - POSTGRES_DB=${POSTGRES_DB:-smart_vision_ai}
     volumes:
-      - ./backend/ml_model/weights:/app/backend/ml_model/weights:ro
-      - ./logs:/app/logs
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-smart_vision_ai}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: smart_vision_ai_redis
+    ports:
+      - "6379:6379"
     restart: unless-stopped
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  pgdata:
+  redisdata:

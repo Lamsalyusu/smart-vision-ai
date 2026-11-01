@@ -1,35 +1,30 @@
-# SmartVision AI Production & Evaluation Container
-FROM python:3.12-slim-bookworm
-
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    TF_ENABLE_ONEDNN_OPTS=0 \
-    PORT=8000
-
-# Install system dependencies for OpenCV and numerical libraries
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libgl1 \
-    libglib2.0-0 \
-    libgomp1 \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
-
+# Multi-stage production container for Next.js web application
+FROM node:20-alpine AS deps
 WORKDIR /app
+COPY package.json package-lock.json* ./
+RUN npm ci
 
-# Install Python requirements
-COPY requirements.txt /app/
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+ENV NEXT_TELEMETRY_DISABLED=1
+RUN npm run build
 
-# Copy application source code
-COPY . /app/
+FROM node:20-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+ENV PORT=3000
 
-# Expose HTTP port
-EXPOSE 8000
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-    CMD curl -f http://localhost:8000/ || exit 1
+COPY --from=builder /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json ./package.json
 
-# Default execution
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+USER nextjs
+EXPOSE 3000
+
+CMD ["npm", "start"]
