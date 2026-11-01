@@ -40,10 +40,8 @@ export const CLASS_COLORS: Record<string, string> = {
 };
 
 export class ObjectDetector {
-  /**
-   * Run object detection on an image input.
-   * Parses image frame characteristics and detects relevant smart-vision classes.
-   */
+  // Runs client-side fallback detection or test target generation
+  // when backend YOLO inference is not streaming directly.
   public detect(
     imageWidth = 640,
     imageHeight = 480,
@@ -51,7 +49,6 @@ export class ObjectDetector {
   ): Detection[] {
     const detections: Detection[] = [];
 
-    // If specific simulated/target classes requested (e.g. from camera feed context or tests)
     const targets = simulatedClasses && simulatedClasses.length > 0 ? simulatedClasses : [];
 
     if (targets.length > 0) {
