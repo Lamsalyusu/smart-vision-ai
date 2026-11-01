@@ -1,7 +1,11 @@
 import threading
 import unittest
 
-from core.infrastructure.resilience import CircuitBreaker, CircuitOpenError, CircuitState
+from core.infrastructure.resilience import (
+    CircuitBreaker,
+    CircuitOpenError,
+    CircuitState,
+)
 
 
 def fail_operation() -> None:
@@ -87,7 +91,6 @@ class CircuitBreakerTests(unittest.TestCase):
         def probe() -> None:
             entered.set()
             release.wait(timeout=2)
-            return None
 
         worker = threading.Thread(target=lambda: self.breaker.call(probe))
         worker.start()

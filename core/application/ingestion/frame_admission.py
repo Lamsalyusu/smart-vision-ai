@@ -1,6 +1,6 @@
-from dataclasses import dataclass
 import math
 import threading
+from dataclasses import dataclass
 
 
 @dataclass(frozen=True, slots=True)
