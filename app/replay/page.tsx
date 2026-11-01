@@ -27,8 +27,10 @@ export default function ReplayPage() {
           (frame): frame is ReplayFrame =>
             Number.isFinite(frame?.capturedAt) && Array.isArray(frame?.detections)
         );
-        setFrames(valid);
-        setFrameIndex(Math.max(0, valid.length - 1));
+        window.requestAnimationFrame(() => {
+          setFrames(valid);
+          setFrameIndex(Math.max(0, valid.length - 1));
+        });
       }
     } catch {
       localStorage.removeItem(STORAGE_KEY);
