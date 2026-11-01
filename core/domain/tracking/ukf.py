@@ -204,5 +204,46 @@ class UnscentedKalmanFilter3D:
         self._state[6] = self._wrap_angle(self._state[6])
         self._covariance -= gain @ measurement_covariance @ gain.T
         self._covariance = (self._covariance + self._covariance.T) * 0.5
+        eigvals, eigvecs = np.linalg.eigh(self._covariance)
+        eigvals = np.maximum(eigvals, 1e-9)
+        self._covariance = eigvecs @ np.diag(eigvals) @ eigvecs.T
+        self._covariance = (self._covariance + self._covariance.T) * 0.5
         self._validate_covariance(self._covariance, "updated covariance")
         return self.state
+
+    def mahalanobis_distance(self, measurement: Sequence[float]) -> float:
+        """Calculate squared Mahalanobis distance between observation and predicted measurement."""
+        observed = np.asarray(measurement, dtype=np.float64)
+        if observed.shape != (len(self.MEASUREMENT_INDICES),) or not np.isfinite(observed).all():
+            raise ValueError("measurement must contain finite x, y, z, and heading values")
+        observed[3] = self._wrap_angle(float(observed[3]))
+
+        sigma_points, mean_weights, covariance_weights = self._sigma_points()
+        measurement_points = sigma_points[list(self.MEASUREMENT_INDICES), :].copy()
+        measurement_points[3, :] = np.vectorize(self._wrap_angle)(measurement_points[3, :])
+        measurement_mean = measurement_points @ mean_weights
+        measurement_mean[3] = math.atan2(
+            float(np.dot(mean_weights, np.sin(measurement_points[3]))),
+            float(np.dot(mean_weights, np.cos(measurement_points[3]))),
+        )
+
+        measurement_covariance = self._measurement_noise.copy()
+        for index, weight in enumerate(covariance_weights):
+            measurement_residual = measurement_points[:, index] - measurement_mean
+            measurement_residual[3] = self._wrap_angle(measurement_residual[3])
+            measurement_covariance += weight * np.outer(
+                measurement_residual, measurement_residual
+            )
+
+        innovation = observed - measurement_mean
+        innovation[3] = self._wrap_angle(innovation[3])
+        try:
+            whitened = np.linalg.solve(np.linalg.cholesky(measurement_covariance), innovation)
+            return float(np.sum(whitened**2))
+        except np.linalg.LinAlgError:
+            inv = np.linalg.pinv(measurement_covariance)
+            return float(innovation @ inv @ innovation)
+
+    def gate(self, measurement: Sequence[float], threshold: float = 9.488) -> bool:
+        """Return True if measurement passes Chi-square gating at the specified threshold."""
+        return self.mahalanobis_distance(measurement) <= threshold
