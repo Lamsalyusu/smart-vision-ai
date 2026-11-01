@@ -1,16 +1,19 @@
 from __future__ import annotations
 
-from typing import Any
+from types import TracebackType
+from typing import Self
+
 from sqlalchemy.orm import Session
 
 from core.domain.ports.unit_of_work import UnitOfWorkPort
+
 from .engine import SessionLocal
 from .repositories import (
-    SqlAlchemyUserRepository,
-    SqlAlchemySessionRepository,
-    SqlAlchemyCropRepository,
-    SqlAlchemyTelemetryRepository,
     SqlAlchemyAuditRepository,
+    SqlAlchemyCropRepository,
+    SqlAlchemySessionRepository,
+    SqlAlchemyTelemetryRepository,
+    SqlAlchemyUserRepository,
 )
 
 
@@ -21,7 +24,7 @@ class SqlAlchemyUnitOfWork(UnitOfWorkPort):
         self.session_factory = session_factory
         self.session: Session | None = None
 
-    def __enter__(self) -> SqlAlchemyUnitOfWork:
+    def __enter__(self) -> Self:
         self.session = self.session_factory()
         self.users = SqlAlchemyUserRepository(self.session)
         self.sessions = SqlAlchemySessionRepository(self.session)
@@ -30,7 +33,12 @@ class SqlAlchemyUnitOfWork(UnitOfWorkPort):
         self.audits = SqlAlchemyAuditRepository(self.session)
         return self
 
-    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
         if self.session is not None:
             if exc_type is not None:
                 self.rollback()

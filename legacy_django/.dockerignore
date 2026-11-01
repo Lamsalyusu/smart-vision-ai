@@ -1,0 +1,9 @@
+.env
+.git
+__pycache__/
+*.py[cod]
+db.sqlite3
+logs/
+staticfiles/
+backend/ml_model/weights/checkpoint_*.weights.h5
+backend/ml_model/weights/fixed_weights.weights.h5

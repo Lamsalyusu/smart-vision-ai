@@ -4,7 +4,6 @@ import {
   saveCrop as apiSaveCrop,
   recordDetection as apiRecordDetection,
   clearHistory as apiClearHistory,
-  getStats as apiGetStats,
 } from "./apiClient";
 
 interface SessionInfo {

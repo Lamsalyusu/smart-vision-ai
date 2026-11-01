@@ -1,7 +1,6 @@
 import unittest
 
 from core.domain.analytics.geofence import (
-    BreachSeverity,
     GeofenceZone,
     TripwireDetector,
     ZoneType,

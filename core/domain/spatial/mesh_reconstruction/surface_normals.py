@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import math
-from typing import List, Tuple
 import numpy as np
 
 
@@ -15,7 +13,7 @@ class PointCloudNormalEstimator:
     4. Orients normals consistently towards viewpoint (sensor origin).
     """
 
-    def __init__(self, k_neighbors: int = 10, viewpoint: Tuple[float, float, float] = (0.0, 0.0, 0.0)) -> None:
+    def __init__(self, k_neighbors: int = 10, viewpoint: tuple[float, float, float] = (0.0, 0.0, 0.0)) -> None:
         self.k = max(3, k_neighbors)
         self.viewpoint = np.array(viewpoint, dtype=np.float64)
 
@@ -52,7 +50,7 @@ class PointCloudNormalEstimator:
             cov = np.dot(shifted.T, shifted) / max(1, k - 1)
 
             # Eigen-decomposition (np.linalg.eigh returns eigenvalues in ascending order)
-            eigenvalues, eigenvectors = np.linalg.eigh(cov)
+            _eigenvalues, eigenvectors = np.linalg.eigh(cov)
             normal = eigenvectors[:, 0]  # Smallest eigenvalue vector
 
             # Consistent orientation towards sensor viewpoint

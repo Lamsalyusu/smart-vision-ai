@@ -5,9 +5,9 @@ import hashlib
 import hmac
 import json
 import os
+import secrets
 import time
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Set
 
 
 @dataclass(frozen=True, slots=True)
@@ -26,18 +26,27 @@ class JWTService:
 
     def __init__(
         self,
-        secret_key: Optional[str] = None,
+        secret_key: str | None = None,
         issuer: str = "smart-vision-ai",
         audience: str = "smart-vision-ai-api",
         access_token_ttl_seconds: float = 3600.0,      # 1 hour
         refresh_token_ttl_seconds: float = 604800.0,   # 7 days
     ) -> None:
-        self.secret = (secret_key or os.getenv("SECRET_KEY", "fallback_secret_key_32_bytes_minimum_length")).encode("utf-8")
+        configured_secret = secret_key or os.getenv("SECRET_KEY")
+        if not configured_secret:
+            environment = os.getenv("APP_ENV", os.getenv("NODE_ENV", "development")).lower()
+            if environment in {"production", "prod"}:
+                raise RuntimeError("SECRET_KEY must be configured in production")
+            configured_secret = secrets.token_urlsafe(32)
+
+        self.secret = configured_secret.encode("utf-8")
+        if len(self.secret) < 32:
+            raise ValueError("SECRET_KEY must contain at least 32 bytes")
         self.issuer = issuer
         self.audience = audience
         self.access_ttl = access_token_ttl_seconds
         self.refresh_ttl = refresh_token_ttl_seconds
-        self._revocation_blocklist: Set[str] = set()
+        self._revocation_blocklist: set[str] = set()
 
     @staticmethod
     def _b64_encode(data: bytes) -> str:
@@ -65,7 +74,7 @@ class JWTService:
 
         h_b64 = self._b64_encode(json.dumps(header, separators=(",", ":")).encode("utf-8"))
         p_b64 = self._b64_encode(json.dumps(payload, separators=(",", ":")).encode("utf-8"))
-        message = f"{h_b64}.{p_b64}".encode("utf-8")
+        message = f"{h_b64}.{p_b64}".encode()
         signature = hmac.new(self.secret, message, hashlib.sha256).digest()
         sig_b64 = self._b64_encode(signature)
 
@@ -80,7 +89,7 @@ class JWTService:
             raise ValueError("Malformed JWT token structure")
 
         h_b64, p_b64, sig_b64 = parts
-        message = f"{h_b64}.{p_b64}".encode("utf-8")
+        message = f"{h_b64}.{p_b64}".encode()
         expected_sig = hmac.new(self.secret, message, hashlib.sha256).digest()
         actual_sig = self._b64_decode(sig_b64)
 

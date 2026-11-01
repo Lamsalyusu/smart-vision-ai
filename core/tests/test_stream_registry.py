@@ -52,7 +52,9 @@ class CameraStreamRegistryTests(unittest.TestCase):
             registry.register(self.make_stream(f"camera-{index}"))
 
         self.assertEqual(registry.active_count, 50)
-        self.assertEqual(registry.get("camera-37").codec, VideoCodec.H264)
+        stream = registry.get("camera-37")
+        assert stream is not None
+        self.assertEqual(stream.codec, VideoCodec.H264)
 
     def test_rejects_stream_limit_and_duplicate_id(self) -> None:
         registry = CameraStreamRegistry(maximum_streams=1)
@@ -70,6 +72,7 @@ class CameraStreamRegistryTests(unittest.TestCase):
         removed = registry.unregister("camera-1")
 
         self.assertEqual(updated.target_bitrate_bps, 800_000)
+        assert removed is not None
         self.assertEqual(removed.camera_id, "camera-1")
         self.assertEqual(registry.active_count, 0)
 

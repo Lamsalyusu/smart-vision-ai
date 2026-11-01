@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 import math
-from typing import List, Tuple
+
 import numpy as np
 
 
 class SerialRobotDynamicsRNEA:
     """Recursive Newton-Euler Algorithm (RNEA) for serial robot arm inverse dynamics."""
 
-    def __init__(self, masses: List[float], link_lengths: List[float]) -> None:
+    def __init__(self, masses: list[float], link_lengths: list[float]) -> None:
         self.masses = masses
         self.lengths = link_lengths
         self.n = len(masses)
@@ -27,7 +27,7 @@ class SerialRobotDynamicsRNEA:
         # Forward pass: propagate angular velocities and linear accelerations
         w = 0.0
         alpha = 0.0
-        acc_x, acc_y = 0.0, 9.81  # Base gravity acceleration upwards
+        _acc_x, _acc_y = 0.0, 9.81  # Base gravity acceleration upwards
 
         for i in range(self.n):
             w += qd[i]

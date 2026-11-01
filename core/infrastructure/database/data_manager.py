@@ -10,18 +10,27 @@ implemented.  Additional helpers can be added later without breaking the
 public contract.
 """
 
-from datetime import datetime, timedelta
-from typing import Optional, List, Dict, Any
+import logging
+from collections.abc import Sequence
+from datetime import timedelta
+from typing import Any
 
-from .engine import SessionLocal, Base, engine
-from .models import User, Session as DBSession, DetectionCropRecord, TelemetryStat
+from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+
+from .clock import utcnow_naive
+from .engine import Base, SessionLocal, engine
+from .models import DetectionCropRecord, FailedLoginAttempt, TelemetryStat, User
+from .models import Session as DBSession
+
+logger = logging.getLogger(__name__)
 
 # Ensure tables exist (useful for development). In production migrations should
 # be handled separately (e.g., Alembic).
 try:
     Base.metadata.create_all(bind=engine)
-except Exception:
-    pass
+except SQLAlchemyError:
+    logger.exception("Database schema initialization failed")
 
 
 class DataManager:
@@ -49,21 +58,21 @@ class DataManager:
         """
         with SessionLocal() as db:
             user = User(
-                id=f"usr_{int(datetime.utcnow().timestamp())}_{hash(email) % 1000}",
+                id=f"usr_{int(utcnow_naive().timestamp())}_{hash(email) % 1000}",
                 full_name=full_name,
                 email=email.lower().strip(),
                 username=username.strip(),
                 password_hash=password_hash,
                 auth_provider="local",
                 role=role,
-                created_at=datetime.utcnow(),
+                created_at=utcnow_naive(),
             )
             db.add(user)
             db.commit()
             db.refresh(user)
             return user
 
-    def find_user_by_identifier(self, identifier: str) -> Optional[User]:
+    def find_user_by_identifier(self, identifier: str) -> User | None:
         """Lookup a user by e‑mail or username (case‑insensitive)."""
         identifier = identifier.lower().strip()
         with SessionLocal() as db:
@@ -73,48 +82,74 @@ class DataManager:
                 .first()
             )
 
-    def get_user_by_id(self, user_id: str) -> Optional[User]:
+    def get_user_by_id(self, user_id: str) -> User | None:
         with SessionLocal() as db:
             return db.query(User).filter(User.id == user_id).first()
 
-    # Brute‑force lockout handling (stored in‑memory for now – can be persisted
-    # later if needed).  Keeping this lightweight mirrors the original behaviour.
-    _failed_attempts: Dict[str, Dict[str, Any]] = {}
-
     def is_account_locked(self, identifier: str) -> bool:
         key = identifier.lower().strip()
-        rec = self._failed_attempts.get(key)
-        if not rec:
+        now = utcnow_naive()
+        with SessionLocal() as db:
+            record = (
+                db.query(FailedLoginAttempt)
+                .filter_by(identifier=key)
+                .with_for_update()
+                .first()
+            )
+            if record is None:
+                return False
+            if record.locked_until is None:
+                return False
+            if now < record.locked_until:
+                return True
+            db.delete(record)
+            db.commit()
             return False
-        if datetime.utcnow().timestamp() < rec["locked_until"]:
-            return True
-        # lock expired – clean up
-        if rec["locked_until"] > 0 and datetime.utcnow().timestamp() >= rec["locked_until"]:
-            del self._failed_attempts[key]
-        return False
 
-    def record_failed_login(self, identifier: str) -> Dict[str, Any]:
+    def record_failed_login(self, identifier: str) -> dict[str, Any]:
         key = identifier.lower().strip()
-        rec = self._failed_attempts.get(key, {"count": 0, "locked_until": 0})
-        rec["count"] += 1
-        if rec["count"] >= 5:
-            rec["locked_until"] = (datetime.utcnow() + timedelta(minutes=15)).timestamp()
-            self._failed_attempts[key] = rec
-            return {"locked": True, "remaining_attempts": 0}
-        self._failed_attempts[key] = rec
-        return {"locked": False, "remaining_attempts": max(0, 5 - rec["count"]) }
+        now = utcnow_naive()
+        with SessionLocal() as db:
+            record = (
+                db.query(FailedLoginAttempt)
+                .filter_by(identifier=key)
+                .with_for_update()
+                .first()
+            )
+            if record is None:
+                record = FailedLoginAttempt(identifier=key, attempt_count=0)
+                db.add(record)
+                try:
+                    db.flush()
+                except IntegrityError:
+                    db.rollback()
+                    return self.record_failed_login(identifier)
+            elif record.locked_until is not None and record.locked_until <= now:
+                record.attempt_count = 0
+                record.locked_until = None
+
+            record.attempt_count += 1
+            locked = record.attempt_count >= 5
+            if locked:
+                record.locked_until = now + timedelta(minutes=15)
+            remaining_attempts = max(0, 5 - record.attempt_count)
+            db.commit()
+            return {"locked": locked, "remaining_attempts": remaining_attempts}
 
     def clear_failed_logins(self, identifier: str) -> None:
         key = identifier.lower().strip()
-        self._failed_attempts.pop(key, None)
+        with SessionLocal() as db:
+            db.query(FailedLoginAttempt).filter_by(identifier=key).delete()
+            db.commit()
 
     # Session management – persisted in the ``sessions`` table.
     def _make_token(self) -> str:
-        return f"sess_{int(datetime.utcnow().timestamp())}_{hash(datetime.utcnow()) % 10000}"
+        now = utcnow_naive()
+        return f"sess_{int(now.timestamp())}_{hash(now) % 10000}"
 
     def create_session(self, user_id: str, days: int = 7) -> str:
         token = self._make_token()
-        now = datetime.utcnow()
+        now = utcnow_naive()
         expires = now + timedelta(days=days)
         with SessionLocal() as db:
             session = DBSession(
@@ -128,18 +163,19 @@ class DataManager:
             db.commit()
         return token
 
-    def get_user_from_session(self, token: str) -> Optional[User]:
+    def get_user_from_session(self, token: str) -> User | None:
         with SessionLocal() as db:
             sess = db.query(DBSession).filter(DBSession.token == token).first()
             if not sess:
                 return None
-            if datetime.utcnow() > sess.expires_at:
+            if sess.expires_at is None or utcnow_naive() > sess.expires_at:
                 db.delete(sess)
                 db.commit()
                 return None
             # slide expiration window
-            sess.last_active_at = datetime.utcnow()
-            sess.expires_at = datetime.utcnow() + timedelta(days=7)
+            now = utcnow_naive()
+            sess.last_active_at = now
+            sess.expires_at = now + timedelta(days=7)
             db.commit()
             return self.get_user_by_id(sess.user_id)
 
@@ -156,7 +192,7 @@ class DataManager:
             db.commit()
 
     # Crop handling – persisted in ``crops`` table.
-    def save_crop(self, crop_data: Dict[str, Any]) -> DetectionCropRecord:
+    def save_crop(self, crop_data: dict[str, Any]) -> DetectionCropRecord:
         """Insert a new crop record.
 
         ``crop_data`` should contain the fields required by the ORM model:
@@ -165,10 +201,10 @@ class DataManager:
         """
         with SessionLocal() as db:
             record = DetectionCropRecord(
-                id=f"crop_{int(datetime.utcnow().timestamp())}",
+                id=f"crop_{int(utcnow_naive().timestamp())}",
                 object_class=crop_data["object_class"],
                 confidence=crop_data["confidence"],
-                timestamp=datetime.utcnow(),
+                timestamp=utcnow_naive(),
                 distance_m=crop_data.get("distance_m"),
                 has_crop=crop_data.get("has_crop", False),
                 payload=crop_data.get("payload"),
@@ -185,66 +221,104 @@ class DataManager:
             )
             return record
 
-    def get_latest_crop(self, object_class: Optional[str] = None) -> Optional[DetectionCropRecord]:
+    def get_latest_crop(self, object_class: str | None = None) -> DetectionCropRecord | None:
         with SessionLocal() as db:
             query = db.query(DetectionCropRecord).order_by(DetectionCropRecord.timestamp.desc())
             if object_class:
                 query = query.filter(DetectionCropRecord.object_class == object_class)
             return query.first()
 
-    # Telemetry / detection history – stored in ``telemetry`` table.  For the
-    # sake of parity we keep a lightweight in‑memory buffer for the most recent
-    # detections (the original implementation capped at 200 entries).  This
-    # buffer is persisted as separate rows in ``telemetry``.
-    _in_memory_history: List[Dict[str, Any]] = []
-
     def record_detection(
         self,
         class_name: str,
         confidence: float,
-        distance_m: Optional[float] = None,
+        distance_m: float | None = None,
         has_crop: bool = False,
         max_history: int = 200,
     ) -> None:
-        entry = {
-            "class": class_name,
-            "confidence": round(confidence, 2),
-            "distance_m": round(distance_m, 2) if distance_m is not None else None,
-            "timestamp": datetime.utcnow().isoformat(),
+        self.record_detections([{
+            "class_name": class_name,
+            "confidence": confidence,
+            "distance_m": distance_m,
             "has_crop": has_crop,
-        }
-        # In‑memory buffer
-        self._in_memory_history.insert(0, entry)
-        if len(self._in_memory_history) > max_history:
-            self._in_memory_history.pop()
-        # Persist as telemetry row (key = detection, value = JSON payload)
+        }])
+
+    def record_detections(self, detections: Sequence[dict[str, Any]]) -> None:
+        recorded_at = utcnow_naive()
+        records = [
+            TelemetryStat(
+                key="detection",
+                value={
+                    "class": detection["class_name"],
+                    "confidence": round(detection["confidence"], 2),
+                    "distance_m": (
+                        round(detection["distance_m"], 2)
+                        if detection.get("distance_m") is not None
+                        else None
+                    ),
+                    "timestamp": recorded_at.isoformat(),
+                    "has_crop": detection.get("has_crop", False),
+                },
+                recorded_at=recorded_at,
+            )
+            for detection in detections
+        ]
+        if not records:
+            return
         with SessionLocal() as db:
-            telemetry = TelemetryStat(key="detection", value=entry)
-            db.add(telemetry)
+            db.add_all(records)
             db.commit()
 
     def clear_history(self) -> None:
-        self._in_memory_history.clear()
         with SessionLocal() as db:
             db.query(TelemetryStat).filter(TelemetryStat.key == "detection").delete(synchronize_session=False)
             db.commit()
 
-    # Statistics – aggregates information from the in‑memory detection buffer
-    # and the sessions table.
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         with SessionLocal() as db:
-            session_count = db.query(DBSession).count()
-        distribution: Dict[str, int] = {}
-        for d in self._in_memory_history:
-            distribution[d["class"]] = distribution.get(d["class"], 0) + 1
+            detection_query = db.query(TelemetryStat).filter_by(key="detection")
+            total_detections = detection_query.count()
+            session_count = (
+                db.query(DBSession)
+                .filter(DBSession.expires_at > utcnow_naive())
+                .count()
+            )
+            class_rows = (
+                db.query(
+                    TelemetryStat.value["class"].as_string(),
+                    func.count(TelemetryStat.id),
+                )
+                .filter(TelemetryStat.key == "detection")
+                .group_by(TelemetryStat.value["class"].as_string())
+                .all()
+            )
+            recent_records = (
+                detection_query.order_by(TelemetryStat.recorded_at.desc())
+                .limit(10)
+                .all()
+            )
+
+        distribution = {
+            class_name: count
+            for class_name, count in class_rows
+            if class_name is not None
+        }
+        recent_activity = [
+            {
+                "id": str(record.id),
+                "class": record.value.get("class"),
+                "confidence": record.value.get("confidence"),
+                "distance_m": record.value.get("distance_m"),
+                "timestamp": record.value.get("timestamp") or record.recorded_at.isoformat(),
+                "has_crop": record.value.get("has_crop", False),
+            }
+            for record in recent_records
+        ]
         return {
-            "total_detections": max(128, len(self._in_memory_history)),
-            "active_sessions": max(1, session_count),
-            "fps_mean": 156.4,  # placeholder – real metric could be added later
+            "total_detections": total_detections,
+            "active_sessions": session_count,
             "class_distribution": distribution,
-            "tracking_efficiency": 99.4,
-            "spatial_depth_accuracy": "±0.03m",
-            "recent_activity": self._in_memory_history[:10],
+            "recent_activity": recent_activity,
         }
 
 

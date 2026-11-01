@@ -7,20 +7,21 @@ implementation.
 """
 
 import os
-from datetime import timedelta
-from typing import Any, Optional
-from fastapi import FastAPI, HTTPException, Depends, Request, Response, status
-from fastapi.security import HTTPBasic, HTTPBasicCredentials
+import time
+from typing import Any
+
+from fastapi import Depends, FastAPI, HTTPException, Request, Response
+from fastapi.security import HTTPBasic
+from passlib.context import CryptContext
 from pydantic import BaseModel
+from sqlalchemy.exc import SQLAlchemyError
 
 from ..database.data_manager import data_manager
-from ..database.models import User
 from ..security.headers import SecurityHeadersMiddleware
 from ..security.jwt_auth import jwt_service
 from ..security.rbac import AppPermission, require_permission
-from .websocket_stream import ws_manager
 from .webhooks import webhook_dispatcher
-from passlib.context import CryptContext
+from .websocket_stream import ws_manager
 
 pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 
@@ -33,6 +34,7 @@ def hash_password(plain: str) -> str:
 app = FastAPI(title="Smart Vision AI Auth and Persistence Service")
 app.add_middleware(SecurityHeadersMiddleware)
 security = HTTPBasic()
+admin_users_dependency = Depends(require_permission(AppPermission.ADMIN_USERS))
 
 # Request/response models
 class LoginPayload(BaseModel):
@@ -44,20 +46,23 @@ class SignupPayload(BaseModel):
     email: str
     username: str
     password: str
-    role: Optional[str] = None
+    role: str | None = None
 
 class CropPayload(BaseModel):
     object_class: str
     confidence: float
-    distance_m: Optional[float] = None
+    distance_m: float | None = None
     has_crop: bool = False
-    payload: Optional[dict[str, Any]] = None
+    payload: dict[str, Any] | None = None
 
 class DetectionPayload(BaseModel):
     class_name: str
     confidence: float
-    distance_m: Optional[float] = None
+    distance_m: float | None = None
     has_crop: bool = False
+
+class DetectionBatchPayload(BaseModel):
+    detections: list[DetectionPayload]
 
 class SessionInfo(BaseModel):
     token: str
@@ -88,7 +93,7 @@ async def login(payload: LoginPayload, response: Response):
         raise HTTPException(status_code=429, detail="Account locked due to failed attempts")
     user = data_manager.find_user_by_identifier(identifier)
     if not user or not verify_password(payload.password, user.password_hash):
-        lock_info = data_manager.record_failed_login(identifier)
+        data_manager.record_failed_login(identifier)
         raise HTTPException(status_code=401, detail="Invalid credentials")
     # Successful login
     data_manager.clear_failed_logins(identifier)
@@ -120,7 +125,7 @@ async def signup(payload: SignupPayload):
         email=payload.email,
         username=payload.username,
         password_hash=password_hash,
-        role=payload.role or "operator",
+        role="operator",
     )
     return {"success": True, "user_id": user.id}
 
@@ -169,7 +174,7 @@ async def save_crop(payload: CropPayload):
     }
 
 @app.get("/crops/latest")
-async def get_latest_crop(object_class: Optional[str] = None):
+async def get_latest_crop(object_class: str | None = None):
     rec = data_manager.get_latest_crop(object_class=object_class)
     if not rec:
         return {"crop": None}
@@ -195,6 +200,13 @@ async def record_detection(payload: DetectionPayload):
     )
     return {"success": True}
 
+@app.post("/detections/batch")
+async def record_detection_batch(payload: DetectionBatchPayload):
+    data_manager.record_detections(
+        [detection.model_dump() for detection in payload.detections]
+    )
+    return {"success": True, "count": len(payload.detections)}
+
 @app.get("/stats")
 async def get_stats():
     return data_manager.get_stats()
@@ -216,7 +228,7 @@ async def readiness():
     try:
         stats = data_manager.get_stats()
         return {"status": "ready", "database": "connected", "active_sessions": stats.get("active_sessions", 0)}
-    except Exception as exc:
+    except SQLAlchemyError as exc:
         raise HTTPException(status_code=503, detail=f"Database unready: {exc}")
 
 @app.get("/metrics")
@@ -242,6 +254,7 @@ async def prometheus_metrics():
 # Real-Time WebSocket Streaming
 from fastapi import WebSocket, WebSocketDisconnect
 
+
 @app.websocket("/ws/telemetry")
 async def websocket_telemetry_stream(websocket: WebSocket):
     """Full-duplex real-time telemetry streaming endpoint."""
@@ -252,9 +265,7 @@ async def websocket_telemetry_stream(websocket: WebSocket):
             # Echo heartbeat or handle client control command
             if msg == "ping":
                 await websocket.send_text("pong")
-    except WebSocketDisconnect:
-        ws_manager.disconnect(websocket)
-    except Exception:
+    except (WebSocketDisconnect, RuntimeError):
         ws_manager.disconnect(websocket)
 
 # Outbound Webhook Delivery
@@ -274,11 +285,13 @@ async def trigger_webhook(payload: WebhookRequest):
 
 # RBAC Protected Admin Endpoint
 @app.get("/admin/audit-logs")
-async def get_audit_logs(auth: Any = Depends(require_permission(AppPermission.ADMIN_USERS))):
+async def get_audit_logs(auth: Any = admin_users_dependency):
     """Restricted to users with AppPermission.ADMIN_USERS."""
     return {"success": True, "operator": auth.username, "role": auth.role, "events": []}
 
 # 3D Mesh Reconstruction Engine
+import numpy as np
+
 from ...domain.spatial.mesh_reconstruction import (
     CanonicalShapeGenerator,
     MarchingCubesReconstructor,
@@ -287,11 +300,11 @@ from ...domain.spatial.mesh_reconstruction import (
     PointCloudNormalEstimator,
     VolumetricTSDFBuilder,
 )
-import numpy as np
+
 
 class MeshReconstructionRequest(BaseModel):
-    object_class: Optional[str] = "chair"
-    points: Optional[list[list[float]]] = None
+    object_class: str | None = "chair"
+    points: list[list[float]] | None = None
     voxel_size: float = 0.08
     smoothing_iterations: int = 2
     output_format: str = "threejs"  # "threejs", "obj", "ply"
@@ -341,5 +354,5 @@ async def reconstruct_3d_mesh(payload: MeshReconstructionRequest):
             response_data["ply_data"] = MeshExporter.to_ply(mesh)
 
         return response_data
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"3D mesh reconstruction failed: {str(exc)}")
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=500, detail=f"3D mesh reconstruction failed: {exc!s}")

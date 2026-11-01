@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import math
-from typing import List, Optional, Tuple
+
 import numpy as np
 
 from .tensor import Tensor
@@ -10,7 +10,7 @@ from .tensor import Tensor
 class Module:
     """Base neural network module."""
 
-    def parameters(self) -> List[Tensor]:
+    def parameters(self) -> list[Tensor]:
         params = []
         for v in self.__dict__.values():
             if isinstance(v, Tensor) and v.requires_grad:
@@ -36,7 +36,7 @@ class Linear(Module):
 
         if bias:
             b_data = np.random.uniform(-bound, bound, (out_features,))
-            self.bias: Optional[Tensor] = Tensor(b_data, requires_grad=True)
+            self.bias: Tensor | None = Tensor(b_data, requires_grad=True)
         else:
             self.bias = None
 

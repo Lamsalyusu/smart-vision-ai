@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import numpy as np
+
 from .rigid_body import RigidBody3D
 
 
@@ -25,7 +26,7 @@ class NumericalPhysicsIntegrator:
 
         # Quaternion multiplication: omega_quat * q
         qw, qx, qy, qz = q
-        ow, ox, oy, oz = omega_quat
+        _ow, ox, oy, oz = omega_quat
         q_dot = 0.5 * np.array([
             -ox*qx - oy*qy - oz*qz,
              ox*qw + oy*qz - oz*qy,

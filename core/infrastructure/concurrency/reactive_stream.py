@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import AsyncIterator, Callable, Generic, List, Optional, TypeVar
+from typing import Generic, TypeVar
 
 TIn = TypeVar("TIn")
 TOut = TypeVar("TOut")
@@ -30,9 +30,9 @@ class ReactiveStreamPipeline(Generic[TIn]):
             await self._queue.put(item)
             return True
 
-    async def batch_window(self, max_batch_size: int = 10, max_wait_seconds: float = 0.05) -> List[TIn]:
+    async def batch_window(self, max_batch_size: int = 10, max_wait_seconds: float = 0.05) -> list[TIn]:
         """Aggregate stream elements within batch size or time window."""
-        batch: List[TIn] = []
+        batch: list[TIn] = []
         try:
             # Wait for at least one item
             first = await asyncio.wait_for(self._queue.get(), timeout=max_wait_seconds)
@@ -47,7 +47,7 @@ class ReactiveStreamPipeline(Generic[TIn]):
                     self._queue.task_done()
                 except asyncio.QueueEmpty:
                     break
-        except asyncio.TimeoutError:
+        except TimeoutError:
             pass
         return batch
 

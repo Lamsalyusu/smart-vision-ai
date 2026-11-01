@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any
+from types import TracebackType
+from typing import Self
+
 from .repositories import (
-    UserRepositoryPort,
-    SessionRepositoryPort,
-    CropRepositoryPort,
-    TelemetryRepositoryPort,
     AuditRepositoryPort,
+    CropRepositoryPort,
+    SessionRepositoryPort,
+    TelemetryRepositoryPort,
+    UserRepositoryPort,
 )
 
 
@@ -19,11 +21,16 @@ class UnitOfWorkPort(ABC):
     audits: AuditRepositoryPort
 
     @abstractmethod
-    def __enter__(self) -> UnitOfWorkPort:
+    def __enter__(self) -> Self:
         pass
 
     @abstractmethod
-    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
         pass
 
     @abstractmethod

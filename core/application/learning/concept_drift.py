@@ -5,6 +5,8 @@ from dataclasses import dataclass
 
 import numpy as np
 
+EmbeddingArray = Sequence[Sequence[float]] | np.ndarray
+
 
 @dataclass(frozen=True, slots=True)
 class DriftReport:
@@ -25,7 +27,7 @@ class AnnotationCandidate:
 class _EmbeddingDriftMonitor:
     def __init__(
         self,
-        reference_embeddings: Sequence[Sequence[float]],
+        reference_embeddings: EmbeddingArray,
         *,
         window_size: int,
         minimum_samples: int,
@@ -50,7 +52,7 @@ class _EmbeddingDriftMonitor:
         self._significance = significance
         self._wasserstein_threshold = wasserstein_threshold
 
-    def observe(self, embeddings: Sequence[Sequence[float]]) -> DriftReport:
+    def observe(self, embeddings: EmbeddingArray) -> DriftReport:
         incoming = np.asarray(embeddings, dtype=np.float64)
         if incoming.ndim != 2 or incoming.shape[1] != self._reference.shape[1]:
             raise ValueError("incoming embedding dimensions must match reference embeddings")
@@ -108,7 +110,7 @@ class ActiveLearningDriftPipeline:
 
     def __init__(
         self,
-        reference_embeddings: Sequence[Sequence[float]],
+        reference_embeddings: EmbeddingArray,
         *,
         queue_capacity: int = 100,
         confidence_threshold: float = 0.4,
@@ -135,7 +137,7 @@ class ActiveLearningDriftPipeline:
     def observe(
         self,
         frame_ids: Sequence[str],
-        embeddings: Sequence[Sequence[float]],
+        embeddings: EmbeddingArray,
         confidences: Sequence[float],
     ) -> DriftReport:
         if len(frame_ids) != len(embeddings) or len(frame_ids) != len(confidences):

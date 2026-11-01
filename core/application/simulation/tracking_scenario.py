@@ -1,7 +1,25 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
+from typing import TypedDict
 
 import numpy as np
+
+SyntheticDetection = TypedDict(
+    "SyntheticDetection",
+    {"class": str, "confidence": float, "bbox": list[float]},
+)
+
+
+@dataclass(frozen=True, slots=True)
+class _SimulatedObject:
+    object_id: int
+    class_name: str
+    x: float
+    y: float
+    width: float
+    height: float
+    velocity_x: float
+    velocity_y: float
 
 
 @dataclass(frozen=True, slots=True)
@@ -17,7 +35,7 @@ class SyntheticFrame:
     width: int
     height: int
     ground_truth: tuple[GroundTruthObject, ...]
-    detections: tuple[dict[str, object], ...]
+    detections: tuple[SyntheticDetection, ...]
     occluded_ids: tuple[int, ...]
 
 
@@ -55,7 +73,7 @@ class SyntheticTrackingScenario:
         self._detection_noise_px = detection_noise_px
         self._objects = self._initialize_objects()
 
-    def _initialize_objects(self) -> list[dict[str, object]]:
+    def _initialize_objects(self) -> list[_SimulatedObject]:
         objects = []
         for object_id in range(1, self.object_count + 1):
             width = float(self._random.integers(30, 91))
@@ -65,35 +83,31 @@ class SyntheticTrackingScenario:
             velocity_x = float(self._random.uniform(-3, 3))
             velocity_y = float(self._random.uniform(-2, 2))
             objects.append(
-                {
-                    "id": object_id,
-                    "class": "person" if object_id % 2 else "vehicle",
-                    "x": x,
-                    "y": y,
-                    "width": width,
-                    "height": height,
-                    "velocity_x": velocity_x,
-                    "velocity_y": velocity_y,
-                }
+                _SimulatedObject(
+                    object_id=object_id,
+                    class_name="person" if object_id % 2 else "vehicle",
+                    x=x,
+                    y=y,
+                    width=width,
+                    height=height,
+                    velocity_x=velocity_x,
+                    velocity_y=velocity_y,
+                )
             )
         return objects
 
     def generate(self) -> tuple[SyntheticFrame, ...]:
         frames = []
         for frame_index in range(self.frame_count):
-            truths = []
-            detections = []
+            truths: list[GroundTruthObject] = []
+            detections: list[SyntheticDetection] = []
             occluded_ids = self._occlusions.get(frame_index, set())
             for item in self._objects:
-                x = (item["x"] + item["velocity_x"] * frame_index) % (
-                    self.width - item["width"]
-                )
-                y = (item["y"] + item["velocity_y"] * frame_index) % (
-                    self.height - item["height"]
-                )
-                bbox = (x, y, x + item["width"], y + item["height"])
-                truths.append(GroundTruthObject(item["id"], item["class"], bbox))
-                if item["id"] in occluded_ids or self._random.random() < self._miss_probability:
+                x = (item.x + item.velocity_x * frame_index) % (self.width - item.width)
+                y = (item.y + item.velocity_y * frame_index) % (self.height - item.height)
+                bbox = (x, y, x + item.width, y + item.height)
+                truths.append(GroundTruthObject(item.object_id, item.class_name, bbox))
+                if item.object_id in occluded_ids or self._random.random() < self._miss_probability:
                     continue
 
                 noise = self._random.normal(0, self._detection_noise_px, size=4)
@@ -104,7 +118,7 @@ class SyntheticTrackingScenario:
                 noisy_bbox[3] = max(noisy_bbox[1] + 1.0, min(self.height, noisy_bbox[3]))
                 detections.append(
                     {
-                        "class": item["class"],
+                        "class": item.class_name,
                         "confidence": float(self._random.uniform(0.75, 0.99)),
                         "bbox": noisy_bbox,
                     }

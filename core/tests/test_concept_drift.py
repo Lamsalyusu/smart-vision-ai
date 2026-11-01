@@ -25,7 +25,9 @@ class ConceptDriftTests(unittest.TestCase):
         self.assertGreater(max(report.ks_statistics), report.ks_critical_value)
         self.assertGreater(max(report.wasserstein_distances), 0.2)
         self.assertEqual(pipeline.queued_count, 16)
-        self.assertEqual(pipeline.pop_candidate().reason, "embedding_drift")
+        candidate = pipeline.pop_candidate()
+        assert candidate is not None
+        self.assertEqual(candidate.reason, "embedding_drift")
 
     def test_stable_window_does_not_trigger_drift(self) -> None:
         pipeline = ActiveLearningDriftPipeline(
@@ -51,7 +53,9 @@ class ConceptDriftTests(unittest.TestCase):
         report = pipeline.observe(["frame-low"], [[0, 0, 0]], [0.2])
 
         self.assertFalse(report.drift_detected)
-        self.assertEqual(pipeline.pop_candidate().reason, "low_confidence")
+        candidate = pipeline.pop_candidate()
+        assert candidate is not None
+        self.assertEqual(candidate.reason, "low_confidence")
 
     def test_queue_is_bounded_and_prioritizes_harder_frames(self) -> None:
         pipeline = ActiveLearningDriftPipeline(
@@ -69,7 +73,9 @@ class ConceptDriftTests(unittest.TestCase):
         )
 
         self.assertEqual(pipeline.queued_count, 2)
-        self.assertEqual(pipeline.pop_candidate().frame_id, "hard")
+        candidate = pipeline.pop_candidate()
+        assert candidate is not None
+        self.assertEqual(candidate.frame_id, "hard")
 
     def test_rejects_mismatched_batch_lengths(self) -> None:
         pipeline = ActiveLearningDriftPipeline(self.reference)

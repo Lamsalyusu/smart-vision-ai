@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Tuple
+
 import numpy as np
 
 
@@ -9,7 +9,7 @@ import numpy as np
 class VoxelGridMetadata:
     origin: np.ndarray      # [min_x, min_y, min_z]
     voxel_size: float
-    dimensions: Tuple[int, int, int]  # (nx, ny, nz)
+    dimensions: tuple[int, int, int]  # (nx, ny, nz)
 
 
 class VolumetricTSDFBuilder:
@@ -25,7 +25,7 @@ class VolumetricTSDFBuilder:
         self.truncation = max(0.01, truncation_distance)
         self.padding = padding
 
-    def build_tsdf(self, points: np.ndarray, normals: np.ndarray) -> Tuple[np.ndarray, VoxelGridMetadata]:
+    def build_tsdf(self, points: np.ndarray, normals: np.ndarray) -> tuple[np.ndarray, VoxelGridMetadata]:
         """Compute the 3D scalar TSDF volume from 3D points and surface normals.
 
         Args:
@@ -63,7 +63,7 @@ class VolumetricTSDFBuilder:
         X, Y, Z = np.meshgrid(xs, ys, zs, indexing="ij")
         voxel_positions = np.stack([X, Y, Z], axis=-1)  # (nx, ny, nz, 3)
 
-        tsdf_grid = np.full((nx, ny, nz), self.truncation, dtype=np.float64)
+        np.full((nx, ny, nz), self.truncation, dtype=np.float64)
 
         # Vectorized projection onto nearest surface points
         flat_voxels = voxel_positions.reshape(-1, 3)

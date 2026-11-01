@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 import math
-from typing import Dict, List, Optional, Tuple
-import numpy as np
 
-from .lie_algebra import SO3, SE3
+import numpy as np
 
 
 class VisualVocabularyTree:
@@ -13,9 +11,9 @@ class VisualVocabularyTree:
     def __init__(self, k_branching: int = 6, depth: int = 3) -> None:
         self.k = k_branching
         self.depth = depth
-        self.words: List[np.ndarray] = []
+        self.words: list[np.ndarray] = []
         self.idf_weights: np.ndarray = np.array([])
-        self.inverted_index: Dict[int, List[Tuple[int, float]]] = {}  # word_id -> [(frame_id, tf)]
+        self.inverted_index: dict[int, list[tuple[int, float]]] = {}  # word_id -> [(frame_id, tf)]
         self._n_documents = 0
 
     def fit_vocabulary(self, descriptors: np.ndarray) -> None:
@@ -63,9 +61,9 @@ class VisualVocabularyTree:
         norm = np.linalg.norm(bow_vec)
         return bow_vec / max(1e-8, norm)
 
-    def query_similar_frames(self, bow_vector: np.ndarray, top_k: int = 5) -> List[Tuple[int, float]]:
+    def query_similar_frames(self, bow_vector: np.ndarray, top_k: int = 5) -> list[tuple[int, float]]:
         """Score candidate loop closure frames using cosine similarity."""
-        scores: Dict[int, float] = {}
+        scores: dict[int, float] = {}
 
         for word_id, weight in enumerate(bow_vector):
             if weight <= 0 or word_id not in self.inverted_index:

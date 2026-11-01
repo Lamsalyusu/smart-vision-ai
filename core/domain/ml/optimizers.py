@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import math
-from typing import List
 import numpy as np
 
 from .tensor import Tensor
@@ -12,7 +10,7 @@ class AdamW:
 
     def __init__(
         self,
-        parameters: List[Tensor],
+        parameters: list[Tensor],
         lr: float = 1e-3,
         betas: tuple[float, float] = (0.9, 0.999),
         eps: float = 1e-8,
@@ -24,8 +22,8 @@ class AdamW:
         self.eps = eps
         self.weight_decay = weight_decay
 
-        self.m = [np.zeros_like(p.data) for p in self.params]
-        self.v = [np.zeros_like(p.data) for p in self.params]
+        self.m: list[np.ndarray] = [np.zeros_like(p.data) for p in self.params]
+        self.v: list[np.ndarray] = [np.zeros_like(p.data) for p in self.params]
         self.t = 0
 
     def step(self) -> None:

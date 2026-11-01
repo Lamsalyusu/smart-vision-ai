@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import List, Tuple
+
 import numpy as np
 
 
@@ -31,11 +31,11 @@ class DHParameter:
 class SerialManipulatorKinematics:
     """Kinematics engine for n-DoF serial articulated robot arms (e.g., UR5, PUMA)."""
 
-    def __init__(self, dh_params: List[DHParameter]) -> None:
+    def __init__(self, dh_params: list[DHParameter]) -> None:
         self.dh_params = dh_params
         self.dof = len(dh_params)
 
-    def forward_kinematics(self, joint_angles: np.ndarray) -> Tuple[np.ndarray, List[np.ndarray]]:
+    def forward_kinematics(self, joint_angles: np.ndarray) -> tuple[np.ndarray, list[np.ndarray]]:
         """Compute end-effector pose T_0_n and intermediate coordinate frames."""
         t_cum = np.eye(4, dtype=np.float64)
         frames = [t_cum.copy()]
@@ -57,7 +57,7 @@ class SerialManipulatorKinematics:
         max_iters: int = 100,
         tol_pos: float = 1e-4,
         tol_rot: float = 1e-3,
-    ) -> Tuple[np.ndarray, bool]:
+    ) -> tuple[np.ndarray, bool]:
         """Solves 6-DoF inverse kinematics using Damped Least Squares (Levenberg-Marquardt)."""
         q = np.array(q_init, dtype=np.float64).copy()
 

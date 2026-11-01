@@ -9,7 +9,7 @@ from core.infrastructure.resilience.fallback_engine import (
 
 class ResilientFallbackPipelineTests(unittest.TestCase):
     def test_primary_succeeds_without_fallback(self) -> None:
-        pipeline = ResilientInferencePipeline(
+        pipeline: ResilientInferencePipeline[str, str] = ResilientInferencePipeline(
             primary_fn=lambda x: f"gpu_{x}",
             secondary_fn=lambda x: f"onnx_{x}",
             fallback_fn=lambda x: f"cpu_{x}",
@@ -26,7 +26,7 @@ class ResilientFallbackPipelineTests(unittest.TestCase):
         def failing_gpu(_: str) -> str:
             raise RuntimeError("CUDA Out of Memory")
 
-        pipeline = ResilientInferencePipeline(
+        pipeline: ResilientInferencePipeline[str, str] = ResilientInferencePipeline(
             primary_fn=failing_gpu,
             secondary_fn=lambda x: f"onnx_{x}",
             fallback_fn=lambda x: f"cpu_{x}",
@@ -45,7 +45,7 @@ class ResilientFallbackPipelineTests(unittest.TestCase):
         def failing_onnx(_: str) -> str:
             raise RuntimeError("Thread exhaustion")
 
-        pipeline = ResilientInferencePipeline(
+        pipeline: ResilientInferencePipeline[str, str] = ResilientInferencePipeline(
             primary_fn=failing_gpu,
             secondary_fn=failing_onnx,
             fallback_fn=lambda x: f"cpu_linear_{x}",

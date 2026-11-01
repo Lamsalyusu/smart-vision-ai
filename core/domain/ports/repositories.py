@@ -1,20 +1,20 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 class UserRepositoryPort(ABC):
     @abstractmethod
-    def create(self, user_data: Dict[str, Any]) -> Any:
+    def create(self, user_data: dict[str, Any]) -> Any:
         pass
 
     @abstractmethod
-    def get_by_id(self, user_id: str) -> Optional[Any]:
+    def get_by_id(self, user_id: str) -> Any | None:
         pass
 
     @abstractmethod
-    def get_by_identifier(self, identifier: str) -> Optional[Any]:
+    def get_by_identifier(self, identifier: str) -> Any | None:
         pass
 
 
@@ -24,7 +24,7 @@ class SessionRepositoryPort(ABC):
         pass
 
     @abstractmethod
-    def get_user_from_token(self, token: str) -> Optional[Any]:
+    def get_user_from_token(self, token: str) -> Any | None:
         pass
 
     @abstractmethod
@@ -34,21 +34,21 @@ class SessionRepositoryPort(ABC):
 
 class CropRepositoryPort(ABC):
     @abstractmethod
-    def save(self, crop_data: Dict[str, Any]) -> Any:
+    def save(self, crop_data: dict[str, Any]) -> Any:
         pass
 
     @abstractmethod
-    def get_latest(self, object_class: Optional[str] = None) -> Optional[Any]:
+    def get_latest(self, object_class: str | None = None) -> Any | None:
         pass
 
 
 class TelemetryRepositoryPort(ABC):
     @abstractmethod
-    def record_detection(self, entry: Dict[str, Any]) -> None:
+    def record_detection(self, entry: dict[str, Any]) -> None:
         pass
 
     @abstractmethod
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         pass
 
     @abstractmethod
@@ -58,9 +58,9 @@ class TelemetryRepositoryPort(ABC):
 
 class AuditRepositoryPort(ABC):
     @abstractmethod
-    def log_event(self, event_type: str, user_id: Optional[str], details: Dict[str, Any]) -> None:
+    def log_event(self, event_type: str, user_id: str | None, details: dict[str, Any]) -> None:
         pass
 
     @abstractmethod
-    def get_recent(self, limit: int = 50) -> List[Dict[str, Any]]:
+    def get_recent(self, limit: int = 50) -> list[dict[str, Any]]:
         pass

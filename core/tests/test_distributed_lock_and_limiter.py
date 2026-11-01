@@ -1,4 +1,3 @@
-import asyncio
 import unittest
 
 from core.infrastructure.scalability.distributed_lock import DistributedLock
@@ -46,7 +45,7 @@ class DistributedLockAndLimiterTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(rem4, 0)
 
         # After window slides (now=111.0 > 100.0 + 10.0), capacity freed
-        allowed5, rem5, _ = limiter.is_allowed(client, now=111.0)
+        allowed5, _rem5, _ = limiter.is_allowed(client, now=111.0)
         self.assertTrue(allowed5)
 
 

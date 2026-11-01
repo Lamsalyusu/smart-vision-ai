@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import math
-from typing import List, Optional, Tuple
+
 import numpy as np
 
 
@@ -9,7 +9,7 @@ class PlanarHomographySolver:
     """Projective 2D planar homography estimation and decomposition."""
 
     @staticmethod
-    def normalize_points(points: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    def normalize_points(points: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """Hartley normalization: centroid at origin, mean distance = sqrt(2)."""
         centroid = np.mean(points, axis=0)
         shifted = points - centroid
@@ -60,7 +60,7 @@ class PlanarHomographySolver:
         threshold_px: float = 3.0,
         max_iters: int = 1000,
         inlier_ratio_target: float = 0.85,
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         """Robust RANSAC homography estimation minimizing symmetric transfer error."""
         n = len(src_pts)
         if n < 4:
@@ -111,7 +111,7 @@ class PlanarHomographySolver:
         return best_h, best_inliers
 
     @staticmethod
-    def warp_perspective_bilinear(image: np.ndarray, h_matrix: np.ndarray, out_shape: Tuple[int, int]) -> np.ndarray:
+    def warp_perspective_bilinear(image: np.ndarray, h_matrix: np.ndarray, out_shape: tuple[int, int]) -> np.ndarray:
         """Backward mapping perspective warp with bilinear interpolation."""
         out_h, out_w = out_shape
         h_inv = np.linalg.inv(h_matrix)

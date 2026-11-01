@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
-import { dataManager } from "@/lib/store";
+import { clearHistory } from "@/lib/apiClient";
 
 export async function POST() {
-  dataManager.clearHistory();
-  return NextResponse.json({ success: true });
+  try {
+    return NextResponse.json(await clearHistory());
+  } catch {
+    return NextResponse.json(
+      { error: "Telemetry service is unavailable" },
+      { status: 503 }
+    );
+  }
 }

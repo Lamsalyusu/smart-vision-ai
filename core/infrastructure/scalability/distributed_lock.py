@@ -1,19 +1,20 @@
 from __future__ import annotations
 
 import asyncio
-import os
+import logging
 import time
 import uuid
-from typing import Optional
+from typing import Any, ClassVar, Self
 
+logger = logging.getLogger(__name__)
 
 class DistributedLock:
     """Enterprise Distributed Lock supporting Redis backend with safe in-memory fallback."""
 
     # Class-level shared in-memory lock state: resource_key -> (Lock, expiry_time, owner_token)
-    _shared_memory_locks: dict[str, tuple[asyncio.Lock, float, str]] = {}
+    _shared_memory_locks: ClassVar[dict[str, tuple[asyncio.Lock, float, str]]] = {}
 
-    def __init__(self, resource_key: str, ttl_seconds: float = 10.0, redis_client: Optional[Any] = None) -> None:
+    def __init__(self, resource_key: str, ttl_seconds: float = 10.0, redis_client: Any | None = None) -> None:
         self.resource_key = f"lock:{resource_key}"
         self.ttl = ttl_seconds
         self.lock_token = str(uuid.uuid4())
@@ -30,8 +31,8 @@ class DistributedLock:
                     if res:
                         self._is_acquired = True
                         return True
-                except Exception:
-                    pass
+                except Exception as exc:  # noqa: BLE001
+                    logger.debug("Redis lock acquisition failed; using memory fallback: %s", exc)
 
             # In-memory fallback
             now = time.monotonic()
@@ -63,8 +64,8 @@ class DistributedLock:
             """
             try:
                 await self._redis.eval(lua_script, 1, self.resource_key, self.lock_token)
-            except Exception:
-                pass
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("Redis lock release failed; clearing local lock state: %s", exc)
 
         lock_entry = self._shared_memory_locks.get(self.resource_key)
         if lock_entry and lock_entry[2] == self.lock_token:
@@ -79,7 +80,7 @@ class DistributedLock:
         self._is_acquired = False
         return True
 
-    async def __aenter__(self) -> DistributedLock:
+    async def __aenter__(self) -> Self:
         acquired = await self.acquire()
         if not acquired:
             raise TimeoutError(f"Could not acquire distributed lock for resource '{self.resource_key}'")

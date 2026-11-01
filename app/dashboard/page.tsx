@@ -168,10 +168,14 @@ export default function DashboardPage() {
               <Layers className="w-4 h-4 text-emerald-400" />
             </div>
             <p className="text-3xl font-extrabold text-white mt-3">
-              ~156 <span className="text-lg font-normal text-slate-400">FPS</span>
+              {stats?.fps_mean != null ? (
+                <>{stats.fps_mean.toFixed(1)} <span className="text-lg font-normal text-slate-400">FPS</span></>
+              ) : (
+                "Not measured"
+              )}
             </p>
             <span className="text-xs text-slate-400 mt-2 block">
-              6.38ms vectorized latency
+              Timing data is not available
             </span>
           </div>
 
@@ -181,10 +185,14 @@ export default function DashboardPage() {
               <Box className="w-4 h-4 text-purple-400" />
             </div>
             <p className="text-3xl font-extrabold text-white mt-3">
-              99.4<span className="text-lg font-normal text-slate-400">%</span>
+              {stats?.tracking_efficiency != null ? (
+                <>{stats.tracking_efficiency.toFixed(1)}<span className="text-lg font-normal text-slate-400">%</span></>
+              ) : (
+                "Not measured"
+              )}
             </p>
             <span className="text-xs text-blue-400 mt-2 block">
-              0.06ms Kalman execution
+              Tracking evaluation metrics are unavailable
             </span>
           </div>
 
@@ -194,10 +202,10 @@ export default function DashboardPage() {
               <ShieldAlert className="w-4 h-4 text-cyan-400" />
             </div>
             <p className="text-3xl font-extrabold text-white mt-3">
-              ±0.03<span className="text-lg font-normal text-slate-400">m</span>
+              {stats?.spatial_depth_accuracy ?? "Not measured"}
             </p>
             <span className="text-xs text-cyan-400 mt-2 block">
-              Pinhole camera calibrated
+              Calibration error requires a reference depth sensor
             </span>
           </div>
         </div>

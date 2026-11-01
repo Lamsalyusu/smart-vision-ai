@@ -1,16 +1,16 @@
 from __future__ import annotations
 
-from typing import Optional
-from core.application.event_bus import InMemoryEventBus, event_bus
+from core.application.event_bus import event_bus
 from core.domain.analytics.behavior import TrajectoryBehaviorAnalyzer
-from core.domain.analytics.geofence import GeofenceZone
 from core.domain.analytics.policy_engine import PolicyEngine
 from core.domain.tracking.hungarian_fusion import HungarianFusionMatcher
-from core.infrastructure.concurrency.worker_pool import MathTaskWorkerPool, worker_pool
+from core.infrastructure.concurrency.worker_pool import worker_pool
 from core.infrastructure.database.unit_of_work import SqlAlchemyUnitOfWork
 from core.infrastructure.scalability.distributed_lock import DistributedLock
-from core.infrastructure.scalability.rate_limiter import SlidingWindowRateLimiter, rate_limiter
-from core.infrastructure.security.jwt_auth import JWTService, jwt_service
+from core.infrastructure.scalability.rate_limiter import (
+    rate_limiter,
+)
+from core.infrastructure.security.jwt_auth import jwt_service
 
 
 class AppContainer:

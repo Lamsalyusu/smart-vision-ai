@@ -1,11 +1,12 @@
 import time
 import unittest
+from unittest.mock import patch
 
 from core.infrastructure.security.jwt_auth import JWTService
 from core.infrastructure.security.rbac import (
+    ROLE_PERMISSIONS_MAP,
     AppPermission,
     AppRole,
-    ROLE_PERMISSIONS_MAP,
 )
 
 
@@ -25,6 +26,25 @@ class SecurityRbacJwtTests(unittest.TestCase):
         self.assertEqual(payload.sub, "usr_001")
         self.assertEqual(payload.username, "alice")
         self.assertEqual(payload.role, "analyst")
+
+    def test_jwt_requires_configured_secret_in_production(self):
+        with (
+            patch.dict("os.environ", {"NODE_ENV": "production"}, clear=True),
+            self.assertRaisesRegex(RuntimeError, "SECRET_KEY must be configured"),
+        ):
+            JWTService()
+
+    def test_development_jwt_secret_is_ephemeral_and_long_enough(self):
+        with patch.dict("os.environ", {}, clear=True):
+            first = JWTService()
+            second = JWTService()
+
+        self.assertGreaterEqual(len(first.secret), 32)
+        self.assertNotEqual(first.secret, second.secret)
+
+    def test_jwt_rejects_short_configured_secret(self):
+        with self.assertRaisesRegex(ValueError, "at least 32 bytes"):
+            JWTService(secret_key="too-short")
 
     def test_jwt_tampering_rejected(self):
         token = self.jwt.create_token(user_id="usr_002", username="bob", role="viewer")

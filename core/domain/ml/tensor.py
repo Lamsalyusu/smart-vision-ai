@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import math
-from typing import List, Optional, Sequence, Tuple, Union
+from collections.abc import Sequence
+
 import numpy as np
 
 
@@ -10,9 +10,9 @@ class Tensor:
 
     def __init__(
         self,
-        data: Union[float, int, Sequence, np.ndarray],
+        data: float | Sequence | np.ndarray,
         requires_grad: bool = False,
-        creator: Optional[Tuple[str, List[Tensor]]] = None,
+        creator: tuple[str, list[Tensor]] | None = None,
     ) -> None:
         if isinstance(data, np.ndarray):
             self.data = data.astype(np.float32)
@@ -22,11 +22,11 @@ class Tensor:
             self.data = np.array(data, dtype=np.float32)
 
         self.requires_grad = requires_grad
-        self.grad: Optional[np.ndarray] = None
+        self.grad: np.ndarray | None = None
         self.creator = creator
 
     @property
-    def shape(self) -> Tuple[int, ...]:
+    def shape(self) -> tuple[int, ...]:
         return self.data.shape
 
     @property
@@ -37,7 +37,7 @@ class Tensor:
         if self.grad is not None:
             self.grad.fill(0.0)
 
-    def backward(self, grad_output: Optional[np.ndarray] = None) -> None:
+    def backward(self, grad_output: np.ndarray | None = None) -> None:
         """Propagate gradients backwards through the computation graph."""
         if not self.requires_grad:
             return
@@ -83,7 +83,7 @@ class Tensor:
                 p1.backward(grad)
 
     @staticmethod
-    def _unbroadcast(grad: np.ndarray, target_shape: Tuple[int, ...]) -> np.ndarray:
+    def _unbroadcast(grad: np.ndarray, target_shape: tuple[int, ...]) -> np.ndarray:
         """Sum gradient along broadcasted axes to match target tensor shape."""
         grad_ndim = grad.ndim
         target_ndim = len(target_shape)
@@ -97,13 +97,13 @@ class Tensor:
 
         return grad
 
-    def __add__(self, other: Union[Tensor, float]) -> Tensor:
+    def __add__(self, other: Tensor | float) -> Tensor:
         if not isinstance(other, Tensor):
             other = Tensor(other)
         req_grad = self.requires_grad or other.requires_grad
         return Tensor(self.data + other.data, requires_grad=req_grad, creator=("add", [self, other]))
 
-    def __mul__(self, other: Union[Tensor, float]) -> Tensor:
+    def __mul__(self, other: Tensor | float) -> Tensor:
         if not isinstance(other, Tensor):
             other = Tensor(other)
         req_grad = self.requires_grad or other.requires_grad
