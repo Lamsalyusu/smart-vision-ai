@@ -101,7 +101,6 @@ class PerceptionPipelineOrchestrator:
             # Assign or update UKF tracker
             track_id = det.track_id if det.track_id is not None else self._next_track_id
             if track_id not in self._track_filters:
-                # Initialize new 3D UKF
                 init_state = TrackState3D(
                     x=obb.center.x,
                     y=obb.center.y,

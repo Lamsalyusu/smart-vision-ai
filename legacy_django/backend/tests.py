@@ -193,7 +193,6 @@ class TrackingAndMathTests(TestCase):
 
     def test_mahalanobis_gating_rejects_spurious_jump(self):
         tracker = SortTracker(max_age=5, min_hits=1, iou_threshold=0.2, gating_threshold=10.0)
-        # Initialize track at (100, 100)
         tracker.update([{"bbox": [100.0, 100.0, 150.0, 150.0], "class": "pen", "confidence": 0.9}])
         # Candidate jump far away at (500, 500)
         tracks_jump = tracker.update([{"bbox": [500.0, 500.0, 550.0, 550.0], "class": "pen", "confidence": 0.9}])
@@ -369,7 +368,6 @@ class ViewsExtendedEndpointsTests(BaseTestCase):
         resp_clear = self.client.post("/api/clear-history/")
         self.assertEqual(resp_clear.status_code, 401)
 
-        # Get latest crop
         resp_crop = self.client.get("/api/get-crop/?class=sunglasses")
         self.assertEqual(resp_crop.status_code, 401)
 
