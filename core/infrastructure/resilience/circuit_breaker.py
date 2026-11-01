@@ -1,11 +1,10 @@
-from collections.abc import Callable
-from enum import Enum
 import math
 import random
 import threading
 import time
+from collections.abc import Callable
+from enum import Enum
 from typing import TypeVar
-
 
 Result = TypeVar("Result")
 
