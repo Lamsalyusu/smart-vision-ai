@@ -11,12 +11,30 @@ import os
 import time
 from typing import Any
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Request, Response
+import numpy as np
+from fastapi import (
+    Depends,
+    FastAPI,
+    Header,
+    HTTPException,
+    Request,
+    Response,
+    WebSocket,
+    WebSocketDisconnect,
+)
 from fastapi.security import HTTPBasic
 from passlib.context import CryptContext
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.exc import SQLAlchemyError
 
+from ...domain.spatial.mesh_reconstruction import (
+    CanonicalShapeGenerator,
+    MarchingCubesReconstructor,
+    MeshExporter,
+    MeshPostProcessor,
+    PointCloudNormalEstimator,
+    VolumetricTSDFBuilder,
+)
 from ..database.data_manager import data_manager
 from ..security.headers import SecurityHeadersMiddleware
 from ..security.jwt_auth import jwt_service
@@ -292,9 +310,6 @@ async def prometheus_metrics():
     return Response(content="\n".join(lines) + "\n", media_type="text/plain; version=0.0.4")
 
 # Real-Time WebSocket Streaming
-from fastapi import WebSocket, WebSocketDisconnect
-
-
 @app.websocket("/ws/telemetry")
 async def websocket_telemetry_stream(websocket: WebSocket):
     """Full-duplex real-time telemetry streaming endpoint."""
@@ -330,18 +345,6 @@ async def get_audit_logs(auth: Any = admin_users_dependency):
     return {"success": True, "operator": auth.username, "role": auth.role, "events": []}
 
 # 3D Mesh Reconstruction Engine
-import numpy as np
-
-from ...domain.spatial.mesh_reconstruction import (
-    CanonicalShapeGenerator,
-    MarchingCubesReconstructor,
-    MeshExporter,
-    MeshPostProcessor,
-    PointCloudNormalEstimator,
-    VolumetricTSDFBuilder,
-)
-
-
 class MeshReconstructionRequest(BaseModel):
     object_class: str | None = "chair"
     points: list[list[float]] | None = None
