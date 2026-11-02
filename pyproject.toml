@@ -13,4 +13,4 @@ disallow_subclassing_any = false
 check_untyped_defs = true
 warn_redundant_casts = true
 warn_unused_ignores = false
-disable_error_code = ["misc", "no-any-return", "union-attr"]
+disable_error_code = ["misc", "no-any-return", "union-attr"]# Updated pyproject.toml for CI
