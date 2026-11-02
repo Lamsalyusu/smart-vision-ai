@@ -30,8 +30,12 @@ services:
       - "8001:8001"
     environment:
       - SECRET_KEY=${SECRET_KEY:-}
+      - INTERNAL_API_TOKEN=${INTERNAL_API_TOKEN:-}
       - DJANGO_DEBUG=${DJANGO_DEBUG:-False}
       - DJANGO_ALLOWED_HOSTS=${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1,host.docker.internal,vision}
+      - RTSP_ALLOWED_HOSTS=${RTSP_ALLOWED_HOSTS:-}
+      - RTSP_MAX_STREAMS=${RTSP_MAX_STREAMS:-50}
+      - RTSP_RECONNECT_DELAY_SECONDS=${RTSP_RECONNECT_DELAY_SECONDS:-1.0}
       - OFFLINE_MODE=${OFFLINE_MODE:-true}
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/')"]
