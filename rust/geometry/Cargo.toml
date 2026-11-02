@@ -1,0 +1,15 @@
+[package]
+name = "smartvision-geometry"
+version = "0.1.0"
+edition = "2021"
+description = "Raw WebAssembly geometry kernels for the SmartVision point-cloud viewer"
+license = "MIT"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
