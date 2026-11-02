@@ -1,7 +1,5 @@
-from .multicamera_fusion import MultiCameraFusionCoordinator
-
-__all__ = ["MultiCameraFusionCoordinator"]
 from .cypher_query import QueryMatchResult, SpatialGraphQueryEngine
+from .multicamera_fusion import MultiCameraFusionCoordinator
 from .temporal_scene_graph import (
     HazardZone,
     SpatialEntity,
@@ -12,6 +10,7 @@ from .temporal_scene_graph import (
 
 __all__ = [
     "HazardZone",
+    "MultiCameraFusionCoordinator",
     "QueryMatchResult",
     "SpatialEntity",
     "SpatialGraphQueryEngine",
