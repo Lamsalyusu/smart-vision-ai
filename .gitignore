@@ -28,3 +28,5 @@ db.sqlite3
 htmlcov/
 .mypy_cache/
 .ruff_cache/
+mutation-session.sqlite
+reports/

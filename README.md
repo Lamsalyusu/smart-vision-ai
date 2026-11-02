@@ -27,6 +27,11 @@ The application provides an interactive camera feed and dashboard for detecting 
 - **Spatial Scene Graph**: Semantic relation graph $\mathcal{G} = (\mathcal{V}, \mathcal{E})$ computing spatial interactions (`adjacent_to`, `interacting_with`, `wearing`, `supporting`, `left_of`, `above`) for contextual AI reasoning (`lib/scene-graph.ts`).
 - **Multimodal AI Scene Assistant**: Real-time natural language reasoning over spatial scene graphs and perceived objects via `/api/chat`.
 - **Interactive 3D Visualizer**: Dual-mode Three.js WebGL visualizer with real-time OrbitControls, Point Cloud generation with depth/size sliders, and GLB mesh loader (`app/model-viewer/page.tsx`).
+- **WebGPU Million-Point Viewer**: A WebGPU point-cloud renderer with orbit/zoom and measured FPS (`app/gpu-viewer/page.tsx`, `lib/webgpu-pointcloud.ts`). It automatically falls back to the WebGL viewer where WebGPU is unavailable. Optional Rust/WASM geometry kernels live in `rust/geometry`.
+- **Multi-Camera Fusion Transport**: A synchronization bridge (`core/application/ingestion/synchronized_frames.py`) aligns per-camera observations within a tolerance, flushes partial batches when a camera stalls, and feeds the calibrated `MultiCameraFusionCoordinator`.
+- **Inference Serving Adapters**: Triton v2 HTTP client, TensorRT artifact validation, and a least-loaded multi-GPU scheduler (`core/application/inference/serving.py`). They are transport-tested but require real Triton/GPU infrastructure for production throughput.
+- **Durable Cross-Worker Leases**: SQL-backed fencing-token leases for coordination that must survive process restarts (`core/infrastructure/scalability/durable_lease.py`).
+- **Synthetic Load & Chaos Harness**: Deterministic camera frames, 64-stream concurrency, fault injection, and p50/p95/p99 latency reporting (`core/application/simulation/`, `scripts/load_test_synthetic.py`).
 - **Telemetry Console**: Database-backed detection totals, class distributions, active sessions, and recent activity (`app/dashboard/page.tsx`). Unmeasured latency, tracking, and depth-accuracy values are shown as unavailable.
 
 ---
@@ -71,6 +76,16 @@ Generate a private internal service token and place the same value in `INTERNAL_
 openssl rand -hex 32
 ```
 
+### RTSP camera ingestion
+
+The vision service can ingest RTSP/RTSPS streams whose endpoint appears in `RTSP_ALLOWED_HOSTS` (comma-separated `host` or `host:port` values). Manage streams through the token-protected endpoint, sending the same `INTERNAL_API_TOKEN` value in the `X-Internal-Token` header:
+
+- `GET /api/streams/rtsp/` returns connection and frame-count metrics for each stream.
+- `POST /api/streams/rtsp/` with `{"camera_id": "...", "stream_url": "rtsp://..."}` starts ingestion and returns `202`.
+- `DELETE /api/streams/rtsp/?camera_id=...` stops and removes a stream.
+
+`RTSP_MAX_STREAMS` caps concurrent streams, and `RTSP_RECONNECT_DELAY_SECONDS` controls the wait before reconnecting a dropped camera.
+
 ---
 
 ## Project Structure
@@ -80,6 +95,7 @@ openssl rand -hex 32
 │   ├── camera/           # Live camera feed with detection overlay & HUD
 │   ├── dashboard/        # Telemetry, analytics, and class statistics
 │   ├── model-viewer/     # Three.js 3D point cloud & GLB mesh viewer
+│   ├── gpu-viewer/       # WebGPU million-point viewer with measured FPS
 │   ├── replay/           # Session-scoped SQL-backed spatial trajectory replay
 │   └── api/              # API endpoints for detection, chat & 3D models
 ├── lib/                  # Core algorithms in TypeScript
@@ -87,8 +103,12 @@ openssl rand -hex 32
 │   ├── tracker.ts        # Kalman box tracking (SORT)
 │   ├── spatial-fusion.ts # Camera intrinsics & 3D back-projection
 │   ├── scene-graph.ts    # Spatial relation builder
+│   ├── webgpu-pointcloud.ts # WebGPU point-cloud renderer
+│   ├── geometry-accel.ts # JS geometry with optional WASM acceleration
 │   └── store.ts          # Client state store
 ├── core/                 # Computer vision & spatial geometry algorithms in Python
+├── rust/geometry/        # Optional Rust/WASM point-cloud geometry kernels
+├── scripts/              # Operational load and chaos measurement commands
 ├── public/models/        # 3D GLB assets for detected object classes
 └── legacy_django/        # Original Django backend and model training notebook
 ```
@@ -104,11 +124,63 @@ npm run start    # Run production server
 npm run lint     # Lint check with ESLint
 ```
 
+Operational and quality commands:
+
+```bash
+make load-test     # 64 synthetic camera streams, throughput + p50/p95/p99
+make chaos-test    # Same load with drops, disconnects, and pipeline errors
+make mutation-test # Cosmic Ray mutation testing, writes reports/mutation.json
+```
+
+To build the optional WASM geometry kernels:
+
+```bash
+rustup target add wasm32-unknown-unknown
+cd rust/geometry && cargo build --release --target wasm32-unknown-unknown
+mkdir -p ../../public/wasm
+cp target/wasm32-unknown-unknown/release/smartvision_geometry.wasm ../../public/wasm/geometry.wasm
+```
+
+When `/wasm/geometry.wasm` is absent the browser uses the JavaScript geometry
+implementation automatically, so WebGPU discovery does not depend on Rust.
+
 ---
 
 ## Performance Evidence
 
-No production benchmark figures are currently published. The dashboard reports measured detection counts and labels performance or accuracy metrics as unavailable until they are collected from representative workloads. The TensorFlow detector has a CPU smoke test; it is not a throughput or accuracy benchmark.
+No production inference benchmark is published yet: accuracy and end-to-end
+camera-to-model latency require representative cameras, GPU hardware, and a
+running Triton/TensorRT deployment. The dashboard labels those values as
+unavailable until they are measured rather than displaying fabricated numbers.
+
+The synthetic load harness has been measured locally on this workstation's CPU
+for **64 concurrent camera streams x 120 frames** (7,680 frames of deterministic
+320x240 JPEG encode + decode, no model inference):
+
+| Scenario | Throughput | p50 | p95 | p99 | Max | Faults |
+| --- | --- | --- | --- | --- | --- | --- |
+| Clean streams | 4,461 fps | 3.35 ms | 12.16 ms | 21.39 ms | 53.83 ms | 0 |
+| Chaos injection | 4,011 fps | 3.46 ms | 12.57 ms | 19.81 ms | 48.71 ms | 1,600 |
+
+Chaos injection configured drops every 7 frames, disconnects every 23, errors
+every 31, and a 5 ms latency spike every 47. Results include machine and
+JIT/decoder warm-up variance; reproduce with `make load-test` and
+`make chaos-test`. These figures measure the synthetic frame pipeline only, not
+detector accuracy or production inference throughput.
+
+Mutation testing is wired through `make mutation-test`, which initializes a
+Cosmic Ray session, executes it with the local distributor, and writes
+`reports/mutation.json` with killed/survived counts and the mutation score. A
+smoke session over `core/application/ingestion/frame_admission.py` produced
+**111 killed / 27 survived out of 138 mutations (80.43%)**. The surviving
+mutations cluster around idle-timeout eviction and rate-limit boundary
+assertions; they are reported rather than hidden, and the full `core` target is
+available for a complete score.
+
+The TensorFlow detector has a CPU smoke test through its HTTP endpoint. The
+Triton client, TensorRT artifact checks, and multi-GPU scheduler are unit tested
+with injected transports; no GPU cluster was available in this environment, so
+multi-GPU/Triton throughput is not claimed.
 
 ## Model Training & Background
 
