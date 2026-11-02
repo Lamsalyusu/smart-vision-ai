@@ -533,7 +533,7 @@ class ARIMAModel:
 
         if hasattr(self, 'fitted_values') and self.fitted_values is not None:
             valid_fitted = self.fitted_values[~np.isnan(self.fitted_values)]
-            history = np.concatenate([self.residuals[~np.isnan(self.residuals)], self.fitted_values[~np.isnan(self.fitted_values)])
+            history = np.concatenate([self.residuals[~np.isnan(self.residuals)], self.fitted_values[~np.isnan(self.fitted_values)]])
 
         forecasts = []
         for _ in range(steps):
