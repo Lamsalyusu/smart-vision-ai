@@ -4,7 +4,10 @@ extend-exclude = ["144_2432214_YuyutsuLamsal_ObjectDetectionModel.ipynb"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "C90"]
-ignore = ["E501"]
+ignore = ["E501", "F401", "F403", "F405"]
+
+[tool.ruff.lint.flake8-type-checking]
+ignore = ["TC001", "TC002", "TC003"]
 
 [tool.mypy]
 python_version = "3.12"
