@@ -23,6 +23,14 @@ ALLOWED_HOSTS = [
     ).split(",")
     if host.strip()
 ]
+RTSP_ALLOWED_HOSTS = {
+    host.strip().lower()
+    for host in get_env("RTSP_ALLOWED_HOSTS", "").split(",")
+    if host.strip()
+}
+RTSP_MAX_STREAMS = int(get_env("RTSP_MAX_STREAMS", "50"))
+RTSP_RECONNECT_DELAY_SECONDS = float(get_env("RTSP_RECONNECT_DELAY_SECONDS", "1.0"))
+INTERNAL_API_TOKEN = get_env("INTERNAL_API_TOKEN", "")
 
 SUPABASE_URL = get_env("SUPABASE_URL")
 SUPABASE_ANON_KEY = get_env("SUPABASE_ANON_KEY")
