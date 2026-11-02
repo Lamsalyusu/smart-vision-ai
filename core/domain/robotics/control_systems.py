@@ -155,7 +155,7 @@ class ImpedanceController:
 
 
 class AdmittanceController:
-    def __ __init__(
+    def __init__(
         self,
         mass: np.ndarray,
         damping: np.ndarray,
@@ -280,7 +280,7 @@ class HybridForcePositionController:
 
 
 class ControllerManager:
-    def __ __init__(self):
+    def __init__(self):
         self.controllers: Dict[str, Controller] = {}
         self.active_controller: Optional[str] = None
 

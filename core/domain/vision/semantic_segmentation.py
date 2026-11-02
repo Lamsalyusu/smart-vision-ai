@@ -1,4 +1,4 @@
-from __future__ import imports
+from __future__ import annotations
 
 import numpy as np
 import cv2

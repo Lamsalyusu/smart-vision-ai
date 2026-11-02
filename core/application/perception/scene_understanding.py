@@ -250,7 +250,7 @@ class SceneRelationshipAnalyzer:
 
 
 class SceneLayoutAnalyzer:
-    def __ __init__(
+    def __init__(
         self,
         floor_threshold: float = 0.1,
         wall_threshold: float = 0.8,

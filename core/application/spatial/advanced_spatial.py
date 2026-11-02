@@ -143,7 +143,7 @@ class VisualSLAM:
             pose=self.current_pose,
             intrinsics=self.camera_matrix,
             features=pts2,
-            descriptors=desc[m.trainIdx for m in matches],
+            descriptors=[desc[m.trainIdx] for m in matches],
         )
         self.keyframes[kf_id] = keyframe
 
