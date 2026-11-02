@@ -6,9 +6,7 @@ from typing import Optional, Sequence, Callable, Dict, Any, List, Tuple, Union
 from enum import Enum
 from abc import ABC, abstractmethod
 import math
-import time
 from collections import defaultdict, deque
-import warnings
 
 class AttentionType(Enum):
     SELF = "self"

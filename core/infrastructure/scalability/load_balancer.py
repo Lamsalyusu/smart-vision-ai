@@ -12,12 +12,9 @@ import hashlib
 import random
 import heapq
 import socket
-import selectors
 from collections import defaultdict, deque
 from concurrent.futures import ThreadPoolExecutor, Future
-import asyncio
 import logging
-import warnings
 
 class LoadBalancingAlgorithm(Enum):
     ROUND_ROBIN = "round_robin"
