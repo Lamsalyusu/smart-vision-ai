@@ -50,6 +50,13 @@ jobs:
           pip install -r requirements.txt
           pip install ruff==0.15.6 mypy==1.19.1
 
+      - name: Debug pyproject.toml
+        run: |
+          echo "=== pyproject.toml ==="
+          cat pyproject.toml
+          echo "=== ruff version ==="
+          ruff --version
+
       - name: Lint with ruff
         run: ruff check . --config pyproject.toml
 
