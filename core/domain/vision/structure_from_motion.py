@@ -472,14 +472,15 @@ class BundleAdjustment:
         x0 = np.array(cam_params + point_params, dtype=np.float64)
 
         def residuals(x):
-            cam_params = x[:len(cam_params)]
-            point_params = x[len(cam_params):]
+            n_cam_params = len(cam_params)
+            cam_params_local = x[:n_cam_params]
+            point_params_local = x[n_cam_params:]
 
             cams = {}
             idx = 0
             for cam_id in cam_ids:
-                rvec = cam_params[idx:idx+3]
-                tvec = cam_params[idx+3:idx+6]
+                rvec = cam_params_local[idx:idx+3]
+                tvec = cam_params_local[idx+3:idx+6]
                 idx += 6
                 R = cv2.Rodrigues(rvec)[0]
                 pose = np.eye(4)
@@ -497,7 +498,7 @@ class BundleAdjustment:
 
             pts = {}
             for i, pt_id in enumerate(point_ids):
-                pts[pt_id] = point_params[i*3:(i+1)*3]
+                pts[pt_id] = point_params_local[i*3:(i+1)*3]
 
             res = []
             for track_id, track in tracks.items():

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 from dataclasses import dataclass, field
-from typing import Optional, Sequence, Callable, Dict, Any, List, Tuple, Set
+from typing import Optional, Callable, Dict, Any, List, Tuple, Set, Sequence as TypingSequence
 from enum import Enum
 from abc import ABC, abstractmethod
 import math
