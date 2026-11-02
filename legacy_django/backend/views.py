@@ -1,4 +1,5 @@
 import base64
+import hmac
 import json
 import logging
 import os
@@ -22,7 +23,7 @@ from django_ratelimit.decorators import ratelimit
 
 from backend.supabase_client import supabase_admin
 from backend.repositories.data_manager import data_manager
-from backend.services.vision_service import vision_service
+from backend.services.vision_service import rtsp_stream_manager, vision_service
 from backend.services.chat_service import chat_service
 
 
@@ -369,6 +370,58 @@ def get_user_stats(request):
     except Exception:
         logger.exception("Failed to load user statistics | user=%s", user_id)
         return JsonResponse({"error": "Unable to load statistics"}, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["GET", "POST", "DELETE"])
+def rtsp_streams(request):
+    expected_token = getattr(settings, "INTERNAL_API_TOKEN", "")
+    supplied_token = request.headers.get("X-Internal-Token", "")
+    if not expected_token or not hmac.compare_digest(
+        supplied_token.encode(), expected_token.encode()
+    ):
+        return JsonResponse({"error": "Unauthorized"}, status=401)
+    if rtsp_stream_manager is None:
+        return JsonResponse({"error": "RTSP ingestion is unavailable"}, status=503)
+
+    if request.method == "GET":
+        return JsonResponse({
+            "streams": [
+                {
+                    "camera_id": metric.camera_id,
+                    "connected": metric.connected,
+                    "frames_received": metric.frames_received,
+                    "frames_processed": metric.frames_processed,
+                    "frames_dropped": metric.frames_dropped,
+                    "reconnects": metric.reconnects,
+                    "processing_errors": metric.processing_errors,
+                    "last_frame_at": metric.last_frame_at,
+                }
+                for metric in rtsp_stream_manager.metrics()
+            ]
+        })
+
+    if request.method == "POST":
+        try:
+            payload = json.loads(request.body)
+            metrics = rtsp_stream_manager.register(
+                str(payload.get("camera_id", "")),
+                str(payload.get("stream_url", "")),
+            )
+        except PermissionError as exc:
+            return JsonResponse({"error": str(exc)}, status=403)
+        except OverflowError as exc:
+            return JsonResponse({"error": str(exc)}, status=429)
+        except (ValueError, json.JSONDecodeError) as exc:
+            return JsonResponse({"error": str(exc)}, status=400)
+        return JsonResponse({"success": True, "camera_id": metrics.camera_id}, status=202)
+
+    camera_id = request.GET.get("camera_id", "")
+    if not camera_id:
+        return JsonResponse({"error": "camera_id is required"}, status=400)
+    if not rtsp_stream_manager.unregister(camera_id):
+        return JsonResponse({"error": "camera stream not found"}, status=404)
+    return JsonResponse({"success": True})
 
 # Object detection
 
