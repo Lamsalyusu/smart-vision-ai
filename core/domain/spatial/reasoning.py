@@ -6,13 +6,11 @@ from typing import Optional, Sequence, Callable, Dict, Any, List, Tuple, Union, 
 from enum import Enum
 from abc import ABC, abstractmethod
 import math
-import time
 from collections import defaultdict, deque
 from scipy.spatial import KDTree, cKDTree, ConvexHull, Delaunay, Voronoi
 from scipy.spatial.distance import pdist, squareform, cdist
 from scipy.optimize import linear_sum_assignment
 from scipy.linalg import svd, eig, pinv
-import warnings
 
 class SpatialRelationType(Enum):
     CONTAINS = "contains"
