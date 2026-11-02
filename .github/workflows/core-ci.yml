@@ -13,13 +13,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: 'pip'
       - name: Install core validation dependencies
-        run: >-
-          python -m pip install -r requirements.txt
-          numpy==2.5.3 scipy==1.17.1 ruff==0.15.6 mypy==1.19.1 httpx==0.28.1
+        run: |
+          python -m pip install --upgrade pip
+          pip install numpy==2.5.3 scipy==1.17.1 ruff==0.15.6 mypy==1.19.1 httpx==0.28.1
       - name: Lint core
-        run: make lint-core
+        run: ruff check core --config pyproject.toml
       - name: Check domain types
-        run: make type-check-core
+        run: mypy core --ignore-missing-imports --config-file pyproject.toml
       - name: Run core tests
-        run: make PYTHON=python test-core
+        run: python -m pytest -q core/tests
