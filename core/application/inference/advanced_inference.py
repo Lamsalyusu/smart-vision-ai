@@ -11,6 +11,17 @@ import threading
 import queue
 import uuid
 
+try:
+    import tensorrt as trt
+except ImportError:
+    trt = None
+
+try:
+    import pycuda.driver as cuda
+    import pycuda.autoinit
+except ImportError:
+    cuda = None
+
 
 class InferenceBackend(Enum):
     TENSORRT = "tensorrt"
@@ -75,9 +86,8 @@ class TensorRTEngine(InferenceEngine):
 
     def _initialize(self):
         try:
-            import tensorrt as trt
-            import pycuda.driver as cuda
-            import pycuda.autoinit
+            if trt is None or cuda is None:
+                raise ImportError("tensorrt or pycuda not available")
 
             self.logger = trt.Logger(trt.Logger.WARNING)
             self.runtime = trt.Runtime(self.logger)
@@ -93,9 +103,6 @@ class TensorRTEngine(InferenceEngine):
             return False
 
         try:
-            import tensorrt as trt
-            import pycuda.driver as cuda
-
             with open(model_path, 'rb') as f:
                 engine_data = f.read()
 
@@ -121,8 +128,6 @@ class TensorRTEngine(InferenceEngine):
             return False
 
     def infer(self, inputs: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]:
-        import pycuda.driver as cuda
-
         for i, name in enumerate(self.input_names):
             if name in inputs:
                 cuda.memcpy_htod_async(self.bindings[i], inputs[name].astype(np.float32), self.stream)
