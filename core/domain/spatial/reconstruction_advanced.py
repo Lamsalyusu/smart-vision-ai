@@ -383,6 +383,8 @@ class NeuralRadianceField:
         return rgb, depth
 
     def train(self, images: List[np.ndarray], poses: List[CameraPose], intrinsics: np.ndarray, epochs: int = 1000):
+        # NeRF training requires torch; placeholder returns without training
+        # Training is disabled unless torch and a compatible model are available
         pass
 
 
@@ -448,6 +450,7 @@ class GaussianSplatting:
         return np.array([1.0, 0.0, 0.0])
 
     def train(self, images: List[np.ndarray], cameras: List[CameraPose], epochs: int = 1000):
+        # Gaussian Splatting training requires torch; placeholder returns without training
         pass
 
 

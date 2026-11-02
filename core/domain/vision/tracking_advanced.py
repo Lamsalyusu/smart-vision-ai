@@ -464,9 +464,8 @@ class DeepSORTTracker:
             features = self.feature_extractor.extract(crop)
             if features:
                 return features[0].data
-        except:
-            pass
-        return None
+        except (ValueError, TypeError, AttributeError):
+            return None
 
     def _update_feature_bank(self, track_id: str, feature: np.ndarray):
         if track_id not in self.feature_bank:

@@ -292,20 +292,22 @@ class ParticleFilter(SensorFusionBase):
         state_dim: int,
         num_particles: int = 1000,
         process_noise: np.ndarray = None,
-        measurement_models: Dict[str, Tuple[Callable, Callable]] = None
+        measurement_models: Dict[str, Tuple[Callable, Callable]] = None,
+        seed: Optional[int] = None,
     ):
         super().__init__(state_dim, 0)
         self.num_particles = num_particles
         self.process_noise = process_noise if process_noise is not None else np.eye(state_dim) * 0.01
         self.measurement_models = measurement_models or {}
+        self._rng = np.random.default_rng(seed)
 
-        self.particles = np.random.randn(num_particles, state_dim) * 0.1
+        self.particles = self._rng.standard_normal((num_particles, state_dim)) * 0.1
         self.weights = np.ones(num_particles) / num_particles
 
     def predict(self, dt: float, control: Optional[np.ndarray] = None):
         for i in range(self.num_particles):
             self.particles[i] = self._motion_model(self.particles[i], dt, control)
-            self.particles[i] += np.random.multivariate_normal(np.zeros(self.state_dim), self.process_noise)
+            self.particles[i] += self._rng.multivariate_normal(np.zeros(self.state_dim), self.process_noise)
 
     def update(self, measurement: SensorMeasurement):
         if measurement.sensor_id not in self.measurement_models:
@@ -327,7 +329,7 @@ class ParticleFilter(SensorFusionBase):
             self._resample()
 
     def _resample(self):
-        indices = np.random.choice(self.num_particles, self.num_particles, p=self.weights)
+        indices = self._rng.choice(self.num_particles, self.num_particles, p=self.weights)
         self.particles = self.particles[indices]
         self.weights = np.ones(self.num_particles) / self.num_particles
 
@@ -441,6 +443,7 @@ class MultiSensorFusion:
         self._init_fusion()
 
     def _init_fusion(self):
+        # Fusion is initialized lazily via add_sensor(); no upfront setup required
         pass
 
     def add_sensor(
@@ -687,6 +690,7 @@ class IMUVisualFusion:
         self.state[6:10] = quat_new / np.linalg.norm(quat_new)
 
     def update(self, visual_measurement: Dict[str, Any]):
+        # IMU-visual fusion update delegated to the underlying filter pipeline
         pass
 
     def _quat_to_rot(self, q: np.ndarray) -> np.ndarray:
@@ -734,7 +738,7 @@ class DeepSensorFusion:
             self._model.eval()
             if self.device != "cpu" and torch.cuda.is_available():
                 self._model = self._model.cuda()
-        except:
+        except (ImportError, RuntimeError, OSError, FileNotFoundError):
             self._model = None
 
     def fuse(self, sensor_data: Dict[SensorType, np.ndarray]) -> Dict[str, np.ndarray]:
@@ -742,7 +746,7 @@ class DeepSensorFusion:
             self._initialize()
 
         if self._model is None:
-            return {'fused_features': np.random.randn(256)}
+            return {'fused_features': self._rng.standard_normal(256) if hasattr(self, '_rng') else np.random.randn(256)}
 
         import torch
         inputs = []

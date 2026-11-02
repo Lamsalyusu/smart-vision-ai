@@ -577,6 +577,7 @@ class VisualOdometry:
             self.trajectory.append(self.current_pose)
 
         except cv2.error:
+            # Visual odometry failed (e.g., insufficient features); keep current pose
             pass
 
         self.prev_image = image

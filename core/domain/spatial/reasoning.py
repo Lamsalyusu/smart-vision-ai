@@ -704,7 +704,7 @@ class MetricReasoner:
         try:
             pos = np.linalg.lstsq(A, b, rcond=None)[0]
             return Point2D(pos[0], pos[1])
-        except:
+        except (ValueError, np.linalg.LinAlgError, TypeError):
             return None
 
     def triangulate(self, known_points: Dict[str, Point2D],

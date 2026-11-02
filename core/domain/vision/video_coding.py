@@ -110,7 +110,7 @@ class H264Encoder:
         try:
             import subprocess
             self._initialized = True
-        except:
+        except (ImportError, RuntimeError, OSError):
             self._initialized = False
 
     def encode(self, frame: VideoFrame) -> EncodedFrame:

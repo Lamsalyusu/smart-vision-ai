@@ -493,11 +493,13 @@ class FaceAttributeAnalyzer:
         self,
         model_path: Optional[str] = None,
         device: str = "cpu",
+        seed: Optional[int] = None,
     ):
         self.model_path = model_path
         self.device = device
         self._model = None
         self._initialized = False
+        self._rng = np.random.default_rng(seed)
 
     def _initialize(self):
         try:
@@ -539,22 +541,22 @@ class FaceAttributeAnalyzer:
         return attributes
 
     def _estimate_age(self, face: np.ndarray) -> float:
-        return float(np.random.randint(18, 65))
+        return float(self._rng.integers(18, 65))
 
     def _estimate_gender(self, face: np.ndarray) -> str:
-        return np.random.choice(['male', 'female'])
+        return self._rng.choice(['male', 'female'])
 
     def _estimate_emotion(self, face: np.ndarray) -> str:
-        return np.random.choice(['neutral', 'happy', 'sad', 'angry', 'surprise', 'fear', 'disgust'])
+        return self._rng.choice(['neutral', 'happy', 'sad', 'angry', 'surprise', 'fear', 'disgust'])
 
     def _detect_glasses(self, face: np.ndarray) -> bool:
-        return np.random.random() > 0.7
+        return self._rng.random() > 0.7
 
     def _detect_beard(self, face: np.ndarray) -> bool:
-        return np.random.random() > 0.8
+        return self._rng.random() > 0.8
 
     def _detect_mask(self, face: np.ndarray) -> bool:
-        return np.random.random() > 0.9
+        return self._rng.random() > 0.9
 
     def _detect_deep(self, image: np.ndarray, detection: FaceDetection) -> Dict[str, Any]:
         return self._analyze_classical(image, detection)
@@ -717,11 +719,13 @@ class FaceSpoofDetector:
         self,
         model_path: Optional[str] = None,
         device: str = "cpu",
+        seed: Optional[int] = None,
     ):
         self.model_path = model_path
         self.device = device
         self._model = None
         self._initialized = False
+        self._rng = np.random.default_rng(seed)
 
     def _initialize(self):
         try:
@@ -759,16 +763,16 @@ class FaceSpoofDetector:
         return scores
 
     def _detect_print_attack(self, face: np.ndarray) -> float:
-        return np.random.random() * 0.3
+        return self._rng.random() * 0.3
 
     def _detect_replay_attack(self, face: np.ndarray) -> float:
-        return np.random.random() * 0.3
+        return self._rng.random() * 0.3
 
     def _detect_mask_attack(self, face: np.ndarray) -> float:
-        return np.random.random() * 0.3
+        return self._rng.random() * 0.3
 
     def _check_depth_consistency(self, face: np.ndarray) -> float:
-        return np.random.random() * 0.2 + 0.8
+        return self._rng.random() * 0.2 + 0.8
 
     def _detect_deep(self, image: np.ndarray, detection: FaceDetection) -> Dict[str, float]:
         return self._detect_classical(image, detection)

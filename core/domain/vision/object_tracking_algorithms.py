@@ -415,7 +415,7 @@ class DeepLearningTracker(BaseTracker):
             self._model = torch.jit.load(self.model_path)
             self._model.eval()
             self._initialized = True
-        except:
+        except (ImportError, RuntimeError, OSError, FileNotFoundError):
             self._initialized = False
 
     def init(self, image: np.ndarray, bbox: BoundingBox) -> bool:
@@ -456,7 +456,7 @@ class SiameseTracker(BaseTracker):
             self._model = torch.jit.load(self.model_path)
             self._model.eval()
             self._initialized = True
-        except:
+        except (ImportError, RuntimeError, OSError, FileNotFoundError):
             self._initialized = False
 
     def init(self, image: np.ndarray, bbox: BoundingBox) -> bool:

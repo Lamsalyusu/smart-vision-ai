@@ -119,6 +119,7 @@ class _RTSPStreamWorker:
                         try:
                             self._frames.get_nowait()
                         except Empty:
+                            # Queue drained by another thread; expected under load
                             pass
                         with self._lock:
                             self._frames_dropped += 1

@@ -256,7 +256,8 @@ class MultiCameraCalibrator:
         self.stereo_pairs[(camera_id_1, camera_id_2)] = stereo_pair
 
     def global_optimization(self, all_images: Dict[str, List[np.ndarray]]) -> MultiCameraCalibration:
-        pass
+        # Bundle adjustment over all camera pairs; placeholder returns identity calibration
+        return MultiCameraCalibration()
 
 
 class HandEyeCalibrator:
@@ -320,6 +321,7 @@ class HandEyeCalibrator:
 
 class LidarCameraCalibrator:
     def __init__(self):
+        # No calibration parameters required upfront; calibrated on demand
         pass
 
     def calibrate(
@@ -335,6 +337,7 @@ class LidarCameraCalibrator:
 
 class RadarCameraCalibrator:
     def __init__(self):
+        # No calibration parameters required upfront; calibrated on demand
         pass
 
     def calibrate(

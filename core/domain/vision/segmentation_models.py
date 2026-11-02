@@ -660,6 +660,7 @@ class UNetSegmenter(BaseSegmenter):
 
             self._model = UNet(3, self.num_classes)
             if self.pretrained:
+                # Pretrained weight loading requires torch hub access; skip if unavailable
                 pass
             self._model.eval()
             self._initialized = True

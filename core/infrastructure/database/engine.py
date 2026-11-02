@@ -55,6 +55,7 @@ def _init_engine():
                 connect_args={"connect_timeout": 1},
             )
             with eng.connect():
+                # Connection test only; no query needed
                 pass
             return eng, target_url
         except Exception as exc:
