@@ -563,6 +563,3 @@ class BundleAdjustment:
             J[2*i:2*i+2, cam_params_start+3:cam_params_start+6] = dproj_dpt @ dP_dt
 
         return J
-
-
-from typing import Tuple

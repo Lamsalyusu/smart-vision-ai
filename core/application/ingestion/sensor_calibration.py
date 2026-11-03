@@ -657,7 +657,6 @@ class CalibrationVisualizer:
 class CalibrationExporter:
     @staticmethod
     def export_yaml(result: CalibrationResult, path: str):
-        import yaml
         data = {
             'camera_matrix': result.camera_matrix.tolist(),
             'dist_coeffs': result.dist_coeffs.tolist(),
@@ -679,7 +678,6 @@ class CalibrationExporter:
 
     @staticmethod
     def export_stereo_yaml(result: StereoCalibrationResult, path: str):
-        import yaml
         data = {
             'left': {
                 'camera_matrix': result.left_intrinsics.K.tolist(),
@@ -700,7 +698,6 @@ class CalibrationExporter:
 
     @staticmethod
     def export_handeye(result: HandEyeCalibrationResult, path: str):
-        import yaml
         data = {
             'robot_to_camera': result.robot_to_camera.transform.tolist(),
             'camera_to_robot': result.camera_to_robot.transform.tolist(),

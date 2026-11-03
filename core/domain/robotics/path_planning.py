@@ -666,5 +666,4 @@ class DynamicPlanner:
         return planner.plan(start, goal)
 
 
-import heapq
 import random
