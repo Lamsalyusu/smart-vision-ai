@@ -185,7 +185,7 @@ class RTSPIngestionTests(unittest.TestCase):
         )
 
         try:
-            manager.register("front-door", "rtsp://user:secret@camera.local:554/live")
+            manager.register("front-door", "rtsp://camera.local:554/live")
             self.assertTrue(processed.wait(1))
             metrics = manager.metrics()[0]
             self.assertEqual(received, [("front-door", 1, b"jpeg-frame")])
