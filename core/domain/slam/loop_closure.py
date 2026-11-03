@@ -13,6 +13,13 @@ from scipy.linalg import pinv, svd, cholesky, block_diag
 from scipy.sparse import csr_matrix, lil_matrix, csc_matrix
 from scipy.sparse.linalg import spsolve, lsqr, cg
 
+# TODO: Add support for semantic loop closure (object-level)
+# FIXME: Vocabulary tree training is slow for large datasets
+# XXX: Geometric verification doesn't handle dynamic objects well
+# HACK: Using scipy.sparse for pose graph - not the most efficient
+# FIXME: Scan context matching fails in featureless environments
+# XXX: No support for multi-session/multi-robot loop closure
+
 class LoopClosureMethod(Enum):
     BOW = "bag_of_words"
     GEOMETRIC = "geometric"

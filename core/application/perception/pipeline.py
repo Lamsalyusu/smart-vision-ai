@@ -11,6 +11,13 @@ import queue
 from collections import defaultdict, deque
 from concurrent.futures import ThreadPoolExecutor, Future
 
+# TODO: Add support for event-based cameras (async processing)
+# FIXME: Frame synchronization assumes constant frame rates
+# XXX: No built-in support for sensor calibration verification
+# HACK: Using ThreadPoolExecutor for async processing - not true async
+# FIXME: No built-in support for sensor health monitoring
+# XXX: Track management doesn't handle occlusion well
+
 class SensorType(Enum):
     CAMERA = "camera"
     LIDAR = "lidar"

@@ -17,6 +17,13 @@ from concurrent.futures import ThreadPoolExecutor
 
 logger = logging.getLogger(__name__)
 
+# TODO: Add support for learner nodes (non-voting replicas)
+# FIXME: Leader election can cause split-brain in network partitions
+# XXX: No support for joint consensus (configuration changes)
+# HACK: Using ThreadPoolExecutor for state machine - not true async
+# FIXME: Snapshotting blocks the main thread - should be async
+# XXX: No support for log compaction beyond snapshots
+
 
 class NodeState(Enum):
     FOLLOWER = "follower"

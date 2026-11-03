@@ -18,6 +18,10 @@ from cryptography.hazmat.primitives.asymmetric import rsa, ec, padding
 from cryptography.x509.oid import NameOID, ExtendedKeyUsageOID
 import logging
 
+# TODO: Consider adding support for Ed25519 keys (more modern than RSA/ECDSA)
+# FIXME: The encryption password for private keys is random - should we allow user-supplied?
+# XXX: Current implementation doesn't support hardware security modules (HSM)
+
 logger = logging.getLogger(__name__)
 
 

@@ -11,6 +11,13 @@ from scipy.spatial.transform import Rotation as R
 from scipy.optimize import minimize, least_squares
 from scipy.linalg import pinv, svd, qr, cholesky
 
+# TODO: Add support for spherical joints (not just revolute/prismatic)
+# FIXME: Collision checking is very basic - no continuous collision detection
+# XXX: Grasp quality metrics don't account for friction coefficients
+# HACK: Using scipy.optimize for IK - slow for real-time control
+# FIXME: No support for tendon-driven or underactuated hands
+# XXX: Dynamics assume rigid bodies - no compliance modeling
+
 class JointType(Enum):
     REVOLUTE = "revolute"
     PRISMATIC = "prismatic"
