@@ -408,12 +408,12 @@ def rtsp_streams(request):
                 str(payload.get("camera_id", "")),
                 str(payload.get("stream_url", "")),
             )
-        except PermissionError as exc:
-            return JsonResponse({"error": str(exc)}, status=403)
-        except OverflowError as exc:
-            return JsonResponse({"error": str(exc)}, status=429)
-        except (ValueError, json.JSONDecodeError) as exc:
-            return JsonResponse({"error": str(exc)}, status=400)
+        except PermissionError:
+            return JsonResponse({"error": "Forbidden"}, status=403)
+        except OverflowError:
+            return JsonResponse({"error": "Too many requests"}, status=429)
+        except (ValueError, json.JSONDecodeError):
+            return JsonResponse({"error": "Invalid request"}, status=400)
         return JsonResponse({"success": True, "camera_id": metrics.camera_id}, status=202)
 
     camera_id = request.GET.get("camera_id", "")
@@ -716,7 +716,7 @@ def generate_3d_view(request):
             "height": result["original_height"],
         })
 
-    except ImportError as exc:
+    except ImportError:
         logger.exception(
             "MiDaS dependency is missing | user=%s",
             user_id,
@@ -727,7 +727,6 @@ def generate_3d_view(request):
                 "MiDaS not installed. "
                 "Run: pip install torch torchvision timm"
             ),
-            "detail": str(exc),
         }, status=500)
 
     except json.JSONDecodeError:
