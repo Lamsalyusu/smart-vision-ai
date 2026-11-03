@@ -339,7 +339,7 @@ class SagaOrchestrator:
             if saga['current_step'] >= len(saga['steps']):
                 saga['status'] = 'completed'
             return True
-        except Exception as e:
+        except Exception:
             saga['status'] = 'failed'
             self.compensate(saga_id)
             return False

@@ -442,6 +442,3 @@ class SemanticMapper:
             if counts.sum() > 0:
                 result[voxel] = int(np.argmax(counts))
         return result
-
-
-from typing import Tuple

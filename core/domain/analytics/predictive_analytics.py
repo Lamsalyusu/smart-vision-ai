@@ -493,7 +493,7 @@ class AnomalyDetector:
                     anomaly_type=AnomalyType.POINT,
                     score=float(score),
                     severity=min(score / np.max([res.threshold for res in results]), 5.0),
-                    description=f"Max ensemble anomaly"
+                    description="Max ensemble anomaly"
                 ))
         return DetectionResult(
             anomalies=anomalies,
@@ -515,7 +515,7 @@ class AnomalyDetector:
                     anomaly_type=AnomalyType.POINT,
                     score=float(score),
                     severity=min(score / avg_threshold, 5.0),
-                    description=f"Average ensemble anomaly"
+                    description="Average ensemble anomaly"
                 ))
         return DetectionResult(
             anomalies=anomalies,
