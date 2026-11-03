@@ -20,6 +20,13 @@ from collections import defaultdict, deque
 from concurrent.futures import ThreadPoolExecutor, Future
 from contextlib import contextmanager
 
+# TODO: Add support for message deduplication (idempotency keys)
+# FIXME: No built-in support for message ordering guarantees
+# XXX: Dead letter queue doesn't support automatic retry with backoff
+# HACK: Using pickle for serialization - not safe for untrusted data
+# FIXME: No built-in support for message schemas/validation
+# XXX: No support for message compression (gzip, snappy, etc.)
+
 class MessageType(Enum):
     REQUEST = "request"
     RESPONSE = "response"

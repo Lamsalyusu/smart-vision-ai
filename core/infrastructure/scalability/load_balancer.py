@@ -16,6 +16,13 @@ from collections import defaultdict, deque
 from concurrent.futures import ThreadPoolExecutor, Future
 import logging
 
+# TODO: Add support for gRPC health checks
+# FIXME: Sticky sessions don't work well with auto-scaling
+# XXX: No support for circuit breaking at the load balancer level
+# HACK: Consistent hash ring uses MD5 - not cryptographically secure
+# FIXME: No support for weighted least requests algorithm
+# XXX: No built-in support for rate limiting per client
+
 class LoadBalancingAlgorithm(Enum):
     ROUND_ROBIN = "round_robin"
     WEIGHTED_ROUND_ROBIN = "weighted_round_robin"

@@ -23,6 +23,12 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# TODO: Add support for WebSocket compression (permessage-deflate)
+# FIXME: Connection cleanup on abrupt disconnect is not always reliable
+# XXX: No built-in support for message acknowledgments/retries
+# HACK: Using asyncio.Queue for pub/sub - not suitable for high-throughput scenarios
+# FIXME: Reconnection logic in WebSocketClient is basic - no exponential backoff config
+
 
 class ConnectionState(Enum):
     CONNECTING = "connecting"

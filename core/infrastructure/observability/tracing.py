@@ -23,6 +23,11 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# TODO: Add support for W3C TraceContext propagation headers
+# FIXME: Sampling decision should be configurable per-service
+# XXX: Current implementation doesn't support trace linking across services properly
+# HACK: Using contextvars for span context - might not work in all async contexts
+
 
 class SpanKind(Enum):
     INTERNAL = "internal"

@@ -20,6 +20,13 @@ import asyncio
 
 logger = logging.getLogger(__name__)
 
+# TODO: Add support for blue-green deployments
+# FIXME: Rollback doesn't handle database migrations properly
+# XXX: No support for canary deployments yet
+# HACK: Using subprocess for docker/kubectl/terraform - should use proper SDKs
+# FIXME: Health check retries don't have exponential backoff
+# XXX: No support for multi-region deployments
+
 
 class DeploymentStage(Enum):
     PREPARE = "prepare"

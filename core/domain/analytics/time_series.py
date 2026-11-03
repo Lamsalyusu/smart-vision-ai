@@ -11,6 +11,13 @@ from scipy import signal, stats
 from scipy.fft import fft, fftfreq
 from scipy.optimize import curve_fit
 
+# TODO: Add support for multivariate time series (VAR, etc.)
+# FIXME: ARIMA implementation is incomplete - only basic AR/MA
+# XXX: No support for holiday/calendar effects in forecasting
+# HACK: Using scipy.signal for decomposition - not production-grade
+# FIXME: No support for missing data imputation beyond linear
+# XXX: No support for online/incremental learning
+
 class TimeSeriesFrequency(Enum):
     HOURLY = "hourly"
     DAILY = "daily"

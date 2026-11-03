@@ -20,6 +20,13 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# TODO: Add support for test parallelization with proper isolation
+# FIXME: Test flakiness detection is basic - no automatic retry on flaky tests
+# XXX: No built-in support for snapshot testing
+# HACK: Using unittest.mock for mocking - should consider pytest-mock
+# FIXME: No built-in support for test data generation/fixtures
+# XXX: No support for test result caching/incremental runs
+
 T = TypeVar('T')
 
 

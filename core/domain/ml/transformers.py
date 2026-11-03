@@ -8,6 +8,13 @@ from abc import ABC, abstractmethod
 import math
 from collections import defaultdict, deque
 
+# TODO: Add support for grouped-query attention (GQA)
+# FIXME: Flash attention implementation is incomplete - falls back to standard
+# XXX: No support for Mixture of Experts (MoE) layers
+# HACK: Custom Tensor class for autograd - very basic, not production-ready
+# FIXME: No support for gradient checkpointing / activation checkpointing
+# XXX: No support for quantization (int8, int4)
+
 class AttentionType(Enum):
     SELF = "self"
     CROSS = "cross"

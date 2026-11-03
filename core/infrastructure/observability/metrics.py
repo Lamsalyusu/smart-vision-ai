@@ -15,6 +15,11 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# TODO: Add support for exponential histograms (Prometheus native)
+# FIXME: Label cardinality can explode - need cardinality limits
+# XXX: Summary quantiles are approximate - not exact
+# HACK: Using threading.Lock instead of asyncio.Lock for sync/async compat
+
 
 class MetricType(Enum):
     COUNTER = "counter"

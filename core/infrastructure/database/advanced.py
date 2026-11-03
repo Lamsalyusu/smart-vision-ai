@@ -22,6 +22,13 @@ import contextlib
 
 logger = logging.getLogger(__name__)
 
+# TODO: Add support for optimistic locking with version columns
+# FIXME: Connection pool doesn't handle database failover gracefully
+# XXX: No support for read-after-write consistency with replicas
+# HACK: Using pickle for cache serialization - not safe for untrusted data
+# FIXME: Migration manager doesn't handle concurrent migrations well
+# XXX: No support for distributed transactions (2PC)
+
 T = TypeVar('T')
 K = TypeVar('K')
 V = TypeVar('V')

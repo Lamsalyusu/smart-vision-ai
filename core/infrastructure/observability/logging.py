@@ -20,6 +20,13 @@ import uuid
 
 _current_span: ContextVar[Optional[Dict[str, Any]]] = ContextVar("current_span", default=None)
 
+# TODO: Add support for structured logging with OpenTelemetry semantic conventions
+# FIXME: Log rotation doesn't work well with logrotate on some systems
+# XXX: Current implementation doesn't handle log sampling for high-volume services
+# HACK: Using ContextVar for span context - doesn't work across process boundaries
+
+logger = logging.getLogger(__name__)
+
 
 class LogLevel(Enum):
     TRACE = 5
