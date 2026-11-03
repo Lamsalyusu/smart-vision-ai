@@ -578,7 +578,7 @@ class AsyncLoadBalancer(LoadBalancer):
             result = await self._send_request(server, request)
             self.record_request(server_id, time.time() - start, error=False)
             return result
-        except Exception as e:
+        except Exception:
             self.record_request(server_id, time.time() - start, error=True)
             raise
         finally:
