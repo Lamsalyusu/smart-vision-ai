@@ -5,6 +5,8 @@ import hashlib
 import hmac
 import json
 import logging
+import os
+import secrets
 import time
 from dataclasses import dataclass
 from typing import Any
@@ -22,11 +24,27 @@ class WebhookPayload:
     delivery_id: str
 
 
+def _load_webhook_secret() -> str:
+    """Load webhook signing secret from environment or generate a random one.
+
+    Never hardcodes a default secret. Falls back to a cryptographically
+    random token if WEBHOOK_SECRET is not set.
+    """
+    secret = os.getenv("WEBHOOK_SECRET")
+    if not secret:
+        secret = secrets.token_urlsafe(32)
+        logger.warning(
+            "WEBHOOK_SECRET not set; using randomly generated secret. "
+            "Set WEBHOOK_SECRET in production for stable webhook signatures."
+        )
+    return secret
+
+
 class WebhookDispatcher:
     """Delivers security alerts and detection events via HMAC-SHA256 signed HTTP POST webhooks."""
 
-    def __init__(self, secret: str = "webhook_default_hmac_secret", max_retries: int = 3) -> None:
-        self.secret = secret.encode("utf-8")
+    def __init__(self, secret: str | None = None, max_retries: int = 3) -> None:
+        self.secret = (secret or _load_webhook_secret()).encode("utf-8")
         self.max_retries = max_retries
         self.dead_letter_queue: list[dict[str, Any]] = []
 
