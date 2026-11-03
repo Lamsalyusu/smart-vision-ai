@@ -44,16 +44,8 @@ class DataManager {
     this.users.set(defaultUser.email, defaultUser);
     this.users.set(defaultUser.username, defaultUser);
 
-    // Initial session (7-day validity)
-    const defaultToken = "sess_demo_revoked";
-    const now = Date.now();
-    this.sessions.set(defaultToken, {
-      token: defaultToken,
-      user_id: defaultUser.id,
-      created_at: new Date(now).toISOString(),
-      last_active_at: new Date(now).toISOString(),
-      expires_at: new Date(now + 7 * 24 * 60 * 60 * 1000).toISOString(),
-    });
+    // No default session is seeded: sessions are created only via createSession()
+    // with a cryptographically random token. Never hardcode a default token.
 
     // Seed realistic detection history
     const initialClasses = [
