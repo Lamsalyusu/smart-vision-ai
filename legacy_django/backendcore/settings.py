@@ -2,6 +2,8 @@ from pathlib import Path
 import os
 from dotenv import load_dotenv
 
+from django.core.exceptions import ImproperlyConfigured
+
 load_dotenv()
 
 # Base configuration
@@ -11,7 +13,18 @@ load_dotenv(BASE_DIR / ".env")
 def get_env(name, default=None):
     return os.getenv(name, default)
 
-SECRET_KEY = get_env("SECRET_KEY", "django-insecure-smartvision-ai-evaluation-secret-key-2026")
+SECRET_KEY = get_env("SECRET_KEY")
+if not SECRET_KEY:
+    environment = os.getenv("DJANGO_DEBUG", "False").lower()
+    if environment in {"true", "1", "yes", "on"}:
+        # Development-only ephemeral key; never acceptable in production.
+        import secrets as _secrets
+        SECRET_KEY = _secrets.token_urlsafe(32)
+    else:
+        raise ImproperlyConfigured(
+            "SECRET_KEY must be set via environment variable. "
+            "Generate one with: openssl rand -hex 32"
+        )
 OFFLINE_MODE = get_env("OFFLINE_MODE", "False").lower() == "true"
 
 DEBUG = get_env("DJANGO_DEBUG", "False").lower() == "true"
