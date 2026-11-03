@@ -43,7 +43,7 @@ class ApiPersistenceIntegrationTests(unittest.IsolatedAsyncioTestCase):
     async def test_02_signup_login_session_flow(self):
         email = f"int_test_{id(self)}@smartvision.ai"
         username = f"intuser_{id(self)}"
-        password = "SecurePassword123!"
+        password = "test-password-do-not-use-in-production"
 
         # 1. Signup
         signup_res = await self.client.post(
