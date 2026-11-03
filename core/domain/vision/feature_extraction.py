@@ -211,23 +211,26 @@ class ORBFeatureExtractor(BaseFeatureExtractor):
 class AKAZEFeatureExtractor(BaseFeatureExtractor):
     def __init__(
         self,
-        descriptor_type: int = cv2.AKAZE_DESCRIPTOR_MLDB,
+        descriptor_type: int = getattr(cv2, 'AKAZE_DESCRIPTOR_MLDB', 1),
         descriptor_size: int = 0,
         descriptor_channels: int = 3,
         threshold: float = 0.001,
         n_octaves: int = 4,
         n_octave_layers: int = 4,
-        diffusivity: int = cv2.KAZE_DIFF_PM_G2,
+        diffusivity: int = getattr(cv2, 'KAZE_DIFF_PM_G2', 1),
     ):
-        self.detector = cv2.AKAZE_create(
-            descriptor_type=descriptor_type,
-            descriptor_size=descriptor_size,
-            descriptor_channels=descriptor_channels,
-            threshold=threshold,
-            nOctaves=n_octaves,
-            nOctaveLayers=n_octave_layers,
-            diffusivity=diffusivity,
-        )
+        try:
+            self.detector = cv2.AKAZE_create(
+                descriptor_type=descriptor_type,
+                descriptor_size=descriptor_size,
+                descriptor_channels=descriptor_channels,
+                threshold=threshold,
+                nOctaves=n_octaves,
+                nOctaveLayers=n_octave_layers,
+                diffusivity=diffusivity,
+            )
+        except AttributeError:
+            self.detector = None
 
     def detect_and_compute(self, image: np.ndarray) -> FeatureSet:
         if len(image.shape) == 3:
@@ -292,16 +295,19 @@ class KAZEFeatureExtractor(BaseFeatureExtractor):
         threshold: float = 0.001,
         n_octaves: int = 4,
         n_octave_layers: int = 4,
-        diffusivity: int = cv2.KAZE_DIFF_PM_G2,
+        diffusivity: int = getattr(cv2, 'KAZE_DIFF_PM_G2', 1),
     ):
-        self.detector = cv2.KAZE_create(
-            extended=extended,
-            upright=upright,
-            threshold=threshold,
-            nOctaves=n_octaves,
-            nOctaveLayers=n_octave_layers,
-            diffusivity=diffusivity,
-        )
+        try:
+            self.detector = cv2.KAZE_create(
+                extended=extended,
+                upright=upright,
+                threshold=threshold,
+                nOctaves=n_octaves,
+                nOctaveLayers=n_octave_layers,
+                diffusivity=diffusivity,
+            )
+        except AttributeError:
+            self.detector = None
 
     def detect_and_compute(self, image: np.ndarray) -> FeatureSet:
         if len(image.shape) == 3:
