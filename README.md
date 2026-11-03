@@ -64,7 +64,7 @@ The application provides an interactive camera feed and dashboard for detecting 
 
 4. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-Camera inference runs in the separate vision service (`legacy_django/`, port 8001), which loads the author-trained YOLO weights from `legacy_django/backend/ml_model/weights/best_weights.weights.h5`. For local Next.js development, start that service with Docker Compose:
+Camera inference runs in the separate vision service (`legacy_django/`, port 8001), which loads the author-trained YOLO weights from `legacy_django/backend/ml_model/weights/best_weights.weights.h5`. The weights file (32 MB) is checked into the repository via Git LFS (see `.gitattributes`). For local Next.js development, start that service with Docker Compose:
 
 ```bash
 docker compose up --build vision
@@ -124,10 +124,10 @@ smart-vision-ai/
 │   └── tests/            # Unit tests
 ├── rust/geometry/        # Optional Rust/WASM point-cloud geometry kernels
 ├── scripts/              # Operational load and chaos measurement commands
-├── public/models/        # 3D GLB assets for detected object classes
+├── public/models/        # 3D GLB assets for detected object classes (10 procedural meshes)
 ├── configs/              # Sensor profiles and dataset configurations
 ├── docs/                 # Documentation and event schemas
-├── legacy_django/        # Original Django backend and model training notebook
+├── legacy_django/        # Original Django-based vision inference service (port 8001) and model training notebook
 ├── sdk/                  # Python and TypeScript SDK clients
 └── tests/                # Frontend tests
 ```
@@ -210,7 +210,21 @@ For details about how the dataset was collected, cleaned, and trained on Google 
 
 ---
 
+## Python Stacks: legacy_django vs core
+
+The project contains two Python codebases that serve different purposes and coexist:
+
+| Stack | Purpose | Technology | Role |
+| :--- | :--- | :--- | :--- |
+| `legacy_django/` | Original vision inference service | Django 6.1 + TensorFlow/Keras | Serves object detection, depth estimation, spatial fusion, and scene graph to the Next.js frontend on port 8001. Loads the checked-in YOLO weights via Git LFS. |
+| `core/` | Modular Python algorithm library | Python stdlib + NumPy/SciPy/OpenCV | Domain models and reusable algorithms for spatial geometry, tracking, estimation, sensor fusion, perception, and infrastructure (FastAPI, database, security). |
+
+**Why both exist:** `legacy_django/` is the production-grade inference service that the frontend depends on for real-time detection. `core/` is a newer, more modular library of computer vision and spatial algorithms developed alongside it. There is some conceptual overlap (both include tracking and spatial fusion), but they are not integrated: the frontend calls `legacy_django/` for inference, while `core/` provides standalone algorithms and domain models.
+
+Neither stack should be removed: `legacy_django/` powers the live vision service, and `core/` is the evolving algorithmic foundation.
+
+---
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-# CI test
