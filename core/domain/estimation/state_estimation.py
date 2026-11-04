@@ -289,20 +289,22 @@ class ParticleFilter:
         state_dim: int,
         num_particles: int = 1000,
         process_noise: np.ndarray = None,
-        measurement_models: Dict[str, Tuple[Callable, Callable]] = None
+        measurement_models: Dict[str, Tuple[Callable, Callable]] = None,
+        seed: Optional[int] = None,
     ):
         self.state_dim = state_dim
         self.num_particles = num_particles
         self.process_noise = process_noise if process_noise is not None else np.eye(state_dim) * 0.01
         self.measurement_models = measurement_models or {}
+        self._rng = np.random.default_rng(seed)
 
-        self.particles = np.random.randn(num_particles, state_dim) * 0.1
+        self.particles = self._rng.standard_normal((num_particles, state_dim)) * 0.1
         self.weights = np.ones(num_particles) / num_particles
 
     def predict(self, dt: float, u: np.ndarray = None):
         for i in range(self.num_particles):
             self.particles[i] = self._motion_model(self.particles[i], dt, u)
-            self.particles[i] += np.random.multivariate_normal(np.zeros(self.state_dim), self.process_noise)
+            self.particles[i] += self._rng.multivariate_normal(np.zeros(self.state_dim), self.process_noise)
 
     def update(self, measurement: np.ndarray, sensor_id: str):
         if sensor_id not in self.measurement_models:
@@ -324,7 +326,7 @@ class ParticleFilter:
             self._resample()
 
     def _resample(self):
-        indices = np.random.choice(self.num_particles, self.num_particles, p=self.weights)
+        indices = self._rng.choice(self.num_particles, self.num_particles, p=self.weights)
         self.particles = self.particles[indices]
         self.weights = np.ones(self.num_particles) / self.num_particles
 
@@ -390,6 +392,8 @@ class IMUStateEstimator:
         self.state[6:10] = quat_new / np.linalg.norm(quat_new)
 
     def update(self, visual_measurement: Dict[str, Any]):
+        # IMU-only predictor; visual update not implemented in this estimator variant
+        # Visual measurements are handled by the fusion pipeline instead
         pass
 
     def _quat_to_rot(self, q: np.ndarray) -> np.ndarray:
@@ -474,7 +478,7 @@ class StateEstimationPipeline:
 
         try:
             fused_cov = np.mean(covariances, axis=0) if covariances else np.eye(15)
-        except:
+        except (ValueError, np.linalg.LinAlgError, TypeError):
             fused_cov = np.eye(15)
 
         return StateEstimate(

@@ -488,6 +488,7 @@ class NonLambertianPhotometricStereo(BasePhotometricStereo):
                 normal = result.x[:3] / (np.linalg.norm(result.x[:3]) + 1e-8)
                 return normal, result.x[3], result.x[4], result.x[5]
         except ImportError:
+            # scipy optional dependency unavailable; return None gracefully
             pass
 
         return None

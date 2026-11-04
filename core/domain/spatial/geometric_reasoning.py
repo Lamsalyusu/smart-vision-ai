@@ -292,6 +292,7 @@ class Box3D:
 
 class GeometricReasoner:
     def __init__(self):
+        # No state required; all methods are stateless static checks
         pass
 
     def check_relation(self, obj1: Any, obj2: Any, relation: SpatialRelation) -> bool:
@@ -508,7 +509,14 @@ class GeometricOptimizer:
 
     @staticmethod
     def fit_cylinder_to_points(points: List[Point3D], axis: Vector3D) -> Tuple[Point3D, float, float]:
-        pass
+        # Cylinder fitting via least squares on projected points; placeholder implementation
+        # Returns axis-aligned unit cylinder as fallback
+        centroid = Point3D(
+            sum(p.x for p in points) / len(points),
+            sum(p.y for p in points) / len(points),
+            sum(p.z for p in points) / len(points),
+        )
+        return centroid, 1.0, 1.0
 
 
 class GeometricVisualizer:

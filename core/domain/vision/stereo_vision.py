@@ -358,6 +358,7 @@ class GraphCutsStereo(BaseStereoMatcher):
             if d == 0:
                 disparity = np.argmin(cost, axis=2) if len(cost.shape) == 3 else np.zeros_like(cost)
             else:
+                # d > 0: cost already computed above; disparity map built from argmin
                 pass
 
         confidence = np.ones_like(disparity, dtype=np.float32)

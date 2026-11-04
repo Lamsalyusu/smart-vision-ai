@@ -37,26 +37,30 @@ class BTGenotype:
     fitness: float = 0.0
     age: int = 0
 
-    def mutate(self, mutation_rate: float = 0.1) -> 'BTGenotype':
+    def mutate(self, mutation_rate: float = 0.1, rng=None) -> 'BTGenotype':
+        if rng is None:
+            rng = random
         new_structure = copy.deepcopy(self.structure)
         new_params = self.parameters.copy()
 
         for node in new_structure:
-            if random.random() < mutation_rate:
+            if rng.random() < mutation_rate:
                 if 'params' in node:
                     for k, v in node['params'].items():
                         if isinstance(v, (int, float)):
-                            node['params'][k] = v * (1 + random.gauss(0, 0.1))
+                            node['params'][k] = v * (1 + rng.gauss(0, 0.1))
 
         for k, v in new_params.items():
-            if random.random() < mutation_rate:
-                new_params[k] = v * (1 + random.gauss(0, 0.1))
+            if rng.random() < mutation_rate:
+                new_params[k] = v * (1 + rng.gauss(0, 0.1))
 
         return BTGenotype(new_structure, new_params, 0.0, self.age + 1)
 
-    def crossover(self, other: 'BTGenotype') -> 'BTGenotype':
+    def crossover(self, other: 'BTGenotype', rng=None) -> 'BTGenotype':
+        if rng is None:
+            rng = random
         min_len = min(len(self.structure), len(other.structure))
-        split = random.randint(1, min_len - 1) if min_len > 1 else 0
+        split = rng.randint(1, min_len - 1) if min_len > 1 else 0
 
         new_structure = self.structure[:split] + other.structure[split:]
         new_params = {**self.parameters, **other.parameters}
@@ -116,7 +120,8 @@ class EvolutionaryBTLearner(BTLearner):
         mutation_rate: float = 0.1,
         crossover_rate: float = 0.7,
         elitism: int = 2,
-        max_depth: int = 5
+        max_depth: int = 5,
+        seed: Optional[int] = None,
     ):
         super().__init__(LearningMethod.EVOLUTIONARY)
         self.population_size = population_size
@@ -125,6 +130,7 @@ class EvolutionaryBTLearner(BTLearner):
         self.elitism = elitism
         self.max_depth = max_depth
         self.node_types = list(BTNodeType)
+        self._rng = random.Random(seed)
 
     def initialize_population(self):
         self.population = []
@@ -135,33 +141,33 @@ class EvolutionaryBTLearner(BTLearner):
     def _random_genotype(self) -> BTGenotype:
         structure = self._generate_random_tree(self.max_depth)
         parameters = {
-            'retry_count': random.randint(1, 5),
-            'timeout': random.uniform(1.0, 10.0),
-            'cooldown': random.uniform(0.5, 5.0)
+            'retry_count': self._rng.randint(1, 5),
+            'timeout': self._rng.uniform(1.0, 10.0),
+            'cooldown': self._rng.uniform(0.5, 5.0)
         }
         return BTGenotype(structure, parameters, 0.0, 0)
 
     def _generate_random_tree(self, depth: int) -> List[Dict]:
-        if depth <= 0 or random.random() < 0.3:
+        if depth <= 0 or self._rng.random() < 0.3:
             return [{
-                'type': random.choice([BTNodeType.ACTION, BTNodeType.CONDITION]).value,
-                'id': f"node_{random.randint(1000, 9999)}",
+                'type': self._rng.choice([BTNodeType.ACTION, BTNodeType.CONDITION]).value,
+                'id': f"node_{self._rng.randint(1000, 9999)}",
                 'params': {}
             }]
 
-        node_type = random.choice([BTNodeType.SEQUENCE, BTNodeType.SELECTOR, BTNodeType.PARALLEL, BTNodeType.DECORATOR])
+        node_type = self._rng.choice([BTNodeType.SEQUENCE, BTNodeType.SELECTOR, BTNodeType.PARALLEL, BTNodeType.DECORATOR])
         children = []
 
         if node_type == BTNodeType.DECORATOR:
             children = [self._generate_random_tree(depth - 1)[0]]
         else:
-            num_children = random.randint(2, 4)
+            num_children = self._rng.randint(2, 4)
             for _ in range(num_children):
                 children.extend(self._generate_random_tree(depth - 1))
 
         return [{
             'type': node_type.value,
-            'id': f"node_{random.randint(1000, 9999)}",
+            'id': f"node_{self._rng.randint(1000, 9999)}",
             'children': children,
             'params': {}
         }]
@@ -193,14 +199,14 @@ class EvolutionaryBTLearner(BTLearner):
             new_population = self.population[:self.elitism]
 
             while len(new_population) < self.population_size:
-                if random.random() < self.crossover_rate:
+                if self._rng.random() < self.crossover_rate:
                     parent1 = self._tournament_selection()
                     parent2 = self._tournament_selection()
-                    child = parent1.crossover(parent2)
+                    child = parent1.crossover(parent2, rng=self._rng)
                 else:
                     child = copy.deepcopy(self._tournament_selection())
 
-                child = child.mutate(self.mutation_rate)
+                child = child.mutate(self.mutation_rate, rng=self._rng)
                 new_population.append(child)
 
             self.population = new_population
@@ -208,7 +214,7 @@ class EvolutionaryBTLearner(BTLearner):
         return self.best_genotype
 
     def _tournament_selection(self, tournament_size: int = 3) -> BTGenotype:
-        tournament = random.sample(self.population, min(tournament_size, len(self.population)))
+        tournament = self._rng.sample(self.population, min(tournament_size, len(self.population)))
         return max(tournament, key=lambda x: x.fitness)
 
     def evaluate(self, genotype: BTGenotype, environment: BTEnvironment, episodes: int) -> float:
@@ -283,7 +289,8 @@ class ReinforcementBTLearner(BTLearner):
         gamma: float = 0.99,
         epsilon: float = 0.1,
         buffer_size: int = 10000,
-        batch_size: int = 64
+        batch_size: int = 64,
+        seed: Optional[int] = None,
     ):
         super().__init__(LearningMethod.REINFORCEMENT)
         self.learning_rate = learning_rate
@@ -292,6 +299,7 @@ class ReinforcementBTLearner(BTLearner):
         self.buffer_size = buffer_size
         self.batch_size = batch_size
         self.replay_buffer: List[Tuple] = []
+        self._rng = random.Random(seed)
 
     def train(self, environment: BTEnvironment, episodes: int) -> BTGenotype:
         best_genotype = self._create_initial_genotype()
@@ -302,8 +310,8 @@ class ReinforcementBTLearner(BTLearner):
             done = False
 
             while not done:
-                if random.random() < self.epsilon:
-                    action = random.choice(environment.get_valid_actions())
+                if self._rng.random() < self.epsilon:
+                    action = self._rng.choice(environment.get_valid_actions())
                 else:
                     action = self._get_best_action(best_genotype, state, environment)
 
@@ -335,9 +343,10 @@ class ReinforcementBTLearner(BTLearner):
         return BTGenotype([], {}, 0.0, 0)
 
     def _get_best_action(self, genotype: BTGenotype, state: Any, environment: BTEnvironment) -> int:
-        return random.choice(environment.get_valid_actions())
+        return self._rng.choice(environment.get_valid_actions())
 
     def _update_network(self, genotype: BTGenotype):
+        # Placeholder for network-based BT weight updates; not implemented for rule-based learners
         pass
 
     def evaluate(self, genotype: BTGenotype, environment: BTEnvironment, episodes: int) -> float:
@@ -367,6 +376,7 @@ class ImitationBTLearner(BTLearner):
         return BTGenotype([], {}, 0.0, 0)
 
     def _learn_from_trajectory(self, genotype: BTGenotype, trajectory: EpisodeData):
+        # Placeholder for imitation learning from expert trajectories
         pass
 
     def evaluate(self, genotype: BTGenotype, environment: BTEnvironment, episodes: int) -> float:

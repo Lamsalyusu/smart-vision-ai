@@ -13,6 +13,11 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Local artifacts
+reports/
+*.db
+smart_vision_ai.db
+
 # Environment
 .env
 .env*.local
@@ -24,6 +29,7 @@ __pycache__/
 db.sqlite3
 *.db
 *.sqlite3
+.git-rewrite/
 .coverage
 htmlcov/
 .mypy_cache/

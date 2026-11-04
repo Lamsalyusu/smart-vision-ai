@@ -297,19 +297,21 @@ class ParticleFilter(KalmanFilterBase):
         self,
         state_dim: int,
         num_particles: int = 1000,
-        process_noise: np.ndarray = None
+        process_noise: np.ndarray = None,
+        seed: Optional[int] = None,
     ):
         super().__init__(state_dim, 0)
         self.num_particles = num_particles
         self.process_noise = process_noise if process_noise is not None else np.eye(state_dim) * 0.01
+        self._rng = np.random.default_rng(seed)
 
-        self.particles = np.random.randn(num_particles, state_dim) * 0.1
+        self.particles = self._rng.standard_normal((num_particles, state_dim)) * 0.1
         self.weights = np.ones(num_particles) / num_particles
 
     def predict(self, dt: float, u: Optional[np.ndarray] = None):
         for i in range(self.num_particles):
             self.particles[i] = self._motion_model(self.particles[i], dt, u)
-            self.particles[i] += np.random.multivariate_normal(np.zeros(self.state_dim), self.process_noise)
+            self.particles[i] += self._rng.multivariate_normal(np.zeros(self.state_dim), self.process_noise)
 
     def update(self, z: np.ndarray, R: np.ndarray, h_func: Callable):
         for i in range(self.num_particles):
@@ -324,7 +326,7 @@ class ParticleFilter(KalmanFilterBase):
             self._resample()
 
     def _resample(self):
-        indices = np.random.choice(self.num_particles, self.num_particles, p=self.weights)
+        indices = self._rng.choice(self.num_particles, self.num_particles, p=self.weights)
         self.particles = self.particles[indices]
         self.weights = np.ones(self.num_particles) / self.num_particles
 
@@ -432,6 +434,7 @@ class MultiSensorFusion:
         self._init_fusion()
 
     def _init_fusion(self):
+        # Fusion initialized lazily via add_sensor(); no upfront setup required
         pass
 
     def add_sensor(

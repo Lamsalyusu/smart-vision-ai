@@ -444,7 +444,9 @@ class EventDataset:
         self.metadata: Dict = {}
 
     def load_aedat(self, filepath: str):
-        pass
+        # AEDAT format parsing requires specialized libraries; not implemented
+        # Use load_npz() for pre-converted event data instead
+        raise NotImplementedError("AEDAT loading not implemented; use load_npz()")
 
     def load_npz(self, filepath: str):
         data = np.load(filepath)

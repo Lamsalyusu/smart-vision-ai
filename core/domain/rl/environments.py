@@ -71,6 +71,7 @@ class BaseEnvironment(ABC):
 
     @abstractmethod
     def close(self):
+        # No external resources to release in this simple env
         pass
 
     def seed(self, seed: Optional[int] = None):
@@ -166,6 +167,7 @@ class GridWorldEnv:
         return None
 
     def close(self):
+        # No external resources to release in this simple env
         pass
 
 
@@ -227,6 +229,7 @@ class ContinuousControlEnv:
         return None
 
     def close(self):
+        # No external resources to release in this simple env
         pass
 
 
@@ -300,6 +303,7 @@ class MultiAgentEnv:
         return None
 
     def close(self):
+        # No external resources to release in this simple env
         pass
 
 

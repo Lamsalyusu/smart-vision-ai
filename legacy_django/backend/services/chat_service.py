@@ -81,6 +81,7 @@ class ChatAssistantService:
                         "context_objects": scene_graph.get("nodes"),
                     }).execute()
                 except Exception:
+                    # LLM query logging is non-critical; continue without it
                     pass
 
         return {

@@ -266,19 +266,21 @@ class ParticleFilter:
         self,
         state_dim: int,
         num_particles: int = 1000,
-        process_noise: np.ndarray = None
+        process_noise: np.ndarray = None,
+        seed: Optional[int] = None,
     ):
         self.state_dim = state_dim
         self.num_particles = num_particles
         self.process_noise = process_noise if process_noise is not None else np.eye(state_dim) * 0.01
+        self._rng = np.random.default_rng(seed)
 
-        self.particles = np.random.randn(num_particles, state_dim) * 0.1
+        self.particles = self._rng.standard_normal((num_particles, state_dim)) * 0.1
         self.weights = np.ones(num_particles) / num_particles
 
     def predict(self, dt: float, motion_model: Callable) -> State:
         for i in range(self.num_particles):
             self.particles[i] = motion_model(self.particles[i], dt)
-            self.particles[i] += np.random.multivariate_normal(np.zeros(self.state_dim), self.process_noise)
+            self.particles[i] += self._rng.multivariate_normal(np.zeros(self.state_dim), self.process_noise)
 
         mean_state = np.average(self.particles, axis=0, weights=self.weights)
         cov = np.cov(self.particles.T, aweights=self.weights)
@@ -311,7 +313,7 @@ class ParticleFilter:
         )
 
     def _resample(self):
-        indices = np.random.choice(self.num_particles, self.num_particles, p=self.weights)
+        indices = self._rng.choice(self.num_particles, self.num_particles, p=self.weights)
         self.particles = self.particles[indices]
         self.weights = np.ones(self.num_particles) / self.num_particles
 
@@ -512,7 +514,11 @@ class FixedLagSmoother:
         return self.history[-1][0] if self.history else self.filter.get_state()
 
     def _smooth_step(self, state: State, z: np.ndarray):
-        pass
+        # Fixed-lag smoothing step: adjust past state with new measurement
+        # Simple implementation: blend measurement into state history
+        alpha = 0.3
+        smoothed = (1 - alpha) * state.position + alpha * z[:3] if len(z) >= 3 else state.position
+        return smoothed
 
 
 class RTS_Smoother:

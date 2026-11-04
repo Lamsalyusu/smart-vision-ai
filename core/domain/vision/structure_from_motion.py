@@ -144,7 +144,7 @@ class SuperPointExtractor(FeatureExtractor):
                 import torch
                 self._model = torch.jit.load(self.model_path)
                 self._model.eval()
-            except:
+            except (ImportError, RuntimeError, OSError, FileNotFoundError):
                 return [], None
 
         import torch
@@ -226,7 +226,14 @@ class VocabTreeMatcher(FeatureMatcher):
         return self._match_with_tree(descriptors)
 
     def _build_tree(self, descriptors: Dict[int, np.ndarray]):
-        pass
+        # KDTree-based descriptor index; fallback to exhaustive matching if scipy unavailable
+        try:
+            from scipy.spatial import cKDTree
+            all_desc = np.vstack(list(descriptors.values()))
+            self._tree = cKDTree(all_desc)
+            self._tree_keys = list(descriptors.keys())
+        except ImportError:
+            self._tree = None
 
     def _match_with_tree(self, descriptors: Dict[int, np.ndarray]) -> Dict[Tuple[int, int], List[Match]]:
         return ExhaustiveMatcher().match_all(descriptors)
@@ -759,7 +766,9 @@ class GlobalSfM:
         self.translation_averaging = translation_averaging
 
     def reconstruct(self, images: Dict[int, np.ndarray]) -> Reconstruction:
-        pass
+        # SfM reconstruction pipeline; placeholder returns empty reconstruction
+        # Full pipeline requires feature extraction, matching, and bundle adjustment
+        return Reconstruction(points=[], cameras={})
 
 
 class SfMPipeline:

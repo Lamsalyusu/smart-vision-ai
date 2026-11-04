@@ -85,7 +85,7 @@ class DepthFrame:
     timestamp: float = 0.0
     source: DepthSource = DepthSource.MONOCULAR
 
-    def get_point_cloud(self, max_points: int = 100000) -> np.ndarray:
+    def get_point_cloud(self, max_points: int = 100000, seed: Optional[int] = None) -> np.ndarray:
         if self.intrinsics is None:
             raise ValueError("Intrinsics required for point cloud generation")
 
@@ -102,7 +102,8 @@ class DepthFrame:
         u, v, z = u[valid], v[valid], z[valid]
 
         if len(u) > max_points:
-            idx = np.random.choice(len(u), max_points, replace=False)
+            rng = np.random.default_rng(seed)
+            idx = rng.choice(len(u), max_points, replace=False)
             u, v, z = u[idx], v[idx], z[idx]
 
         x = (u - self.intrinsics.cx) * z / self.intrinsics.fx

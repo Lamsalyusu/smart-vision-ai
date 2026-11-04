@@ -110,6 +110,7 @@ class DataRepositoryManager:
                         if isinstance(first_item, dict):
                             return first_item
                 except Exception:
+                    # Supabase unavailable; fall back to local query
                     pass
 
         return None
@@ -213,6 +214,7 @@ class DataRepositoryManager:
                         "session_token": session_token,
                     }
             except Exception:
+                # Supabase unavailable; operation best-effort
                 pass
 
         return None
@@ -229,6 +231,7 @@ class DataRepositoryManager:
                     .execute()
                 )
             except Exception:
+                # Supabase unavailable; operation best-effort
                 pass
 
     # Telemetry, Detections & Crops
@@ -261,6 +264,7 @@ class DataRepositoryManager:
                     "crop_image": crop_image,
                 }).execute()
             except Exception:
+                # Supabase unavailable; operation best-effort
                 pass
 
     def get_user_stats(self, user_id: str) -> dict[str, Any]:

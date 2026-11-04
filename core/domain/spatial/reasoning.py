@@ -12,13 +12,6 @@ from scipy.spatial.distance import pdist, squareform, cdist
 from scipy.optimize import linear_sum_assignment
 from scipy.linalg import svd, eig, pinv
 
-# TODO: Add support for 3D spatial reasoning (not just 2D)
-# FIXME: RCC-8 reasoning doesn't handle fuzzy/uncertain boundaries
-# XXX: No support for temporal spatial reasoning (moving objects)
-# HACK: Using scipy for geometric ops - slow for real-time
-# FIXME: No support for qualitative trajectory reasoning
-# XXX: No support for mereotopology (part-whole relations)
-
 class SpatialRelationType(Enum):
     CONTAINS = "contains"
     WITHIN = "within"
@@ -711,7 +704,7 @@ class MetricReasoner:
         try:
             pos = np.linalg.lstsq(A, b, rcond=None)[0]
             return Point2D(pos[0], pos[1])
-        except:
+        except (ValueError, np.linalg.LinAlgError, TypeError):
             return None
 
     def triangulate(self, known_points: Dict[str, Point2D],

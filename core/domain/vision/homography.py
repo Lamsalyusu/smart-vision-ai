@@ -60,6 +60,7 @@ class PlanarHomographySolver:
         threshold_px: float = 3.0,
         max_iters: int = 1000,
         inlier_ratio_target: float = 0.85,
+        seed: Optional[int] = None,
     ) -> tuple[np.ndarray, np.ndarray]:
         """Robust RANSAC homography estimation minimizing symmetric transfer error."""
         n = len(src_pts)
@@ -73,8 +74,10 @@ class PlanarHomographySolver:
         src_h = np.column_stack([src_pts, np.ones(n)])
         dst_h = np.column_stack([dst_pts, np.ones(n)])
 
+        rng = np.random.default_rng(seed)
+
         for _ in range(max_iters):
-            indices = np.random.choice(n, 4, replace=False)
+            indices = rng.choice(n, 4, replace=False)
             try:
                 candidate_h = cls.estimate_dlt(src_pts[indices], dst_pts[indices])
                 candidate_h_inv = np.linalg.inv(candidate_h)

@@ -153,6 +153,7 @@ class SequenceNode(CompositeNode):
                     self.current_child = 0
                     return NodeStatus.FAILURE
             elif status == NodeStatus.SUCCESS:
+                # Success: advance to next child in sequence
                 pass
 
             self.current_child += 1
@@ -194,6 +195,7 @@ class SelectorNode(CompositeNode):
                         return NodeStatus.SUCCESS
                     return NodeStatus.FAILURE
             elif status == NodeStatus.FAILURE:
+                # Failure: advance to next child in selector
                 pass
 
             self.current_child += 1

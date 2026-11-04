@@ -411,6 +411,7 @@ class AnomalyDetector:
     def train(self, normal_videos: List[str]):
         if not self._initialized:
             self._initialize()
+        # Anomaly detection model training; placeholder - detection uses statistical baseline
         pass
 
     def detect(self, frames: List[np.ndarray]) -> List[Dict]:
