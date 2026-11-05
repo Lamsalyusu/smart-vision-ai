@@ -37,3 +37,4 @@ htmlcov_core/
 .ruff_cache/
 mutation-session.sqlite
 reports/
+OWNERSHIP_TRANSFER.md

@@ -10,6 +10,13 @@ services:
       - AUTH_API_URL=http://auth:8000
       - INTERNAL_API_TOKEN=${INTERNAL_API_TOKEN:?Set INTERNAL_API_TOKEN in .env (openssl rand -hex 32)}
       - VISION_API_URL=${VISION_API_URL:-http://vision:8001/api/detect/}
+    healthcheck:
+      # Lets `docker compose up --wait` return only once Next.js serves pages.
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3000/login"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
     depends_on:
       auth:
         condition: service_healthy
@@ -69,7 +76,8 @@ services:
     image: postgres:15-alpine
     container_name: smart_vision_ai_db
     ports:
-      - "5432:5432"
+      # Host access for psql/GUI tools only; the other containers use the internal network.
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-5432}:5432"
     environment:
       - POSTGRES_USER=${POSTGRES_USER:-postgres}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}

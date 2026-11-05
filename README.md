@@ -156,7 +156,7 @@ Without `public/wasm/geometry.wasm` the GPU viewer uses the JavaScript implement
 
 ## Model evaluation
 
-Per-class precision, recall and F1 on the validation split are in [`legacy_django/model_evaluation/metrics_summary.txt`](legacy_django/model_evaluation/metrics_summary.txt) (mean F1 0.56). The model is strongest on `can`, `helmet` and `chair` and weakest on `fire` and small objects. No end-to-end latency or throughput benchmark is published; the dashboard shows those values as "Not measured".
+Per-class precision, recall and F1 on the test set (confidence threshold 0.25) are in [`legacy_django/model_evaluation/metrics_summary.txt`](legacy_django/model_evaluation/metrics_summary.txt) (mean F1 0.56). The model is strongest on `can`, `helmet` and `chair` and weakest on `fire` and small objects. No end-to-end latency or throughput benchmark is published; the dashboard shows those values as "Not measured".
 
 ## Model weights and dataset licence
 
