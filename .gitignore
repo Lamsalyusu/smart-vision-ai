@@ -29,7 +29,6 @@ __pycache__/
 db.sqlite3
 *.db
 *.sqlite3
-.git-rewrite/
 .coverage
 htmlcov/
 .mypy_cache/
