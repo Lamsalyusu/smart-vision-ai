@@ -77,7 +77,10 @@ export async function POST(request: NextRequest) {
   try {
     const upstream = await fetch(upstreamUrl, {
       method: "POST",
-      headers: { "X-Tracking-Session": sessionId },
+      headers: {
+        "X-Tracking-Session": sessionId,
+        ...(process.env.INTERNAL_API_TOKEN ? { "X-Internal-Token": process.env.INTERNAL_API_TOKEN } : {}),
+      },
       body: upstreamForm,
       signal: AbortSignal.timeout(15_000),
       cache: "no-store",

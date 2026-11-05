@@ -1,4 +1,4 @@
-.PHONY: help install dev test test-py test-ts test-core lint lint-py lint-ts lint-core type-check type-check-core load-test chaos-test mutation-test docker-up docker-down clean
+.PHONY: help install dev test test-py test-ts test-core lint lint-py lint-ts lint-core type-check type-check-core mutation-test docker-up docker-down clean
 
 PYTHON ?= $(if $(wildcard .venv/bin/python),.venv/bin/python,python)
 RUFF ?= $(if $(wildcard .venv/bin/ruff),.venv/bin/ruff,ruff)
@@ -11,27 +11,25 @@ help:
 	@echo "  make test        - Run both Python and TypeScript test suites"
 	@echo "  make test-py     - Run all Python core & integration unit tests"
 	@echo "  make test-ts     - Run all TypeScript unit and integration tests"
-	@echo "  make load-test   - Run 64 synthetic camera streams and report latency percentiles"
-	@echo "  make chaos-test  - Run the synthetic streams with injected faults"
 	@echo "  make mutation-test - Run Cosmic Ray mutation testing (requires cosmic-ray)"
 	@echo "  make lint        - Run Ruff and ESLint"
 	@echo "  make type-check  - Run Mypy and TypeScript compiler checks"
-	@echo "  make docker-up   - Start PostgreSQL, Redis, FastAPI, and Web containers"
+	@echo "  make docker-up   - Start PostgreSQL, FastAPI, vision and web containers"
 	@echo "  make docker-down - Stop Docker Compose stack"
 	@echo "  make clean       - Remove cached bytecode, logs, and build artifacts"
 
 install:
-	pip install -r requirements.txt
+	pip install -r requirements-dev.txt
 	npm install
 
 dev:
-	docker compose up -d db redis
+	docker compose up -d db
 	npm run dev
 
 test: test-py test-ts
 
 test-py:
-	$(PYTHON) -m unittest discover -s core/tests -v
+	$(PYTHON) -m pytest -q core/tests
 
 test-core: test-py
 
@@ -41,7 +39,7 @@ test-ts:
 lint: lint-py lint-ts
 
 lint-py:
-	$(RUFF) check core
+	$(RUFF) check .
 
 lint-core: lint-py
 
@@ -54,14 +52,6 @@ type-check:
 
 type-check-core:
 	$(MYPY) core --ignore-missing-imports
-
-load-test:
-	$(PYTHON) scripts/load_test_synthetic.py --cameras 64 --frames 300
-
-chaos-test:
-	$(PYTHON) scripts/load_test_synthetic.py --cameras 64 --frames 300 \
-		--drop-every 7 --disconnect-every 23 --error-every 31 \
-		--latency-spike-every 47 --latency-spike-seconds 0.05
 
 MUTATION_CONFIG ?= cosmic-ray.toml
 MUTATION_SESSION ?= mutation-session.sqlite

@@ -34,7 +34,7 @@ This repository strictly separates proprietary author-created assets from open-s
 * **Model**: MiDaS v2.1 Small
 * **License**: MIT License
 * **Terms**: Free for research and commercial evaluation.
-* **Used by**: `legacy_django/backend/ml_model/depth_estimation.py` (loaded via TorchHub).
+* **Used by**: `legacy_django/backend/ml_model/depth_estimation.py` (optional; loaded via TorchHub only when PyTorch is installed).
 
 ### TripoSR (Single-Image 3D Mesh Reconstruction)
 * **Authors / Organization**: Stability AI & Tripo AI
@@ -93,7 +93,7 @@ Full per-project source URLs, creator credits, and modification statements: see 
 | **Django** | 6.1.3 | 3-Clause BSD License | Django Software Foundation / `https://www.djangoproject.com/` |
 | **django-ratelimit** | 4.1.0 | BSD License | `https://github.com/jsocol/django-ratelimit` |
 | **TensorFlow / Keras** | 2.x | Apache License 2.0 | Google / `https://www.tensorflow.org/` |
-| **PyTorch / Torchvision** | — | Modified BSD License | Meta / `https://pytorch.org/` |
+| **PyTorch / Torchvision** (optional, depth only) | — | Modified BSD License | Meta / `https://pytorch.org/` |
 | **supabase (Python client)** | — | MIT License | Supabase / `https://github.com/supabase-community/supabase-py` |
 | **groq (Python SDK)** | — | MIT License | Groq / `https://github.com/groq/groq-python` |
 | **python-dotenv** | — | BSD License | `https://github.com/theskumar/python-dotenv` |
@@ -106,9 +106,8 @@ Full per-project source URLs, creator credits, and modification statements: see 
 | **uvicorn** | >=0.27.0 | BSD License | `https://www.uvicorn.org/` |
 | **SQLAlchemy** | >=2.0.30 | MIT License | `https://www.sqlalchemy.org/` |
 | **psycopg2-binary** | >=2.9.9 | LGPL-3.0 / ZPL | `https://www.psycopg.org/` |
-| **passlib[bcrypt]** | >=1.7.4 | BSD / ISC | `https://passlib.readthedocs.io/` |
+| **passlib** | >=1.7.4 | BSD License | `https://passlib.readthedocs.io/` |
 | **python-dotenv** | >=1.0.1 | BSD License | `https://github.com/theskumar/python-dotenv` |
-| **redis** | >=5.0.0 | MIT License | `https://github.com/redis/redis-py` |
 | **pydantic** | >=2.6.0 | MIT License | `https://docs.pydantic.dev/` |
 | **NumPy** | >=1.26.0 | 3-Clause BSD License | `https://numpy.org/` |
 | **SciPy** | >=1.12.0 | 3-Clause BSD License | `https://scipy.org/` |

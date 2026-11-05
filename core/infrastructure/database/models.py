@@ -133,3 +133,15 @@ class AuditLogRecord(Base):
 
     def __repr__(self) -> str:
         return f"<AuditLog {self.event_type} user={self.user_id}>"
+
+
+class PasswordResetToken(Base):
+    """Single-use password reset token. Only the SHA-256 digest is stored."""
+
+    __tablename__ = "password_reset_tokens"
+
+    token_hash: Mapped[str] = mapped_column(String, primary_key=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow_naive)
+    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    used_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

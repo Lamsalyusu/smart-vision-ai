@@ -29,7 +29,9 @@ export default function LoginPage() {
 
       const data = await res.json();
       if (res.ok && data.success) {
-        router.push("/dashboard");
+        // Only follow same-origin relative paths to avoid open redirects.
+        const next = new URLSearchParams(window.location.search).get("next");
+        router.push(next && next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard");
       } else {
         setError(data.error || "Login failed. Please verify credentials.");
       }
@@ -38,12 +40,6 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const fillDemo = () => {
-    setIdentifier("demo");
-    setPassword("");
-    setError("");
   };
 
   return (
@@ -112,7 +108,7 @@ export default function LoginPage() {
                   required
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
-                  placeholder="e.g. demo or demo@smartvision.local"
+                  placeholder="you@example.com or username"
                   className="w-full px-4 py-3 pl-10 rounded-xl bg-slate-900/80 border border-white/10 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
                 />
                 <User className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
@@ -157,17 +153,6 @@ export default function LoginPage() {
               )}
             </button>
           </form>
-
-          {/* Quick Demo Autofill Button */}
-          <div className="mt-4">
-            <button
-              type="button"
-              onClick={fillDemo}
-              className="w-full py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-medium text-slate-300 transition-colors"
-            >
-              Autofill Demo Credentials
-            </button>
-          </div>
 
           <div className="mt-8 text-center text-xs text-slate-400">
             Don&apos;t have an account?{" "}

@@ -46,7 +46,7 @@ function ModelViewerContent() {
   const [autoRotate, setAutoRotate] = useState(true);
   const [loading, setLoading] = useState(false);
   const [cropImage, setCropImage] = useState<string | null>(null);
-  const [cropConfidence] = useState<number>(92);
+  const [cropConfidence, setCropConfidence] = useState<number | null>(null);
 
   // Sliders for Point Cloud
   const [pointSize, setPointSize] = useState<number>(3);
@@ -58,7 +58,7 @@ function ModelViewerContent() {
     metric1Value: "0",
     metric2Label: "Resolution",
     metric2Value: "160x160",
-    method: "MiDaS v3",
+    method: "Synthetic surface (demo)",
   });
 
   // Clear current 3D object from scene
@@ -69,7 +69,7 @@ function ModelViewerContent() {
     }
   };
 
-  // Generate Point Cloud via Depth Estimation
+  // Synthetic demo point cloud (not derived from a real depth map)
   const loadPointCloud = useCallback(async (scale: number) => {
     setLoading(true);
     clearCurrentModel();
@@ -114,7 +114,7 @@ function ModelViewerContent() {
           metric1Value: data.point_count.toLocaleString(),
           metric2Label: "Grid Resolution",
           metric2Value: `${data.width}x${data.height}`,
-          method: "MiDaS v3 Depth Map",
+          method: "Synthetic surface (demo)",
         });
 
         if (cameraRef.current && controlsRef.current) {
@@ -166,10 +166,10 @@ function ModelViewerContent() {
 
         setStats({
           metric1Label: "Vertices",
-          metric1Value: (vertices || 1240).toLocaleString(),
+          metric1Value: vertices.toLocaleString(),
           metric2Label: "Faces",
-          metric2Value: (Math.floor(faces) || 2480).toLocaleString(),
-          method: "TripoSR Reconstruction",
+          metric2Value: Math.floor(faces).toLocaleString(),
+          method: "Procedural GLB model",
         });
 
         if (cameraRef.current && controlsRef.current) {
@@ -284,7 +284,11 @@ function ModelViewerContent() {
     const timer = setTimeout(() => {
       const storedCrop = sessionStorage.getItem("smartvision_crop_image");
       const storedClass = sessionStorage.getItem("smartvision_crop_class");
+      const storedConfidence = Number(sessionStorage.getItem("smartvision_crop_confidence"));
       if (storedCrop) setCropImage(storedCrop);
+      if (Number.isFinite(storedConfidence) && storedConfidence > 0) {
+        setCropConfidence(Math.round(storedConfidence * 100));
+      }
       if (storedClass) {
         setActiveClass(storedClass);
       }
@@ -360,7 +364,7 @@ function ModelViewerContent() {
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-semibold text-white capitalize">{activeClass.replace("_", " ")}</span>
                   <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 text-[10px] font-bold">
-                    DETECTED ({cropConfidence}%)
+                    DETECTED{cropConfidence !== null ? ` (${cropConfidence}%)` : ""}
                   </span>
                 </div>
               </div>

@@ -1,6 +1,6 @@
 [tool.ruff]
 line-length = 88
-extend-exclude = ["144_2432214_YuyutsuLamsal_ObjectDetectionModel.ipynb"]
+extend-exclude = ["*.ipynb", "backend/migrations"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "C90"]

@@ -25,6 +25,7 @@ from backend.supabase_client import supabase_admin
 from backend.repositories.data_manager import data_manager
 from backend.services.vision_service import rtsp_stream_manager, vision_service
 from backend.services.chat_service import chat_service
+from backend.ml_model.depth_estimation import DepthUnavailableError
 
 
 logger = logging.getLogger(__name__)
@@ -101,6 +102,15 @@ def find_user_by_identifier(identifier):
     except Exception:
         logger.exception("Failed to query user by identifier")
         return None
+
+def has_internal_token(request):
+    """True when the request carries the shared service-to-service token."""
+    expected_token = getattr(settings, "INTERNAL_API_TOKEN", "")
+    supplied_token = request.headers.get("X-Internal-Token", "")
+    return bool(expected_token) and hmac.compare_digest(
+        supplied_token.encode(), expected_token.encode()
+    )
+
 
 # Public and authentication views
 
@@ -375,11 +385,7 @@ def get_user_stats(request):
 @csrf_exempt
 @require_http_methods(["GET", "POST", "DELETE"])
 def rtsp_streams(request):
-    expected_token = getattr(settings, "INTERNAL_API_TOKEN", "")
-    supplied_token = request.headers.get("X-Internal-Token", "")
-    if not expected_token or not hmac.compare_digest(
-        supplied_token.encode(), expected_token.encode()
-    ):
+    if not has_internal_token(request):
         return JsonResponse({"error": "Unauthorized"}, status=401)
     if rtsp_stream_manager is None:
         return JsonResponse({"error": "RTSP ingestion is unavailable"}, status=503)
@@ -439,6 +445,10 @@ def detect_objects(request):
         )
 
     user_session = get_user_from_session(request)
+    # Callers are either the Next.js server (internal token) or a signed-in
+    # user of the Django UI. Anonymous inference is refused.
+    if not user_session and not has_internal_token(request):
+        return JsonResponse({"error": "Unauthorized"}, status=401)
     user_id = (
         user_session["users"]["id"]
         if user_session
@@ -716,18 +726,18 @@ def generate_3d_view(request):
             "height": result["original_height"],
         })
 
-    except ImportError:
-        logger.exception(
-            "MiDaS dependency is missing | user=%s",
+    except (ImportError, DepthUnavailableError):
+        logger.warning(
+            "Depth model is unavailable | user=%s",
             user_id,
         )
 
         return JsonResponse({
             "error": (
-                "MiDaS not installed. "
-                "Run: pip install torch torchvision timm"
+                "Depth estimation is unavailable: it needs PyTorch and the "
+                "MiDaS weights (pip install torch torchvision timm)."
             ),
-        }, status=500)
+        }, status=503)
 
     except json.JSONDecodeError:
         logger.warning(

@@ -69,15 +69,6 @@ export interface SceneGraph {
   };
 }
 
-export interface DetectionCropRecord {
-  id: string;
-  user_id?: string;
-  object_class: string;
-  confidence: number;
-  crop_image: string; // base64 Data URL
-  timestamp: string;
-}
-
 export interface TelemetryStats {
   total_detections: number;
   active_sessions: number;
@@ -93,15 +84,4 @@ export interface TelemetryStats {
     timestamp: string;
     has_crop: boolean;
   }>;
-}
-
-export interface UserAccount {
-  id: string;
-  full_name: string;
-  email: string;
-  username: string;
-  password_hash: string;
-  auth_provider: string;
-  role?: string;
-  created_at: string;
 }

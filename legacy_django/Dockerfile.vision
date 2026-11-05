@@ -14,7 +14,24 @@ WORKDIR /app
 COPY requirements-vision.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Optional monocular depth (MiDaS) for distance estimates. CPU-only PyTorch
+# keeps the image free of CUDA libraries. Build with --build-arg WITH_DEPTH=false
+# to leave it out; detections are then returned without 3D values.
+ARG WITH_DEPTH=true
+ENV TORCH_HOME=/opt/torch
+RUN if [ "$WITH_DEPTH" = "true" ]; then \
+        pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu \
+            torch==2.14.1+cpu torchvision==0.29.1+cpu \
+        && pip install --no-cache-dir timm==1.0.30; \
+    fi
+
 COPY . .
+
+# Download the MiDaS code and weights at build time so the running container
+# needs no network access (compose runs it with OFFLINE_MODE=true).
+RUN if [ "$WITH_DEPTH" = "true" ]; then \
+        python -c "import torch; from backend.ml_model.depth_estimation import load_midas; load_midas(torch)"; \
+    fi
 
 EXPOSE 8001
 

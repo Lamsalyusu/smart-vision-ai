@@ -1,5 +1,6 @@
 from pathlib import Path
 import os
+import sys
 from dotenv import load_dotenv
 
 from django.core.exceptions import ImproperlyConfigured
@@ -26,6 +27,12 @@ if not SECRET_KEY:
             "Generate one with: openssl rand -hex 32"
         )
 OFFLINE_MODE = get_env("OFFLINE_MODE", "False").lower() == "true"
+
+# The test suite must never reach live services (Supabase, Groq, OAuth), even
+# when a developer's .env contains real credentials.
+RUNNING_TESTS = len(sys.argv) > 1 and sys.argv[1] == "test"
+if RUNNING_TESTS:
+    OFFLINE_MODE = True
 
 DEBUG = get_env("DJANGO_DEBUG", "False").lower() == "true"
 

@@ -25,7 +25,8 @@ export class SmartVisionClient {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        ...(this.apiToken ? { Authorization: `Bearer ${this.apiToken}` } : {}),
+        // The FastAPI service is internal: apiToken is its INTERNAL_API_TOKEN.
+        ...(this.apiToken ? { "X-Internal-Token": this.apiToken } : {}),
       },
       body: JSON.stringify({
         object_class: params.objectClass || "chair",

@@ -1,4 +1,6 @@
+import os
 import unittest
+from unittest.mock import patch
 
 import numpy as np
 
@@ -107,11 +109,18 @@ class TestMeshReconstructionApi(unittest.IsolatedAsyncioTestCase):
         import httpx
 
         from core.infrastructure.api.main import app
+        self.token_patch = patch.dict(os.environ, {"INTERNAL_API_TOKEN": "mesh-test-token"})
+        self.token_patch.start()
         self.transport = httpx.ASGITransport(app=app)
-        self.client = httpx.AsyncClient(transport=self.transport, base_url="http://test")
+        self.client = httpx.AsyncClient(
+            transport=self.transport,
+            base_url="http://test",
+            headers={"X-Internal-Token": "mesh-test-token"},
+        )
 
     async def asyncTearDown(self):
         await self.client.aclose()
+        self.token_patch.stop()
 
     async def test_reconstruct_endpoint_canonical_chair(self):
         res = await self.client.post(

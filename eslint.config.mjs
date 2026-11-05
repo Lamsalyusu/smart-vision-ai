@@ -13,6 +13,8 @@ const eslintConfig = defineConfig([
     ".venv/**",
     "legacy_django/**",
     "htmlcov/**",
+    "htmlcov_core/**",
+    "rust/**/target/**",
   ]),
 ]);
 

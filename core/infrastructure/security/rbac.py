@@ -68,7 +68,7 @@ def require_permission(required_perm: AppPermission) -> Callable[..., TokenPaylo
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail=str(err),
                 headers={"WWW-Authenticate": "Bearer"},
-            )
+            ) from err
 
         role = AppRole(payload.role) if payload.role in [r.value for r in AppRole] else AppRole.VIEWER
         allowed_perms = ROLE_PERMISSIONS_MAP.get(role, set())

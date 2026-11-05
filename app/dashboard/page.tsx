@@ -21,6 +21,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const [stats, setStats] = useState<TelemetryStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [clearError, setClearError] = useState<string | null>(null);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -66,7 +67,13 @@ export default function DashboardPage() {
 
   const handleClearHistory = async () => {
     if (confirm("Clear detection telemetry and crop history?")) {
-      await fetch("/api/clear-history", { method: "POST" });
+      setClearError(null);
+      const res = await fetch("/api/clear-history", { method: "POST" });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setClearError(body.error || `Could not clear history (${res.status})`);
+        return;
+      }
       fetchStats();
     }
   };
@@ -137,6 +144,7 @@ export default function DashboardPage() {
             </p>
           </div>
           <div className="flex items-center gap-3">
+            {clearError && <span className="text-xs text-red-400">{clearError}</span>}
             <button
               onClick={handleClearHistory}
               className="px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700/80 text-xs text-slate-300 border border-white/10 flex items-center gap-1.5 transition-colors"

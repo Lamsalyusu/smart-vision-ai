@@ -6,10 +6,12 @@ import { POST } from "../app/api/detect/route";
 test("forwards captured image bytes and tracking session to inference", async () => {
   const originalUrl = process.env.VISION_API_URL;
   const originalAuthUrl = process.env.AUTH_API_URL;
+  const originalInternalToken = process.env.INTERNAL_API_TOKEN;
   const originalFetch = globalThis.fetch;
   const expectedBytes = new Uint8Array([0xff, 0xd8, 0xff, 0xd9]);
   process.env.VISION_API_URL = "http://vision.test/api/detect/";
   process.env.AUTH_API_URL = "http://auth.test";
+  process.env.INTERNAL_API_TOKEN = "internal-secret";
 
   globalThis.fetch = (async (input, init) => {
     if (String(input) === process.env.VISION_API_URL) {
@@ -32,6 +34,7 @@ test("forwards captured image bytes and tracking session to inference", async ()
     }
 
     assert.equal(String(input), "http://auth.test/detections/batch");
+    assert.equal(new Headers(init?.headers).get("x-internal-token"), "internal-secret");
     assert.deepEqual(JSON.parse(String(init?.body)), {
       detections: [{ class_name: "can", confidence: 0.76, has_crop: false }],
     });
@@ -62,6 +65,8 @@ test("forwards captured image bytes and tracking session to inference", async ()
     else process.env.VISION_API_URL = originalUrl;
     if (originalAuthUrl === undefined) delete process.env.AUTH_API_URL;
     else process.env.AUTH_API_URL = originalAuthUrl;
+    if (originalInternalToken === undefined) delete process.env.INTERNAL_API_TOKEN;
+    else process.env.INTERNAL_API_TOKEN = originalInternalToken;
   }
 });
 

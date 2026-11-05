@@ -10,7 +10,9 @@ implemented.  Additional helpers can be added later without breaking the
 public contract.
 """
 
+import hashlib
 import logging
+import secrets
 from collections.abc import Sequence
 from datetime import timedelta
 from typing import Any
@@ -22,8 +24,10 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from .clock import utcnow_naive
 from .engine import Base, SessionLocal, engine
 from .models import (
+    AuditLogRecord,
     DetectionCropRecord,
     FailedLoginAttempt,
+    PasswordResetToken,
     ReplayFrameRecord,
     TelemetryStat,
     User,
@@ -65,7 +69,7 @@ class DataManager:
         """
         with SessionLocal() as db:
             user = User(
-                id=f"usr_{int(utcnow_naive().timestamp())}_{hash(email) % 1000}",
+                id=f"usr_{uuid4().hex}",
                 full_name=full_name,
                 email=email.lower().strip(),
                 username=username.strip(),
@@ -75,7 +79,11 @@ class DataManager:
                 created_at=utcnow_naive(),
             )
             db.add(user)
-            db.commit()
+            try:
+                db.commit()
+            except IntegrityError as exc:
+                db.rollback()
+                raise ValueError("A user with this email or username already exists") from exc
             db.refresh(user)
             return user
 
@@ -85,7 +93,10 @@ class DataManager:
         with SessionLocal() as db:
             return (
                 db.query(User)
-                .filter((User.email == identifier) | (User.username == identifier))
+                .filter(
+                    (func.lower(User.email) == identifier)
+                    | (func.lower(User.username) == identifier)
+                )
                 .first()
             )
 
@@ -150,9 +161,16 @@ class DataManager:
             db.commit()
 
     # Session management – persisted in the ``sessions`` table.
-    def _make_token(self) -> str:
-        now = utcnow_naive()
-        return f"sess_{int(now.timestamp())}_{hash(now) % 10000}"
+    #
+    # The client receives a 256-bit random token; only its SHA-256 digest is
+    # stored, so a leaked database does not expose usable session cookies.
+    @staticmethod
+    def _make_token() -> str:
+        return secrets.token_urlsafe(32)
+
+    @staticmethod
+    def hash_session_token(token: str) -> str:
+        return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
     def create_session(self, user_id: str, days: int = 7) -> str:
         token = self._make_token()
@@ -160,7 +178,7 @@ class DataManager:
         expires = now + timedelta(days=days)
         with SessionLocal() as db:
             session = DBSession(
-                token=token,
+                token=self.hash_session_token(token),
                 user_id=user_id,
                 created_at=now,
                 last_active_at=now,
@@ -172,7 +190,11 @@ class DataManager:
 
     def get_user_from_session(self, token: str) -> User | None:
         with SessionLocal() as db:
-            sess = db.query(DBSession).filter(DBSession.token == token).first()
+            sess = (
+                db.query(DBSession)
+                .filter(DBSession.token == self.hash_session_token(token))
+                .first()
+            )
             if not sess:
                 return None
             if sess.expires_at is None or utcnow_naive() > sess.expires_at:
@@ -188,7 +210,11 @@ class DataManager:
 
     def revoke_session(self, token: str) -> None:
         with SessionLocal() as db:
-            sess = db.query(DBSession).filter(DBSession.token == token).first()
+            sess = (
+                db.query(DBSession)
+                .filter(DBSession.token == self.hash_session_token(token))
+                .first()
+            )
             if sess:
                 db.delete(sess)
                 db.commit()
@@ -197,6 +223,97 @@ class DataManager:
         with SessionLocal() as db:
             db.query(DBSession).filter(DBSession.user_id == user_id).delete(synchronize_session=False)
             db.commit()
+
+    # Password reset
+    def create_password_reset(
+        self,
+        user_id: str,
+        ttl: timedelta = timedelta(minutes=30),
+        min_interval: timedelta = timedelta(minutes=1),
+    ) -> str | None:
+        """Issue a reset token, or return None if one was issued within ``min_interval``.
+
+        Issuing a token invalidates any earlier unused tokens for the user.
+        """
+        now = utcnow_naive()
+        with SessionLocal() as db:
+            recent = (
+                db.query(PasswordResetToken)
+                .filter(
+                    PasswordResetToken.user_id == user_id,
+                    PasswordResetToken.created_at > now - min_interval,
+                )
+                .first()
+            )
+            if recent is not None:
+                return None
+            db.query(PasswordResetToken).filter(
+                PasswordResetToken.user_id == user_id
+            ).delete(synchronize_session=False)
+            token = self._make_token()
+            db.add(PasswordResetToken(
+                token_hash=self.hash_session_token(token),
+                user_id=user_id,
+                created_at=now,
+                expires_at=now + ttl,
+            ))
+            db.commit()
+        return token
+
+    def consume_password_reset(self, token: str, new_password_hash: str) -> str | None:
+        """Set a new password if the token is valid; return the user id or None.
+
+        The token is single-use and every existing session of the user is revoked.
+        """
+        now = utcnow_naive()
+        with SessionLocal() as db:
+            record = (
+                db.query(PasswordResetToken)
+                .filter(PasswordResetToken.token_hash == self.hash_session_token(token))
+                .with_for_update()
+                .first()
+            )
+            if record is None or record.used_at is not None or record.expires_at < now:
+                return None
+            user = db.query(User).filter(User.id == record.user_id).first()
+            if user is None:
+                return None
+            record.used_at = now
+            user.password_hash = new_password_hash
+            db.query(DBSession).filter(DBSession.user_id == user.id).delete(synchronize_session=False)
+            db.query(FailedLoginAttempt).filter(
+                FailedLoginAttempt.identifier.in_([user.email.lower(), user.username.lower()])
+            ).delete(synchronize_session=False)
+            db.commit()
+            return user.id
+
+    # Audit log
+    def record_audit(self, event_type: str, user_id: str | None = None, **details: Any) -> None:
+        try:
+            with SessionLocal() as db:
+                db.add(AuditLogRecord(event_type=event_type, user_id=user_id, details=details))
+                db.commit()
+        except SQLAlchemyError:
+            # Auditing must not break the request it describes.
+            logger.exception("Could not write audit event %s", event_type)
+
+    def get_audit_logs(self, limit: int = 100) -> list[dict[str, Any]]:
+        with SessionLocal() as db:
+            records = (
+                db.query(AuditLogRecord)
+                .order_by(AuditLogRecord.timestamp.desc(), AuditLogRecord.id.desc())
+                .limit(limit)
+                .all()
+            )
+        return [
+            {
+                "event_type": r.event_type,
+                "user_id": r.user_id,
+                "details": r.details,
+                "timestamp": r.timestamp.isoformat(),
+            }
+            for r in records
+        ]
 
     # Crop handling – persisted in ``crops`` table.
     def save_crop(self, crop_data: dict[str, Any]) -> DetectionCropRecord:
@@ -208,7 +325,7 @@ class DataManager:
         """
         with SessionLocal() as db:
             record = DetectionCropRecord(
-                id=f"crop_{int(utcnow_naive().timestamp())}",
+                id=f"crop_{uuid4().hex}",
                 object_class=crop_data["object_class"],
                 confidence=crop_data["confidence"],
                 timestamp=utcnow_naive(),

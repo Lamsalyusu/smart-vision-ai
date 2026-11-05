@@ -1,0 +1,24 @@
+# Shared by local runs and both CI workflows.
+target-version = "py312"
+line-length = 120
+extend-exclude = [
+    "*.ipynb",
+    "legacy_django/backend/migrations",
+    "node_modules",
+    ".next",
+    "rust",
+]
+
+[lint]
+select = ["E", "F", "W", "B", "C90"]
+ignore = [
+    "E501",  # long lines are left to the formatter/reviewer
+    "B905",  # zip(strict=) would change behaviour for callers that rely on truncation
+]
+
+[lint.mccabe]
+max-complexity = 25
+
+[lint.per-file-ignores]
+"core/tests/**" = ["B017"]
+"legacy_django/backend/tests.py" = ["B017"]

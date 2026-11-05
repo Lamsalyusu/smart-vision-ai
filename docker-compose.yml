@@ -8,17 +8,12 @@ services:
       - NODE_ENV=${NODE_ENV:-development}
       - SECRET_KEY=${SECRET_KEY}
       - AUTH_API_URL=http://auth:8000
-      - INTERNAL_API_TOKEN=${INTERNAL_API_TOKEN:-}
+      - INTERNAL_API_TOKEN=${INTERNAL_API_TOKEN:?Set INTERNAL_API_TOKEN in .env (openssl rand -hex 32)}
       - VISION_API_URL=${VISION_API_URL:-http://vision:8001/api/detect/}
-      - REDIS_URL=redis://redis:6379/0
-    volumes:
-      - .:/app
     depends_on:
       auth:
-        condition: service_started
-      vision:
         condition: service_healthy
-      redis:
+      vision:
         condition: service_healthy
 
   vision:
@@ -30,7 +25,7 @@ services:
       - "8001:8001"
     environment:
       - SECRET_KEY=${SECRET_KEY:-}
-      - INTERNAL_API_TOKEN=${INTERNAL_API_TOKEN:-}
+      - INTERNAL_API_TOKEN=${INTERNAL_API_TOKEN:?Set INTERNAL_API_TOKEN in .env (openssl rand -hex 32)}
       - DJANGO_DEBUG=${DJANGO_DEBUG:-False}
       - DJANGO_ALLOWED_HOSTS=${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1,host.docker.internal,vision}
       - RTSP_ALLOWED_HOSTS=${RTSP_ALLOWED_HOSTS:-}
@@ -54,17 +49,20 @@ services:
     environment:
       - NODE_ENV=${NODE_ENV:-development}
       - SECRET_KEY=${SECRET_KEY:-}
-      - INTERNAL_API_TOKEN=${INTERNAL_API_TOKEN:-}
+      - INTERNAL_API_TOKEN=${INTERNAL_API_TOKEN:?Set INTERNAL_API_TOKEN in .env (openssl rand -hex 32)}
       - POSTGRES_USER=${POSTGRES_USER:-postgres}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
       - POSTGRES_DB=${POSTGRES_DB:-smart_vision_ai}
       - POSTGRES_HOST=db
+      - EMAIL_HOST=${EMAIL_HOST:-smtp.gmail.com}
+      - EMAIL_PORT=${EMAIL_PORT:-587}
+      - EMAIL_HOST_USER=${EMAIL_HOST_USER:-}
+      - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD:-}
+      - EMAIL_FROM=${EMAIL_FROM:-}
+      - APP_BASE_URL=${APP_BASE_URL:-http://localhost:3000}
       - POSTGRES_PORT=${POSTGRES_PORT:-5432}
-      - REDIS_URL=redis://redis:6379/0
     depends_on:
       db:
-        condition: service_healthy
-      redis:
         condition: service_healthy
 
   db:
@@ -84,20 +82,5 @@ services:
       timeout: 5s
       retries: 5
 
-  redis:
-    image: redis:7-alpine
-    container_name: smart_vision_ai_redis
-    ports:
-      - "6379:6379"
-    restart: unless-stopped
-    volumes:
-      - redisdata:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
-
 volumes:
   pgdata:
-  redisdata:
