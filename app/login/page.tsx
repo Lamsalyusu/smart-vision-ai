@@ -11,6 +11,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [needsVerification, setNeedsVerification] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,6 +34,7 @@ export default function LoginPage() {
         const next = new URLSearchParams(window.location.search).get("next");
         router.push(next && next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard");
       } else {
+        setNeedsVerification(res.status === 403);
         setError(data.error || "Login failed. Please verify credentials.");
       }
     } catch {
@@ -93,7 +95,17 @@ export default function LoginPage() {
 
           {error && (
             <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs flex items-center gap-3">
-              <span>{error}</span>
+              <span>
+                {error}
+                {needsVerification && (
+                  <>
+                    {" "}
+                    <Link href="/verify-email" className="text-blue-400 underline">
+                      Send a new link
+                    </Link>
+                  </>
+                )}
+              </span>
             </div>
           )}
 

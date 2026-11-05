@@ -30,14 +30,20 @@ test("forwards captured image bytes and tracking session to inference", async ()
         success: true,
         total_detections: 1,
         detections: [{ class: "can", confidence: 0.76, bbox: [1, 2, 3, 4] }],
+        timing_ms: { inference_ms: 42.5, total_ms: 45, depth_ms: "ignored" },
       });
     }
 
     assert.equal(String(input), "http://auth.test/detections/batch");
     assert.equal(new Headers(init?.headers).get("x-internal-token"), "internal-secret");
-    assert.deepEqual(JSON.parse(String(init?.body)), {
-      detections: [{ class_name: "can", confidence: 0.76, has_crop: false }],
-    });
+    const batch = JSON.parse(String(init?.body));
+    assert.deepEqual(batch.detections, [{ class_name: "can", confidence: 0.76, has_crop: false }]);
+    // Vision-service timings are forwarded; the round trip is measured by the web server.
+    assert.equal(batch.frame.inference_ms, 42.5);
+    assert.equal(batch.frame.total_ms, 45);
+    assert.equal(typeof batch.frame.roundtrip_ms, "number");
+    assert.ok(batch.frame.roundtrip_ms >= 0);
+    assert.equal("depth_ms" in batch.frame, false);
     return Response.json({ success: true, count: 1 });
   }) as typeof fetch;
 
@@ -57,6 +63,7 @@ test("forwards captured image bytes and tracking session to inference", async ()
       success: true,
       total_detections: 1,
       detections: [{ class: "can", confidence: 0.76, bbox: [1, 2, 3, 4] }],
+      timing_ms: { inference_ms: 42.5, total_ms: 45, depth_ms: "ignored" },
       telemetry_persisted: true,
     });
   } finally {

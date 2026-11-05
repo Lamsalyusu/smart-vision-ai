@@ -26,12 +26,11 @@ def set_role(identifier: str, role: str) -> int:
     if user is None:
         print(f"No user matches {identifier!r}", file=sys.stderr)
         return 1
-    with SessionLocal() as db:
-        record = db.get(User, user.id)
-        assert record is not None
-        previous = record.role
-        record.role = role
-        db.commit()
+    try:
+        previous, _ = data_manager.set_user_role(user.id, role)
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
     # Existing sessions keep working; the new role applies on the next request.
     data_manager.record_audit("ROLE_CHANGED", user.id, previous=previous, new=role, via="cli")
     print(f"{user.username}: {previous} -> {role}")

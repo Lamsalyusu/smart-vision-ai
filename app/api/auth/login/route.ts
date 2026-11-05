@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { login } from "@/lib/apiClient";
-import { setSessionCookie, upstreamMessage, upstreamStatus } from "@/lib/session";
+import { clientIp, setSessionCookie, upstreamMessage, upstreamStatus } from "@/lib/session";
 
 /**
  * Authenticates against the FastAPI service, which owns users, sessions and
@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { user, token } = await login(identifier, password);
+    const { user, token } = await login(identifier, password, clientIp(req));
     const res = NextResponse.json({ success: true, user });
     setSessionCookie(res, token);
     return res;

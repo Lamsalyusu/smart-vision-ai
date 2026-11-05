@@ -21,6 +21,7 @@ from urllib.parse import urlsplit
 
 import numpy as np
 from fastapi import (
+    BackgroundTasks,
     Depends,
     FastAPI,
     Header,
@@ -46,7 +47,8 @@ from ..database.data_manager import data_manager
 from ..email import EmailNotConfiguredError, email_configured, send_email
 from ..security.headers import SecurityHeadersMiddleware
 from ..security.jwt_auth import jwt_service
-from ..security.rbac import AppPermission, require_permission
+from ..security.rate_limit import rate_limit
+from ..security.rbac import AppPermission, AppRole, require_permission
 from .webhooks import webhook_dispatcher
 from .websocket_stream import ws_manager
 
@@ -83,6 +85,12 @@ async def require_internal_api_token(
 
 internal = [Depends(require_internal_api_token)]
 
+# Per-client limits on the endpoints attackers would hammer. Login also has a
+# per-account lockout after 5 failures; these stop spraying many accounts.
+login_limit = Depends(rate_limit("login", limit=30, window_seconds=60))
+signup_limit = Depends(rate_limit("signup", limit=10, window_seconds=600))
+email_limit = Depends(rate_limit("email", limit=10, window_seconds=600))
+
 app = FastAPI(title="Smart Vision AI Auth and Persistence Service")
 app.add_middleware(SecurityHeadersMiddleware)
 admin_users_dependency = Depends(require_permission(AppPermission.ADMIN_USERS))
@@ -99,6 +107,19 @@ class SignupPayload(BaseModel):
     email: str = Field(max_length=254, pattern=r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
     username: str = Field(min_length=3, max_length=30, pattern=r"^[A-Za-z0-9_.-]+$")
     password: str = Field(min_length=8, max_length=1024)
+
+
+class EmailVerificationConfirm(BaseModel):
+    token: str = Field(min_length=20, max_length=200)
+
+
+class EmailVerificationResend(BaseModel):
+    email: str = Field(max_length=254)
+
+
+class RoleChange(BaseModel):
+    role: AppRole
+    actor_id: str | None = Field(default=None, max_length=64)
 
 
 class PasswordResetRequest(BaseModel):
@@ -125,8 +146,17 @@ class DetectionPayload(BaseModel):
     has_crop: bool = False
 
 
+class FrameTiming(BaseModel):
+    """Measured durations for one processed camera frame, in milliseconds."""
+
+    inference_ms: float | None = Field(default=None, ge=0, le=600_000)
+    total_ms: float | None = Field(default=None, ge=0, le=600_000)
+    roundtrip_ms: float | None = Field(default=None, ge=0, le=600_000)
+
+
 class DetectionBatchPayload(BaseModel):
     detections: list[DetectionPayload] = Field(max_length=500)
+    frame: FrameTiming | None = None
 
 
 class ReplayDetectionPayload(BaseModel):
@@ -167,7 +197,37 @@ def _user_json(user: Any) -> dict[str, Any]:
         "email": user.email,
         "username": user.username,
         "role": user.role,
+        "email_verified": data_manager.is_email_verified(user.id),
     }
+
+
+def _verification_required() -> bool:
+    """Enforce verification only when it is switched on and email can be sent."""
+    return os.getenv("REQUIRE_EMAIL_VERIFICATION", "false").lower() == "true" and email_configured()
+
+
+def _send_verification_email(user: Any) -> bool:
+    """Email a verification link if email is configured; return whether one was sent."""
+    if not email_configured():
+        return False
+    token = data_manager.issue_email_verification(user.id)
+    if token is None:
+        return False
+    base_url = os.getenv("APP_BASE_URL", "http://localhost:3000").rstrip("/")
+    try:
+        send_email(
+            user.email,
+            "Verify your SmartVision AI email address",
+            f"Hello {user.full_name},\n\n"
+            "Please confirm this email address for your SmartVision AI account by "
+            f"opening this link within 24 hours:\n{base_url}/verify-email?token={token}\n\n"
+            "If you did not create an account, ignore this email.\n",
+        )
+    except (EmailNotConfiguredError, OSError):
+        logger.exception("Could not send verification email")
+        return False
+    data_manager.record_audit("EMAIL_VERIFICATION_SENT", user.id)
+    return True
 
 
 def _set_session_cookie(response: Response, token: str) -> None:
@@ -218,7 +278,7 @@ def _validate_webhook_target(url: str) -> None:
 
 
 # Authentication
-@app.post("/login", dependencies=internal)
+@app.post("/login", dependencies=[*internal, login_limit])
 def login(payload: LoginPayload, response: Response):
     identifier = payload.email_or_username.strip()
     if data_manager.is_account_locked(identifier):
@@ -240,11 +300,18 @@ def login(payload: LoginPayload, response: Response):
         )
         raise HTTPException(status_code=401, detail="Invalid email/username or password")
     data_manager.clear_failed_logins(identifier)
+    # Checked only after the password, so it reveals nothing about unknown accounts.
+    if _verification_required() and not data_manager.is_email_verified(user.id):
+        data_manager.record_audit("LOGIN_BLOCKED_UNVERIFIED", user.id)
+        raise HTTPException(
+            status_code=403,
+            detail="Please verify your email address before signing in. Check your inbox for the link.",
+        )
     data_manager.record_audit("LOGIN_SUCCESS", user.id)
     return _login_response(response, user)
 
 
-@app.post("/signup", dependencies=internal)
+@app.post("/signup", dependencies=[*internal, signup_limit])
 def signup(payload: SignupPayload, response: Response):
     email = payload.email.lower().strip()
     username = payload.username.strip()
@@ -263,7 +330,41 @@ def signup(payload: SignupPayload, response: Response):
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     data_manager.record_audit("USER_REGISTERED", user.id)
-    return {**_login_response(response, user), "user_id": user.id}
+    verification_sent = _send_verification_email(user)
+    if _verification_required():
+        # No session until the address is confirmed.
+        return {
+            "success": True,
+            "user_id": user.id,
+            "verification_required": True,
+            "verification_sent": verification_sent,
+        }
+    return {
+        **_login_response(response, user),
+        "user_id": user.id,
+        "verification_required": False,
+        "verification_sent": verification_sent,
+    }
+
+
+@app.post("/email-verification/confirm", dependencies=[*internal, email_limit])
+def confirm_email_verification(payload: EmailVerificationConfirm):
+    user_id = data_manager.confirm_email_verification(payload.token)
+    if user_id is None:
+        raise HTTPException(status_code=400, detail="This verification link is invalid or has expired")
+    data_manager.record_audit("EMAIL_VERIFIED", user_id)
+    return {"success": True}
+
+
+@app.post("/email-verification/resend", dependencies=[*internal, email_limit])
+def resend_email_verification(payload: EmailVerificationResend):
+    """Send a new verification link. The response is the same whether or not the account exists."""
+    if not email_configured():
+        raise HTTPException(status_code=503, detail="Email is not configured")
+    user = data_manager.find_user_by_identifier(payload.email)
+    if user is not None and user.email == payload.email.lower().strip():
+        _send_verification_email(user)
+    return {"success": True}
 
 
 @app.get("/session", dependencies=internal)
@@ -296,7 +397,7 @@ def logout(
     return {"success": True}
 
 
-@app.post("/password-reset/request", dependencies=internal)
+@app.post("/password-reset/request", dependencies=[*internal, email_limit])
 def request_password_reset(payload: PasswordResetRequest):
     """Email a reset link. The response is the same whether or not the account exists."""
     if not email_configured():
@@ -400,12 +501,75 @@ def record_detection(payload: DetectionPayload):
     return {"success": True}
 
 
+# Detection alerts: POST a signed webhook when a watched class is detected.
+# ALERT_WEBHOOK_URL enables them; ALERT_CLASSES (default "knife,fire") and
+# ALERT_MIN_CONFIDENCE (default 0.5) select what counts. Each class alerts at
+# most once per ALERT_COOLDOWN_SECONDS (default 60) per service process.
+_alert_last_sent: dict[str, float] = {}
+
+
+def _alerts_due(detections: list[DetectionPayload], now: float) -> list[DetectionPayload]:
+    if not os.getenv("ALERT_WEBHOOK_URL"):
+        return []
+    watched = {
+        name.strip() for name in os.getenv("ALERT_CLASSES", "knife,fire").split(",") if name.strip()
+    }
+    min_confidence = float(os.getenv("ALERT_MIN_CONFIDENCE", "0.5"))
+    cooldown = float(os.getenv("ALERT_COOLDOWN_SECONDS", "60"))
+    due: dict[str, DetectionPayload] = {}
+    for detection in detections:
+        if detection.class_name not in watched or detection.confidence < min_confidence:
+            continue
+        if now - _alert_last_sent.get(detection.class_name, float("-inf")) < cooldown:
+            continue
+        best = due.get(detection.class_name)
+        if best is None or detection.confidence > best.confidence:
+            due[detection.class_name] = detection
+    for class_name in due:
+        _alert_last_sent[class_name] = now
+    return list(due.values())
+
+
+async def _send_alerts(alerts: list[DetectionPayload]) -> None:
+    target = os.getenv("ALERT_WEBHOOK_URL", "")
+    try:
+        _validate_webhook_target(target)
+    except HTTPException as exc:
+        logger.warning("ALERT_WEBHOOK_URL rejected: %s", exc.detail)
+        return
+    for alert in alerts:
+        delivered = await webhook_dispatcher.dispatch(
+            target_url=target,
+            event_type="detection.alert",
+            data=alert.model_dump(),
+        )
+        data_manager.record_audit(
+            "DETECTION_ALERT", None, object_class=alert.class_name,
+            confidence=alert.confidence, delivered=delivered,
+        )
+
+
+async def _broadcast_detections(payload: DetectionBatchPayload) -> None:
+    await ws_manager.broadcast_json({
+        "type": "detections",
+        "timestamp": time.time(),
+        "detections": [d.model_dump() for d in payload.detections],
+        "frame": payload.frame.model_dump() if payload.frame else None,
+    })
+
+
 @app.post("/detections/batch", dependencies=internal)
-def record_detection_batch(payload: DetectionBatchPayload):
+def record_detection_batch(payload: DetectionBatchPayload, background: BackgroundTasks):
     data_manager.record_detections(
-        [detection.model_dump() for detection in payload.detections]
+        [detection.model_dump() for detection in payload.detections],
+        frame=payload.frame.model_dump() if payload.frame else None,
     )
-    return {"success": True, "count": len(payload.detections)}
+    if ws_manager.total_connections:
+        background.add_task(_broadcast_detections, payload)
+    alerts = _alerts_due(payload.detections, time.monotonic())
+    if alerts:
+        background.add_task(_send_alerts, alerts)
+    return {"success": True, "count": len(payload.detections), "alerts": len(alerts)}
 
 
 @app.get("/stats", dependencies=internal)
@@ -487,6 +651,38 @@ async def trigger_webhook(payload: WebhookRequest):
         data=payload.data,
     )
     return {"delivered": delivered, "dead_letter_queue_size": len(webhook_dispatcher.dead_letter_queue)}
+
+
+# Administration (called by the Next.js server, which checks the admin role)
+@app.get("/admin/users", dependencies=internal)
+def admin_list_users():
+    return {"users": data_manager.list_users()}
+
+
+@app.post("/admin/users/{user_id}/role", dependencies=internal)
+def admin_set_role(user_id: str, payload: RoleChange):
+    try:
+        previous, new = data_manager.set_user_role(user_id, payload.role.value)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail="User not found") from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    data_manager.record_audit("ROLE_CHANGED", user_id, previous=previous, new=new, actor=payload.actor_id, via="admin-ui")
+    return {"success": True, "previous": previous, "role": new}
+
+
+@app.post("/admin/users/{user_id}/verify-email", dependencies=internal)
+def admin_verify_email(user_id: str, actor_id: str | None = None):
+    if data_manager.get_user_by_id(user_id) is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    data_manager.mark_email_verified(user_id)
+    data_manager.record_audit("EMAIL_VERIFIED", user_id, actor=actor_id, via="admin-ui")
+    return {"success": True}
+
+
+@app.get("/admin/audit", dependencies=internal)
+def admin_audit(limit: int = 100):
+    return {"events": data_manager.get_audit_logs(max(1, min(limit, 500)))}
 
 
 @app.get("/admin/audit-logs")

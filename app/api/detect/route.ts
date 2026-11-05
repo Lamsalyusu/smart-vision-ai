@@ -75,6 +75,7 @@ export async function POST(request: NextRequest) {
   upstreamForm.append("include_depth", formData.get("include_depth")?.toString() ?? "true");
 
   try {
+    const startedAt = performance.now();
     const upstream = await fetch(upstreamUrl, {
       method: "POST",
       headers: {
@@ -86,6 +87,7 @@ export async function POST(request: NextRequest) {
       cache: "no-store",
     });
     const payload: unknown = await upstream.json().catch(() => null);
+    const roundtripMs = Math.round((performance.now() - startedAt) * 100) / 100;
     if (!upstream.ok) {
       const error =
         typeof payload === "object" && payload !== null && "error" in payload &&
@@ -117,7 +119,8 @@ export async function POST(request: NextRequest) {
           confidence: detection.confidence,
           distance_m: detection.spatial_3d?.distance_m,
           has_crop: false,
-        }))
+        })),
+        { ...readVisionTimings(payload), roundtrip_ms: roundtripMs }
       );
     } catch (error) {
       telemetryPersisted = false;
@@ -130,6 +133,18 @@ export async function POST(request: NextRequest) {
     }
     return respond({ error: "Vision inference service is unavailable" }, 503);
   }
+}
+
+/** Timings measured by the vision service, if it reported valid ones. */
+function readVisionTimings(payload: object): { inference_ms?: number; total_ms?: number } {
+  const timing = "timing_ms" in payload ? payload.timing_ms : undefined;
+  if (typeof timing !== "object" || timing === null) return {};
+  const result: { inference_ms?: number; total_ms?: number } = {};
+  for (const key of ["inference_ms", "total_ms"] as const) {
+    const value = (timing as Record<string, unknown>)[key];
+    if (typeof value === "number" && Number.isFinite(value) && value >= 0) result[key] = value;
+  }
+  return result;
 }
 
 function isDetection(value: unknown): value is {
