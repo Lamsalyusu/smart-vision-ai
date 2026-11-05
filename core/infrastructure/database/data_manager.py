@@ -18,14 +18,17 @@ from datetime import timedelta
 from typing import Any
 from uuid import uuid4
 
+import numpy as np
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from .clock import utcnow_naive
-from .engine import Base, SessionLocal, engine
+from .engine import SessionLocal, engine
+from .migrate import upgrade as upgrade_schema
 from .models import (
     AuditLogRecord,
     DetectionCropRecord,
+    EmailVerification,
     FailedLoginAttempt,
     PasswordResetToken,
     ReplayFrameRecord,
@@ -36,12 +39,12 @@ from .models import Session as DBSession
 
 logger = logging.getLogger(__name__)
 
-# Ensure tables exist (useful for development). In production migrations should
-# be handled separately (e.g., Alembic).
+# Bring the schema up to date with the Alembic migrations in ./migrations.
+# Databases created before migrations existed are upgraded in place.
 try:
-    Base.metadata.create_all(bind=engine)
+    upgrade_schema(engine)
 except SQLAlchemyError:
-    logger.exception("Database schema initialization failed")
+    logger.exception("Database schema migration failed")
 
 
 class DataManager:
@@ -287,6 +290,105 @@ class DataManager:
             db.commit()
             return user.id
 
+    # Email verification
+    def issue_email_verification(
+        self,
+        user_id: str,
+        ttl: timedelta = timedelta(hours=24),
+        min_interval: timedelta = timedelta(minutes=1),
+    ) -> str | None:
+        """Issue a verification token; None if already verified or issued within ``min_interval``."""
+        now = utcnow_naive()
+        token = self._make_token()
+        with SessionLocal() as db:
+            record = db.get(EmailVerification, user_id)
+            if record is not None:
+                if record.verified_at is not None:
+                    return None
+                if record.token_hash is not None and record.created_at > now - min_interval:
+                    return None
+            else:
+                record = EmailVerification(user_id=user_id)
+                db.add(record)
+            record.token_hash = self.hash_session_token(token)
+            record.created_at = now
+            record.expires_at = now + ttl
+            db.commit()
+        return token
+
+    def confirm_email_verification(self, token: str) -> str | None:
+        """Mark the email verified if the token is valid; return the user id or None."""
+        now = utcnow_naive()
+        with SessionLocal() as db:
+            record = (
+                db.query(EmailVerification)
+                .filter(EmailVerification.token_hash == self.hash_session_token(token))
+                .first()
+            )
+            if record is None or record.expires_at is None or record.expires_at < now:
+                return None
+            record.verified_at = now
+            record.token_hash = None
+            record.expires_at = None
+            db.commit()
+            return record.user_id
+
+    def mark_email_verified(self, user_id: str) -> None:
+        now = utcnow_naive()
+        with SessionLocal() as db:
+            record = db.get(EmailVerification, user_id) or EmailVerification(user_id=user_id)
+            record.verified_at = now
+            record.token_hash = None
+            record.expires_at = None
+            db.merge(record)
+            db.commit()
+
+    def is_email_verified(self, user_id: str) -> bool:
+        with SessionLocal() as db:
+            record = db.get(EmailVerification, user_id)
+            return record is not None and record.verified_at is not None
+
+    # Administration
+    def list_users(self) -> list[dict[str, Any]]:
+        with SessionLocal() as db:
+            rows = (
+                db.query(User, EmailVerification.verified_at)
+                .outerjoin(EmailVerification, EmailVerification.user_id == User.id)
+                .order_by(User.created_at)
+                .all()
+            )
+        return [
+            {
+                "id": user.id,
+                "full_name": user.full_name,
+                "email": user.email,
+                "username": user.username,
+                "role": user.role,
+                "created_at": user.created_at.isoformat() if user.created_at else None,
+                "email_verified": verified_at is not None,
+            }
+            for user, verified_at in rows
+        ]
+
+    def set_user_role(self, user_id: str, role: str) -> tuple[str, str]:
+        """Change a user's role; return (previous, new).
+
+        Raises LookupError for an unknown user and ValueError when the change
+        would leave no administrator.
+        """
+        with SessionLocal() as db:
+            user = db.query(User).filter(User.id == user_id).with_for_update().first()
+            if user is None:
+                raise LookupError(user_id)
+            previous = user.role
+            if previous == "admin" and role != "admin":
+                admins = db.query(func.count(User.id)).filter(User.role == "admin").scalar() or 0
+                if admins <= 1:
+                    raise ValueError("Cannot remove the last administrator")
+            user.role = role
+            db.commit()
+        return previous, role
+
     # Audit log
     def record_audit(self, event_type: str, user_id: str | None = None, **details: Any) -> None:
         try:
@@ -367,7 +469,17 @@ class DataManager:
             "has_crop": has_crop,
         }])
 
-    def record_detections(self, detections: Sequence[dict[str, Any]]) -> None:
+    def record_detections(
+        self,
+        detections: Sequence[dict[str, Any]],
+        frame: dict[str, Any] | None = None,
+    ) -> None:
+        """Store detections and, when given, one timing record for the frame.
+
+        ``frame`` holds measured durations in milliseconds (``inference_ms``,
+        ``total_ms``, ``roundtrip_ms``); frames without detections are recorded
+        too, so throughput and latency reflect every processed frame.
+        """
         recorded_at = utcnow_naive()
         records = [
             TelemetryStat(
@@ -387,6 +499,12 @@ class DataManager:
             )
             for detection in detections
         ]
+        if frame is not None:
+            records.append(TelemetryStat(
+                key="frame",
+                value={**frame, "detections": len(detections), "timestamp": recorded_at.isoformat()},
+                recorded_at=recorded_at,
+            ))
         if not records:
             return
         with SessionLocal() as db:
@@ -395,8 +513,55 @@ class DataManager:
 
     def clear_history(self) -> None:
         with SessionLocal() as db:
-            db.query(TelemetryStat).filter(TelemetryStat.key == "detection").delete(synchronize_session=False)
+            db.query(TelemetryStat).filter(
+                TelemetryStat.key.in_(["detection", "frame"])
+            ).delete(synchronize_session=False)
             db.commit()
+
+    def get_performance(self, sample_frames: int = 500, window_minutes: int = 5) -> dict[str, Any]:
+        """Latency percentiles and throughput computed from recorded frame timings."""
+        since = utcnow_naive() - timedelta(minutes=window_minutes)
+        with SessionLocal() as db:
+            frames = (
+                db.query(TelemetryStat)
+                .filter(TelemetryStat.key == "frame")
+                .order_by(TelemetryStat.recorded_at.desc(), TelemetryStat.id.desc())
+                .limit(sample_frames)
+                .all()
+            )
+            frames_in_window = (
+                db.query(func.count(TelemetryStat.id))
+                .filter(TelemetryStat.key == "frame", TelemetryStat.recorded_at >= since)
+                .scalar()
+            ) or 0
+
+        def percentiles(field: str) -> tuple[float | None, float | None]:
+            values = [
+                float(f.value[field]) for f in frames
+                if isinstance(f.value.get(field), (int, float))
+            ]
+            if not values:
+                return None, None
+            p50, p95 = np.percentile(values, [50, 95])
+            return round(float(p50), 1), round(float(p95), 1)
+
+        inference_p50, inference_p95 = percentiles("inference_ms")
+        roundtrip_p50, roundtrip_p95 = percentiles("roundtrip_ms")
+        detections_per_frame = (
+            round(sum(int(f.value.get("detections", 0)) for f in frames) / len(frames), 2)
+            if frames else None
+        )
+        return {
+            "sample_frames": len(frames),
+            "window_minutes": window_minutes,
+            "frames_in_window": frames_in_window,
+            "frames_per_minute": round(frames_in_window / window_minutes, 1),
+            "inference_ms_p50": inference_p50,
+            "inference_ms_p95": inference_p95,
+            "roundtrip_ms_p50": roundtrip_p50,
+            "roundtrip_ms_p95": roundtrip_p95,
+            "detections_per_frame": detections_per_frame,
+        }
 
     def save_replay_frame(
         self,
@@ -506,6 +671,7 @@ class DataManager:
             "active_sessions": session_count,
             "class_distribution": distribution,
             "recent_activity": recent_activity,
+            "performance": self.get_performance(),
         }
 
 

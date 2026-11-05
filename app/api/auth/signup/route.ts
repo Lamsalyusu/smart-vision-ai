@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { signup } from "@/lib/apiClient";
-import { setSessionCookie, upstreamMessage, upstreamStatus } from "@/lib/session";
+import { clientIp, setSessionCookie, upstreamMessage, upstreamStatus } from "@/lib/session";
 
 /** Creates the account in FastAPI (validation and role assignment live there) and signs the user in. */
 export async function POST(req: NextRequest) {
@@ -19,9 +19,22 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { user, token } = await signup(fullName, email, username, password);
-    const res = NextResponse.json({ success: true, user });
-    setSessionCookie(res, token);
+    const result = await signup(fullName, email, username, password, clientIp(req));
+    if (!result.auth) {
+      // Verification is required before the first sign-in, so no session yet.
+      return NextResponse.json({
+        success: true,
+        verification_required: true,
+        verification_sent: result.verificationSent,
+      });
+    }
+    const res = NextResponse.json({
+      success: true,
+      user: result.auth.user,
+      verification_required: false,
+      verification_sent: result.verificationSent,
+    });
+    setSessionCookie(res, result.auth.token);
     return res;
   } catch (error) {
     // FastAPI returns 422 for invalid input; present it as a plain 400.

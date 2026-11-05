@@ -1,8 +1,9 @@
 import base64
 import threading
+import json
 import os
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import ANY, patch, MagicMock
 import numpy as np
 import cv2
 
@@ -120,6 +121,7 @@ class DetectEndpointTests(BaseTestCase):
             session_key="vision-session-1",
             user_id=None,
             include_depth=False,
+            timings=ANY,
         )
 
     def test_real_model_processes_uploaded_camera_frame(self):
@@ -617,6 +619,41 @@ class MidasLoaderTests(unittest.TestCase):
         self.assertNotIn(":master", MIDAS_REPO)
 
 
+@override_settings(INTERNAL_API_TOKEN=DETECT_INTERNAL_TOKEN)
+class PointCloudEndpointTests(BaseTestCase):
+    URL = "/api/generate-3d/"
+
+    def test_anonymous_request_is_rejected(self):
+        response = Client().post(self.URL, data='{"image_base64": "x"}', content_type="application/json")
+        self.assertEqual(response.status_code, 401)
+
+    @patch("backend.ml_model.depth_estimation.depth_estimator.generate_point_cloud")
+    def test_depth_scale_and_point_count_are_passed_within_limits(self, generate):
+        generate.return_value = {
+            "positions": [0.0, 0.0, 1.0], "colors": [1.0, 1.0, 1.0], "point_count": 1,
+            "original_width": 2, "original_height": 2, "step": 1,
+        }
+        client = Client(HTTP_X_INTERNAL_TOKEN=DETECT_INTERNAL_TOKEN)
+        payload = base64.b64encode(b"image-bytes").decode()
+        response = client.post(
+            self.URL,
+            data=json.dumps({"image_base64": payload, "depth_scale": 9.0, "max_points": 50}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        generate.assert_called_once_with(b"image-bytes", max_points=1000, depth_scale=5.0)
+        self.assertEqual(response.json()["point_count"], 1)
+
+    def test_non_numeric_options_are_rejected(self):
+        client = Client(HTTP_X_INTERNAL_TOKEN=DETECT_INTERNAL_TOKEN)
+        response = client.post(
+            self.URL,
+            data=json.dumps({"image_base64": base64.b64encode(b"x").decode(), "depth_scale": "deep"}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 400)
+
+
 class DepthUnavailableTests(TestCase):
     def setUp(self):
         from backend.ml_model.depth_estimation import DepthEstimator
@@ -664,6 +701,17 @@ class DepthUnavailableTests(TestCase):
         )
         self.assertEqual(len(detections), 1)
         self.assertNotIn("spatial_3d", detections[0])
+
+
+class PointBudgetTests(TestCase):
+    @patch.object(depth_estimator, "estimate_depth")
+    def test_point_cloud_respects_the_requested_budget(self, mock_estimate):
+        mock_estimate.return_value = (np.full((240, 120), 0.7, dtype=np.float32), np.zeros((240, 120, 3), dtype=np.uint8))
+        for budget in (1000, 4000, 12000):
+            with self.subTest(budget=budget):
+                pc = depth_estimator.generate_point_cloud(b"x", max_points=budget)
+                self.assertLessEqual(pc["point_count"], budget)
+                self.assertGreater(pc["point_count"], budget // 4)
 
 
 class AuthModuleTests(TestCase):
@@ -728,8 +776,9 @@ class ViewsExtendedEndpointsTests(BaseTestCase):
         resp_save = self.client.post("/api/save-crop/", data={})
         self.assertEqual(resp_save.status_code, 401)
 
+    @override_settings(INTERNAL_API_TOKEN=DETECT_INTERNAL_TOKEN)
     def test_generate_3d_view_missing_image(self):
-        resp = self.client.post(
+        resp = Client(HTTP_X_INTERNAL_TOKEN=DETECT_INTERNAL_TOKEN).post(
             "/api/generate-3d/",
             data="{}",
             content_type="application/json"

@@ -502,11 +502,13 @@ def detect_objects(request):
         )
         include_depth = request.POST.get("include_depth", "false").lower() == "true"
 
+        timings = {}
         detections = vision_service.process_frame(
             image_bytes,
             session_key=session_key,
             user_id=user_id,
             include_depth=include_depth,
+            timings=timings,
         )
 
         logger.info(
@@ -519,6 +521,7 @@ def detect_objects(request):
             "success": True,
             "total_detections": len(detections),
             "detections": detections,
+            "timing_ms": timings,
         })
 
     except Exception:
@@ -653,6 +656,26 @@ def llm_chat(request):
 
 # MiDaS 3D point cloud
 
+def _read_point_cloud_request(request):
+    """Return (image bytes or None, options) from a multipart or JSON request."""
+    if "image" in request.FILES:
+        return request.FILES["image"].read(), request.POST
+    if request.content_type == "application/json":
+        data = json.loads(request.body)
+        image_data = data.get("image_base64", "")
+        if "base64," in image_data:
+            image_data = image_data.split("base64,", 1)[1]
+        return base64.b64decode(image_data), data
+    return None, {}
+
+
+def _point_cloud_options(options):
+    """Clamp the requested depth scale and point budget to safe ranges."""
+    depth_scale = min(5.0, max(0.5, float(options.get("depth_scale", 2.0))))
+    max_points = min(30000, max(1000, int(options.get("max_points", 12000))))
+    return depth_scale, max_points
+
+
 @csrf_exempt
 @require_http_methods(["POST"])
 @ratelimit(key=session_or_ip, rate="10/m", method="POST", block=False)
@@ -662,6 +685,8 @@ def generate_3d_view(request):
         return too_many_requests_json()
 
     user_session = get_user_from_session(request)
+    if not user_session and not has_internal_token(request):
+        return JsonResponse({"error": "Unauthorized"}, status=401)
     user_id = (
         user_session["users"]["id"]
         if user_session
@@ -674,19 +699,8 @@ def generate_3d_view(request):
     )
 
     try:
-        if "image" in request.FILES:
-            image_bytes = request.FILES["image"].read()
-
-        elif request.content_type == "application/json":
-            data = json.loads(request.body)
-            image_data = data.get("image_base64", "")
-
-            if "base64," in image_data:
-                image_data = image_data.split("base64,", 1)[1]
-
-            image_bytes = base64.b64decode(image_data)
-
-        else:
+        image_bytes, options = _read_point_cloud_request(request)
+        if image_bytes is None:
             logger.warning(
                 "3D point cloud request missing image | user=%s",
                 user_id,
@@ -705,10 +719,15 @@ def generate_3d_view(request):
 
         from backend.ml_model.depth_estimation import depth_estimator
 
+        try:
+            depth_scale, max_points = _point_cloud_options(options)
+        except (TypeError, ValueError):
+            return JsonResponse({"error": "depth_scale and max_points must be numbers"}, status=400)
+
         result = depth_estimator.generate_point_cloud(
             image_bytes,
-            max_points=12000,
-            depth_scale=2.0,
+            max_points=max_points,
+            depth_scale=depth_scale,
         )
 
         logger.info(

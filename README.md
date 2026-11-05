@@ -13,8 +13,10 @@ You point a webcam at a scene. The app detects 10 object classes with a YOLO-sty
 - **Object tracking**: a SORT tracker in the vision service (Kalman filter on `[u, v, s, r, u̇, v̇, ṡ]` with IoU matching) keeps track IDs stable between frames.
 - **Approximate distance (optional)**: when PyTorch and the MiDaS weights are installed, each box gets a 3D position and distance from monocular depth. MiDaS depth is relative, so distances are mapped into a fixed 0.35–4.5 m range and are rough estimates. Without the depth model, detections are returned without 3D values; the app never guesses.
 - **Scene relations and chat**: a scene graph of spatial relations (`left_of`, `above`, `wearing`, …) feeds a chat assistant. It uses Groq when `GROQ_API_KEY` is set and a rule-based fallback otherwise.
-- **3D viewer**: a Three.js viewer that loads a GLB mesh per class. A mesh can also be reconstructed by the FastAPI service (TSDF + marching cubes). The point-cloud mode shows a synthetic demo surface and is labelled as such.
-- **Dashboard and replay**: detection totals, class breakdown and recent activity from the database, plus a per-session replay of recent detections.
+- **3D viewer**: a Three.js viewer that loads a GLB mesh per class. A mesh can also be reconstructed by the FastAPI service (TSDF + marching cubes). Point-cloud mode turns your last saved detection crop into a point cloud with the MiDaS depth model; before any crop is saved it shows a synthetic demo surface, labelled as such.
+- **Dashboard and replay**: detection totals, class breakdown and recent activity, plus measured inference latency, round-trip latency and throughput from every processed frame. Replay shows a session's recent detections.
+- **Alerts**: optional signed webhooks when watched classes (default `knife`, `fire`) are detected.
+- **Accounts**: sign-up with optional email verification, password reset by email, roles, and an admin page for users, roles and the audit log. Login, sign-up and email endpoints are rate-limited per client.
 
 ---
 
@@ -67,7 +69,7 @@ docker compose exec auth python -m core.infrastructure.manage set-role your-user
 # outside Docker: python -m core.infrastructure.manage set-role your-username admin
 ```
 
-`list-users` shows every account and its role. Role changes are recorded in the audit log.
+`list-users` shows every account and its role. Role changes are recorded in the audit log. Admins also get an **Admin** button on the dashboard, which opens `/admin`: users, roles, email-verification status and the audit log.
 
 ### Run for development
 
@@ -90,7 +92,11 @@ npm run dev
 | Feature | Enable with |
 | --- | --- |
 | Distance estimates | Included in the Docker vision image (CPU PyTorch; MiDaS weights are fetched at build time). Build with `--build-arg WITH_DEPTH=false` to leave it out. Outside Docker: `pip install torch torchvision timm`; the weights download from TorchHub on first use. |
-| Password reset emails | `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD` (SMTP with STARTTLS; `EMAIL_HOST`/`EMAIL_PORT` default to Gmail) and `APP_BASE_URL`. Without them, the reset page reports that email is not configured. |
+| Password reset and verification emails | `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD` (SMTP with STARTTLS; `EMAIL_HOST`/`EMAIL_PORT` default to Gmail) and `APP_BASE_URL`. Without them, the reset page reports that email is not configured and no verification emails are sent. |
+| Require verified email to sign in | `REQUIRE_EMAIL_VERIFICATION=true`. Only enforced when email is configured, so it cannot lock everyone out. Admins can mark an address verified on `/admin`. |
+| Detection alerts | `ALERT_WEBHOOK_URL` (must be a public address). `ALERT_CLASSES` (default `knife,fire`), `ALERT_MIN_CONFIDENCE` (default 0.5) and `ALERT_COOLDOWN_SECONDS` (default 60 per class) tune it. Payloads are signed with `WEBHOOK_SECRET` in `X-SmartVision-Signature` (HMAC-SHA256). |
+| Live telemetry stream | WebSocket `ws://<auth-host>:8000/ws/telemetry?token=<INTERNAL_API_TOKEN>` receives one `{"type": "detections", ...}` event per processed frame. It is for server-side integrations; browsers should not hold the internal token. |
+| Rate limits behind a proxy | Limits are per client address. Set `TRUST_PROXY_HEADERS=true` only when a reverse proxy you control sets `X-Forwarded-For`; otherwise all clients share one bucket. `RATE_LIMITS_ENABLED=false` turns limits off for load testing. Counters live in memory in the FastAPI process. |
 | LLM chat answers | `GROQ_API_KEY` |
 | RTSP cameras | `RTSP_ALLOWED_HOSTS`, then `POST /api/streams/rtsp/` on the vision service with the `X-Internal-Token` header |
 | Supabase sync, OAuth, email | Only used by the Django UI; see `.env.example` |
@@ -113,7 +119,15 @@ cd legacy_django && DJANGO_DEBUG=True python manage.py test backend
 
 CI (`.github/workflows/ci.yml`) runs the core Python checks, the vision service tests with the real weights, the Next.js checks and build, and a Docker Compose smoke test.
 
-The test suites never touch live services: Django tests force `OFFLINE_MODE`, and the core tests use a temporary SQLite database even when `.env` contains real credentials.
+The test suites never touch live services: Django tests force `OFFLINE_MODE`, and the core tests use a temporary SQLite database and blank every email, alert, Groq and Supabase credential, even when `.env` contains real ones.
+
+### Database migrations
+
+The FastAPI service applies its Alembic migrations (`core/infrastructure/database/migrations`) when it starts. Databases created before migrations existed are upgraded in place; existing tables are kept. After changing a model, create a migration with:
+
+```bash
+python -m core.infrastructure.database.migrate revision "describe the change"
+```
 
 ---
 
@@ -127,6 +141,8 @@ smart-vision-ai/
 │   ├── model-viewer/     # Three.js GLB / mesh viewer
 │   ├── gpu-viewer/       # WebGPU point-cloud renderer demo
 │   ├── replay/           # per-session detection replay
+│   ├── admin/            # users, roles and audit log (admins only)
+│   ├── verify-email/     # email verification and resend
 │   └── api/              # auth, detect, chat, replay, crops, mesh
 ├── middleware.ts         # session check for pages and APIs
 ├── lib/                  # TypeScript: API client, session helpers, scene graph, WebGPU renderer
@@ -156,7 +172,26 @@ Without `public/wasm/geometry.wasm` the GPU viewer uses the JavaScript implement
 
 ## Model evaluation
 
-Per-class precision, recall and F1 on the test set (confidence threshold 0.25) are in [`legacy_django/model_evaluation/metrics_summary.txt`](legacy_django/model_evaluation/metrics_summary.txt) (mean F1 0.56). The model is strongest on `can`, `helmet` and `chair` and weakest on `fire` and small objects. No end-to-end latency or throughput benchmark is published; the dashboard shows those values as "Not measured".
+Per-class precision, recall and F1 on the test set (confidence threshold 0.25) are in [`legacy_django/model_evaluation/metrics_summary.txt`](legacy_django/model_evaluation/metrics_summary.txt) (mean F1 0.56). The model is strongest on `can`, `helmet` and `chair` and weakest on `fire` and small objects.
+
+### Inference speed
+
+Measured with [`benchmark_inference.py`](legacy_django/model_evaluation/benchmark_inference.py) on a laptop CPU (Intel Core i5-1335U, 12 threads, no GPU, TensorFlow 2.21), 50 frames of 640×480 after 5 warm-up frames:
+
+| Stage | Median | 95th percentile | Frames/s |
+| --- | --- | --- | --- |
+| Detector only | 281 ms | 292 ms | 3.6 |
+| Detection + tracking | 301 ms | 310 ms | 3.4 |
+
+The camera page sends one frame per second, so a CPU like this keeps up. Raw results are in [`benchmark_results.json`](legacy_django/model_evaluation/benchmark_results.json).
+
+Inside the Docker vision container on the same laptop (Docker Desktop VM with 1.8 GB of memory, 30 frames), detection + tracking took 392 ms median / 413 ms p95, and the MiDaS depth model 90 ms median but 1.66 s p95. Depth times vary widely in that memory-limited VM; give Docker more memory for steadier results. Run it on your own hardware with:
+
+```bash
+cd legacy_django && DJANGO_DEBUG=True python model_evaluation/benchmark_inference.py --frames 50
+```
+
+While the app runs, the dashboard shows the same measurements for real traffic.
 
 ## Model weights and dataset licence
 

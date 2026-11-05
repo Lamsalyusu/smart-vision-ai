@@ -44,6 +44,9 @@ class PasswordResetTests(unittest.IsolatedAsyncioTestCase):
         })
         self.assertEqual(signup.status_code, 200)
         self.session_token = signup.json()["token"]
+        # Signup sends a verification email; these tests only look at reset emails.
+        self.assertEqual([subject for _to, subject, _body in self.sent], ["Verify your SmartVision AI email address"])
+        self.sent.clear()
 
     async def asyncTearDown(self):
         await self.client.aclose()

@@ -120,7 +120,8 @@ class DepthEstimator:
 
         h, w = depth_map.shape
         total_pixels = h * w
-        step = max(1, int(np.sqrt(total_pixels / max_points)))
+        # Round the sampling step up so the cloud never exceeds the point budget.
+        step = max(1, int(np.ceil(np.sqrt(total_pixels / max_points))))
 
         positions = []
         colors = []

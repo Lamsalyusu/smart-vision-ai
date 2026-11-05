@@ -37,11 +37,16 @@ class VisionPipelineService:
         self._tracker_last_seen[session_key] = now
         return self._trackers[session_key]
 
-    def process_frame(self, image_bytes, session_key, user_id=None, include_depth=False):
+    def process_frame(self, image_bytes, session_key, user_id=None, include_depth=False, timings=None):
         """
         Run detection, track across frames, and optionally compute 3D spatial properties.
+
+        If ``timings`` is a dict, it receives measured durations in milliseconds:
+        ``inference_ms`` (model only), ``depth_ms`` (when depth runs) and ``total_ms``.
         """
+        started = time.perf_counter()
         raw_detections = detector.detect_from_bytes(image_bytes)
+        inference_done = time.perf_counter()
 
         # Apply multi-object tracking
         tracker = self._get_tracker(session_key)
@@ -56,6 +61,7 @@ class VisionPipelineService:
                 DepthUnavailableError,
                 depth_estimator,
             )
+            depth_started = time.perf_counter()
             try:
                 depth_map, img_rgb = depth_estimator.estimate_depth(image_bytes)
                 detections = spatial_fuser.estimate_spatial_metrics(
@@ -67,12 +73,17 @@ class VisionPipelineService:
                 pass
             except Exception:
                 logger.exception("Optional depth fusion failed during frame processing")
+            if timings is not None:
+                timings["depth_ms"] = round((time.perf_counter() - depth_started) * 1000, 2)
 
         # Asynchronously queue detections for database persistence
         if user_id and detections:
             for det in detections:
                 detection_buffer.add(user_id, det)
 
+        if timings is not None:
+            timings["inference_ms"] = round((inference_done - started) * 1000, 2)
+            timings["total_ms"] = round((time.perf_counter() - started) * 1000, 2)
         return detections
 
 

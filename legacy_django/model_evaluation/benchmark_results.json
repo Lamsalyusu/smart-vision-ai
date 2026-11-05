@@ -1,0 +1,30 @@
+{
+  "input": "synthetic 640x480 JPEG",
+  "machine": {
+    "cpu": "13th Gen Intel(R) Core(TM) i5-1335U",
+    "logical_cores": 12,
+    "gpu_used": false,
+    "python": "3.12.13",
+    "tensorflow": "2.21.0",
+    "os": "Linux 7.3.0-4-cachyos"
+  },
+  "scenarios": {
+    "detector_only": {
+      "frames": 50,
+      "mean_ms": 280.5,
+      "p50_ms": 280.9,
+      "p95_ms": 291.9,
+      "max_ms": 295.6,
+      "fps_at_mean": 3.56
+    },
+    "detect_and_track": {
+      "frames": 50,
+      "mean_ms": 298.8,
+      "p50_ms": 300.9,
+      "p95_ms": 309.8,
+      "max_ms": 319.6,
+      "fps_at_mean": 3.35
+    },
+    "depth_midas_small": "not measured: MiDaS weights are not cached on this machine"
+  }
+}

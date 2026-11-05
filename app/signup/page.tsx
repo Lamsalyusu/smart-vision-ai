@@ -13,6 +13,7 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [checkEmail, setCheckEmail] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,7 +33,9 @@ export default function SignupPage() {
       });
 
       const data = await res.json();
-      if (res.ok && data.success) {
+      if (res.ok && data.success && data.verification_required) {
+        setCheckEmail(true);
+      } else if (res.ok && data.success) {
         router.push("/dashboard");
       } else {
         setError(data.error || "Signup failed. Please try again.");
@@ -59,6 +62,11 @@ export default function SignupPage() {
           Register to launch camera perception, 3D models, and telemetry.
         </p>
 
+        {checkEmail && (
+          <div className="mb-6 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs">
+            Account created. We sent a verification link to {email}; open it, then sign in.
+          </div>
+        )}
         {error && (
           <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs">
             {error}

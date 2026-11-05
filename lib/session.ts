@@ -8,6 +8,22 @@ const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
 export const USER_ID_HEADER = "x-smartvision-user-id";
 export const USER_ROLE_HEADER = "x-smartvision-user-role";
 
+/**
+ * The browser's address for rate limiting. Proxy headers can be forged by
+ * clients, so they are only used when TRUST_PROXY_HEADERS=true (set this when a
+ * reverse proxy you control sets X-Forwarded-For). Otherwise every client shares
+ * one "direct" bucket.
+ */
+export function clientIp(request: NextRequest): string {
+  if (process.env.TRUST_PROXY_HEADERS === "true") {
+    const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+    const real = request.headers.get("x-real-ip")?.trim();
+    if (forwarded) return forwarded;
+    if (real) return real;
+  }
+  return "direct";
+}
+
 export function readSessionToken(request: NextRequest): string | undefined {
   return request.cookies.get(SESSION_COOKIE)?.value || undefined;
 }

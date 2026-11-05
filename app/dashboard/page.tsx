@@ -22,6 +22,15 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<TelemetryStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [clearError, setClearError] = useState<string | null>(null);
+  const [me, setMe] = useState<{ role: string; email_verified?: boolean } | null>(null);
+
+  useEffect(() => {
+    fetch("/api/auth/session")
+      .then((res) => res.json())
+      .then((data) => setMe(data.authenticated ? data.user : null))
+      .catch(() => setMe(null));
+  }, []);
+  const perf = stats?.performance;
 
   const fetchStats = useCallback(async () => {
     try {
@@ -135,6 +144,14 @@ export default function DashboardPage() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-6 py-8 flex-1 w-full space-y-8">
+        {me && me.email_verified === false && (
+          <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-200">
+            Your email address is not verified yet.{" "}
+            <Link href="/verify-email" className="underline">
+              Send a verification link
+            </Link>
+          </div>
+        )}
         {/* Welcome Banner */}
         <div className="p-6 rounded-2xl bg-gradient-to-r from-blue-900/30 via-slate-900/40 to-purple-900/30 border border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
@@ -144,6 +161,14 @@ export default function DashboardPage() {
             </p>
           </div>
           <div className="flex items-center gap-3">
+            {me?.role === "admin" && (
+              <Link
+                href="/admin"
+                className="px-3 py-1.5 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 text-xs text-blue-200 border border-blue-500/30"
+              >
+                Admin
+              </Link>
+            )}
             {clearError && <span className="text-xs text-red-400">{clearError}</span>}
             <button
               onClick={handleClearHistory}
@@ -172,48 +197,59 @@ export default function DashboardPage() {
 
           <div className="glass-panel p-5">
             <div className="flex items-center justify-between text-xs text-slate-400 font-medium">
-              <span>Inference Throughput</span>
+              <span>Model Inference (median)</span>
               <Layers className="w-4 h-4 text-emerald-400" />
             </div>
             <p className="text-3xl font-extrabold text-white mt-3">
-              {stats?.fps_mean != null ? (
-                <>{stats.fps_mean.toFixed(1)} <span className="text-lg font-normal text-slate-400">FPS</span></>
+              {perf?.inference_ms_p50 != null ? (
+                <>{perf.inference_ms_p50.toFixed(0)} <span className="text-lg font-normal text-slate-400">ms</span></>
               ) : (
-                "Not measured"
+                "No frames yet"
               )}
             </p>
             <span className="text-xs text-slate-400 mt-2 block">
-              Timing data is not available
+              {perf?.inference_ms_p95 != null
+                ? `p95 ${perf.inference_ms_p95.toFixed(0)} ms over last ${perf.sample_frames} frames`
+                : "Measured per frame by the vision service"}
             </span>
           </div>
 
           <div className="glass-panel p-5">
             <div className="flex items-center justify-between text-xs text-slate-400 font-medium">
-              <span>SORT Tracking Rate</span>
+              <span>Round Trip (median)</span>
               <Box className="w-4 h-4 text-purple-400" />
             </div>
             <p className="text-3xl font-extrabold text-white mt-3">
-              {stats?.tracking_efficiency != null ? (
-                <>{stats.tracking_efficiency.toFixed(1)}<span className="text-lg font-normal text-slate-400">%</span></>
+              {perf?.roundtrip_ms_p50 != null ? (
+                <>{perf.roundtrip_ms_p50.toFixed(0)} <span className="text-lg font-normal text-slate-400">ms</span></>
               ) : (
-                "Not measured"
+                "No frames yet"
               )}
             </p>
             <span className="text-xs text-blue-400 mt-2 block">
-              Tracking evaluation metrics are unavailable
+              {perf?.roundtrip_ms_p95 != null
+                ? `p95 ${perf.roundtrip_ms_p95.toFixed(0)} ms, web server to vision service and back`
+                : "Web server to vision service and back"}
             </span>
           </div>
 
           <div className="glass-panel p-5">
             <div className="flex items-center justify-between text-xs text-slate-400 font-medium">
-              <span>Spatial Metric Accuracy</span>
+              <span>Throughput</span>
               <ShieldAlert className="w-4 h-4 text-cyan-400" />
             </div>
             <p className="text-3xl font-extrabold text-white mt-3">
-              {stats?.spatial_depth_accuracy ?? "Not measured"}
+              {perf ? (
+                <>{perf.frames_per_minute.toFixed(1)} <span className="text-lg font-normal text-slate-400">frames/min</span></>
+              ) : (
+                "No frames yet"
+              )}
             </p>
             <span className="text-xs text-cyan-400 mt-2 block">
-              Calibration error requires a reference depth sensor
+              {perf
+                ? `${perf.frames_in_window} frames in the last ${perf.window_minutes} min` +
+                  (perf.detections_per_frame != null ? `, ${perf.detections_per_frame} detections/frame` : "")
+                : "All processed frames are counted"}
             </span>
           </div>
         </div>

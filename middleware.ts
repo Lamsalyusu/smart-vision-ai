@@ -51,6 +51,7 @@ export const config = {
     "/model-viewer/:path*",
     "/gpu-viewer/:path*",
     "/replay/:path*",
+    "/admin/:path*",
     "/api/detect/:path*",
     "/api/chat/:path*",
     "/api/replay/:path*",
@@ -61,5 +62,6 @@ export const config = {
     "/api/generate-3d/:path*",
     "/api/generate-3d-mesh/:path*",
     "/api/3d-model/:path*",
+    "/api/admin/:path*",
   ],
 };

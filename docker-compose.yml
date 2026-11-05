@@ -10,6 +10,7 @@ services:
       - AUTH_API_URL=http://auth:8000
       - INTERNAL_API_TOKEN=${INTERNAL_API_TOKEN:?Set INTERNAL_API_TOKEN in .env (openssl rand -hex 32)}
       - VISION_API_URL=${VISION_API_URL:-http://vision:8001/api/detect/}
+      - TRUST_PROXY_HEADERS=${TRUST_PROXY_HEADERS:-false}
     healthcheck:
       # Lets `docker compose up --wait` return only once Next.js serves pages.
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3000/login"]
@@ -67,6 +68,13 @@ services:
       - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD:-}
       - EMAIL_FROM=${EMAIL_FROM:-}
       - APP_BASE_URL=${APP_BASE_URL:-http://localhost:3000}
+      - REQUIRE_EMAIL_VERIFICATION=${REQUIRE_EMAIL_VERIFICATION:-false}
+      - RATE_LIMITS_ENABLED=${RATE_LIMITS_ENABLED:-true}
+      - ALERT_WEBHOOK_URL=${ALERT_WEBHOOK_URL:-}
+      - ALERT_CLASSES=${ALERT_CLASSES:-knife,fire}
+      - ALERT_MIN_CONFIDENCE=${ALERT_MIN_CONFIDENCE:-0.5}
+      - ALERT_COOLDOWN_SECONDS=${ALERT_COOLDOWN_SECONDS:-60}
+      - WEBHOOK_SECRET=${WEBHOOK_SECRET:-}
       - POSTGRES_PORT=${POSTGRES_PORT:-5432}
     depends_on:
       db:

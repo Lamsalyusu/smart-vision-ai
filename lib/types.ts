@@ -69,13 +69,24 @@ export interface SceneGraph {
   };
 }
 
+/** Measured from recorded frame timings; null until frames have been processed. */
+export interface PerformanceStats {
+  sample_frames: number;
+  window_minutes: number;
+  frames_in_window: number;
+  frames_per_minute: number;
+  inference_ms_p50: number | null;
+  inference_ms_p95: number | null;
+  roundtrip_ms_p50: number | null;
+  roundtrip_ms_p95: number | null;
+  detections_per_frame: number | null;
+}
+
 export interface TelemetryStats {
   total_detections: number;
   active_sessions: number;
-  fps_mean?: number | null;
   class_distribution: Record<string, number>;
-  tracking_efficiency?: number | null;
-  spatial_depth_accuracy?: string | null;
+  performance?: PerformanceStats;
   recent_activity: Array<{
     id: string;
     class: string;

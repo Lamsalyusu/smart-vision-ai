@@ -47,6 +47,7 @@ function ModelViewerContent() {
   const [loading, setLoading] = useState(false);
   const [cropImage, setCropImage] = useState<string | null>(null);
   const [cropConfidence, setCropConfidence] = useState<number | null>(null);
+  const [pointCloudError, setPointCloudError] = useState<string | null>(null);
 
   // Sliders for Point Cloud
   const [pointSize, setPointSize] = useState<number>(3);
@@ -69,23 +70,31 @@ function ModelViewerContent() {
     }
   };
 
-  // Synthetic demo point cloud (not derived from a real depth map)
+  // Point cloud from the saved detection crop (MiDaS depth), or a labelled
+  // synthetic demo surface when no crop has been captured yet.
   const loadPointCloud = useCallback(async (scale: number) => {
     setLoading(true);
+    setPointCloudError(null);
     clearCurrentModel();
 
     try {
+      const crop = sessionStorage.getItem("smartvision_crop_image");
       const res = await fetch("/api/generate-3d", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           depth_scale: scale,
           max_points: 10000,
+          ...(crop ? { image_base64: crop } : {}),
         }),
       });
 
-      const data = await res.json();
-      if (data.success && sceneRef.current) {
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) {
+        setPointCloudError(data.error || `Point cloud failed (${res.status})`);
+        return;
+      }
+      if (sceneRef.current) {
         const geo = new THREE.BufferGeometry();
         geo.setAttribute(
           "position",
@@ -114,7 +123,7 @@ function ModelViewerContent() {
           metric1Value: data.point_count.toLocaleString(),
           metric2Label: "Grid Resolution",
           metric2Value: `${data.width}x${data.height}`,
-          method: "Synthetic surface (demo)",
+          method: data.source === "midas" ? "MiDaS depth of detection crop" : "Synthetic surface (demo)",
         });
 
         if (cameraRef.current && controlsRef.current) {
@@ -543,6 +552,9 @@ function ModelViewerContent() {
                 <span className="font-semibold text-cyan-400">{stats.method}</span>
               </div>
             </div>
+            {pointCloudError && (
+              <p className="mt-2 text-xs text-red-400">{pointCloudError}</p>
+            )}
           </div>
         </div>
       </main>
