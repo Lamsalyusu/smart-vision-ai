@@ -1,16 +1,12 @@
+# Runtime dependencies of the FastAPI auth/persistence service
+# (core/infrastructure/api). Requires Python 3.12+ (numpy 2.5).
 fastapi==0.115.0
 httpx==0.28.1
 uvicorn[standard]==0.34.0
 sqlalchemy==2.0.36
 psycopg2-binary==2.9.10
-passlib[bcrypt]==1.7.4
+passlib==1.7.4
 python-dotenv==1.0.1
-redis==5.2.1
 numpy==2.5.3
 scipy==1.17.1
-opencv-python-headless==5.0.0.93
 pydantic==2.10.6
-pytest==9.2.0
-ruff==0.15.6
-mypy==1.19.1
-cosmic-ray==8.7.0

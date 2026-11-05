@@ -1,5 +1,6 @@
 import base64
 import threading
+import os
 import unittest
 from unittest.mock import patch, MagicMock
 import numpy as np
@@ -7,7 +8,7 @@ import cv2
 
 from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import TestCase, override_settings
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
 from backend.ml_model.tracker import SortTracker, calculate_iou, bbox_to_z, x_to_bbox
@@ -72,7 +73,29 @@ class LoginTests(BaseTestCase):
         self.assertEqual(response.status_code, 429)
 
 
+DETECT_INTERNAL_TOKEN = "detect-internal-token"
+
+
+@override_settings(INTERNAL_API_TOKEN=DETECT_INTERNAL_TOKEN)
 class DetectEndpointTests(BaseTestCase):
+    def setUp(self):
+        super().setUp()
+        self.client = Client(HTTP_X_INTERNAL_TOKEN=DETECT_INTERNAL_TOKEN)
+
+    def test_anonymous_request_without_internal_token_is_rejected(self):
+        response = Client().post(
+            DETECT_URL,
+            {"image": SimpleUploadedFile("frame.jpg", b"jpeg-frame", "image/jpeg")},
+        )
+        self.assertEqual(response.status_code, 401)
+
+    def test_wrong_internal_token_is_rejected(self):
+        response = Client(HTTP_X_INTERNAL_TOKEN="wrong").post(
+            DETECT_URL,
+            {"image": SimpleUploadedFile("frame.jpg", b"jpeg-frame", "image/jpeg")},
+        )
+        self.assertEqual(response.status_code, 401)
+
     def test_get_is_not_allowed(self):
         response = self.client.get(DETECT_URL)
         self.assertEqual(response.status_code, 405)
@@ -555,6 +578,92 @@ class DepthEstimationUnitTests(TestCase):
         self.assertIn("colors", pc)
         self.assertGreater(pc["point_count"], 0)
         self.assertEqual(len(pc["positions"]), pc["point_count"] * 3)
+
+
+class MidasLoaderTests(unittest.TestCase):
+    """The loader must never wait for TorchHub's interactive trust prompt."""
+
+    def test_trust_list_is_written_once(self):
+        import tempfile
+        from backend.ml_model.depth_estimation import TRUSTED_HUB_REPOS, _trust_hub_repos
+
+        with tempfile.TemporaryDirectory() as hub_dir:
+            _trust_hub_repos(hub_dir)
+            _trust_hub_repos(hub_dir)
+            with open(os.path.join(hub_dir, "trusted_list")) as handle:
+                lines = [line.strip() for line in handle]
+        self.assertEqual(sorted(lines), sorted(TRUSTED_HUB_REPOS))
+
+    def test_repos_are_trusted_before_loading(self):
+        import tempfile
+        from types import SimpleNamespace
+        from backend.ml_model.depth_estimation import MIDAS_REPO, load_midas
+
+        with tempfile.TemporaryDirectory() as hub_dir:
+            calls = []
+
+            def fake_load(repo, name, trust_repo):
+                with open(os.path.join(hub_dir, "trusted_list")) as handle:
+                    trusted = handle.read()
+                self.assertIn("rwightman_gen-efficientnet-pytorch", trusted)
+                calls.append((repo, name, trust_repo))
+                return SimpleNamespace(small_transform="transform") if name == "transforms" else "model"
+
+            fake_torch = SimpleNamespace(hub=SimpleNamespace(get_dir=lambda: hub_dir, load=fake_load))
+            model, transform = load_midas(fake_torch)
+
+        self.assertEqual((model, transform), ("model", "transform"))
+        self.assertEqual([c[0] for c in calls], [MIDAS_REPO, MIDAS_REPO])
+        self.assertNotIn(":master", MIDAS_REPO)
+
+
+class DepthUnavailableTests(TestCase):
+    def setUp(self):
+        from backend.ml_model.depth_estimation import DepthEstimator
+
+        self.estimator = DepthEstimator()
+        self.saved = (
+            self.estimator._initialized,
+            self.estimator.model,
+            self.estimator.transform,
+            self.estimator.unavailable_reason,
+        )
+        self.estimator._initialized = True
+        self.estimator.model = None
+        self.estimator.transform = None
+        self.estimator.unavailable_reason = "PyTorch is not installed"
+
+    def tearDown(self):
+        (
+            self.estimator._initialized,
+            self.estimator.model,
+            self.estimator.transform,
+            self.estimator.unavailable_reason,
+        ) = self.saved
+
+    def _jpeg(self):
+        ok, encoded = cv2.imencode(".jpg", np.zeros((48, 64, 3), dtype=np.uint8))
+        self.assertTrue(ok)
+        return encoded.tobytes()
+
+    def test_estimate_depth_raises_instead_of_guessing(self):
+        from backend.ml_model.depth_estimation import DepthUnavailableError
+
+        with self.assertRaises(DepthUnavailableError):
+            self.estimator.estimate_depth(self._jpeg())
+
+    @patch("backend.services.vision_service.detector")
+    def test_detections_are_returned_without_3d_values(self, mock_detector):
+        from backend.services.vision_service import VisionPipelineService
+
+        mock_detector.detect_from_bytes.return_value = [
+            {"class": "can", "class_id": 9, "confidence": 0.9, "bbox": [1.0, 2.0, 30.0, 40.0]}
+        ]
+        detections = VisionPipelineService().process_frame(
+            self._jpeg(), session_key="depth-test", include_depth=True
+        )
+        self.assertEqual(len(detections), 1)
+        self.assertNotIn("spatial_3d", detections[0])
 
 
 class AuthModuleTests(TestCase):

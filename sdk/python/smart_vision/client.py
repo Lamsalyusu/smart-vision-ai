@@ -26,7 +26,8 @@ class SmartVisionClient:
         self.base_url = base_url.rstrip("/")
         self.api_token = api_token
         self.timeout = timeout
-        self._headers = {"Authorization": f"Bearer {api_token}"} if api_token else {}
+        # The FastAPI service is internal: api_token is its INTERNAL_API_TOKEN.
+        self._headers = {"X-Internal-Token": api_token} if api_token else {}
 
     async def get_health(self) -> dict[str, Any]:
         """Check API service health status."""
@@ -54,7 +55,7 @@ class SmartVisionClient:
             }
             resp = await client.post("/mesh/reconstruct", json=payload)
             if resp.status_code == 401:
-                raise AuthenticationError("Invalid or expired API token")
+                raise AuthenticationError("Missing or invalid internal API token")
             elif resp.status_code == 429:
                 raise RateLimitExceededError("Rate limit exceeded")
             elif resp.status_code != 200:

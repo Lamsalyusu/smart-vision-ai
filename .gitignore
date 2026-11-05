@@ -32,6 +32,7 @@ db.sqlite3
 .git-rewrite/
 .coverage
 htmlcov/
+htmlcov_core/
 .mypy_cache/
 .ruff_cache/
 mutation-session.sqlite

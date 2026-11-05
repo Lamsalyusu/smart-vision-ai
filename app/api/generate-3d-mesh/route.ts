@@ -1,71 +1,53 @@
 import { NextRequest, NextResponse } from "next/server";
+import { internalRequest } from "@/lib/apiClient";
+import { CLASS_NAMES } from "@/lib/detector";
 
-const VALID_CLASSES = [
-  "sunglasses",
-  "knife",
-  "water_bottle",
-  "pen",
-  "chair",
-  "human_face",
-  "mobile_phone",
-  "helmet",
-  "fire",
-  "can",
-];
+const MAX_POINTS = 50_000;
 
-const FASTAPI_BASE_URL = process.env.FASTAPI_BASE_URL || "http://127.0.0.1:8000";
+interface MeshResponse {
+  threejs_geometry: unknown;
+  statistics: unknown;
+}
 
 export async function POST(req: NextRequest) {
+  const body: Record<string, unknown> = await req.json().catch(() => ({}));
+  const rawClass = String(body.class_name ?? "").toLowerCase().trim();
+  const className = (CLASS_NAMES as string[]).includes(rawClass) ? rawClass : "chair";
+  const points = Array.isArray(body.points) ? body.points : undefined;
+  if (points && points.length > MAX_POINTS) {
+    return NextResponse.json({ error: `At most ${MAX_POINTS} points are accepted` }, { status: 413 });
+  }
+
   try {
-    const body = await req.json().catch(() => ({}));
-    const rawClass = (body.class_name || "").toLowerCase().trim();
-    const className = VALID_CLASSES.includes(rawClass) ? rawClass : "chair";
-    const customPoints = Array.isArray(body.points) ? body.points : undefined;
-
-    // Attempt high-fidelity Marching Cubes reconstruction from Python service
-    try {
-      const response = await fetch(`${FASTAPI_BASE_URL}/mesh/reconstruct`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          object_class: className,
-          points: customPoints,
-          voxel_size: body.voxel_size || 0.08,
-          smoothing_iterations: body.smoothing_iterations || 2,
-          output_format: "threejs",
-        }),
-        signal: AbortSignal.timeout(4000),
-      });
-
-      if (response.ok) {
-        const meshData = await response.json();
-        return NextResponse.json({
-          success: true,
-          class_name: className,
-          format: "threejs_buffer_geometry",
-          glb_url: `/models/${className}.glb`,
-          threejs_geometry: meshData.threejs_geometry,
-          statistics: meshData.statistics,
-        });
-      }
-    } catch {
-      // Backend service not reachable or timed out; fall back to static GLB asset
-    }
-
+    const mesh = await internalRequest<MeshResponse>("/mesh/reconstruct", "Mesh reconstruction failed", {
+      method: "POST",
+      body: {
+        object_class: className,
+        points,
+        voxel_size: typeof body.voxel_size === "number" ? body.voxel_size : 0.08,
+        smoothing_iterations:
+          typeof body.smoothing_iterations === "number" ? body.smoothing_iterations : 2,
+        output_format: "threejs",
+      },
+      timeoutMs: 10_000,
+    });
+    return NextResponse.json({
+      success: true,
+      class_name: className,
+      format: "threejs_buffer_geometry",
+      glb_url: `/models/${className}.glb`,
+      threejs_geometry: mesh.threejs_geometry,
+      statistics: mesh.statistics,
+    });
+  } catch (error) {
+    // Reconstruction is optional: fall back to the static GLB asset for the class.
+    console.warn("Mesh reconstruction unavailable, serving static GLB:", error);
     return NextResponse.json({
       success: true,
       glb_url: `/models/${className}.glb`,
       format: "glb",
       class_name: className,
-      statistics: {
-        method: "Static GLB Fallback",
-      },
+      statistics: { method: "Static GLB fallback" },
     });
-  } catch (err: unknown) {
-    console.error("Generate 3D mesh error:", err);
-    return NextResponse.json(
-      { error: "Failed to generate 3D mesh" },
-      { status: 500 }
-    );
   }
 }

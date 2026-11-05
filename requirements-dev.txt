@@ -1,0 +1,10 @@
+# Tests, linting and type checking for core/. Install with:
+#   pip install -r requirements-dev.txt
+-r requirements.txt
+# Only needed by the optional visualisation helpers in core/domain/estimation.
+opencv-python-headless==5.0.0.93
+pytest==9.2.0
+ruff==0.15.6
+mypy==1.19.1
+types-requests==2.32.4.20250913
+cosmic-ray==8.7.0

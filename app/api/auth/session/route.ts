@@ -1,35 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
-import { dataManager } from "@/lib/store";
+import { getSessionUser } from "@/lib/apiClient";
+import { clearSessionCookie, readSessionToken } from "@/lib/session";
 
-/**
- * GET /api/auth/session – returns authentication status based on the session cookie.
- * If the cookie is missing or the token is invalid/expired, the cookie is cleared
- * to avoid stale client state.
- */
+/** Reports whether the session cookie maps to a live FastAPI session. */
 export async function GET(req: NextRequest) {
-  const token = req.cookies.get("session_token")?.value;
+  const token = readSessionToken(req);
   if (!token) {
     return NextResponse.json({ authenticated: false, user: null });
   }
 
-  const user = dataManager.getUserFromSession(token);
-  if (!user) {
-    // Clear stale/invalid cookie
-    const res = NextResponse.json({ authenticated: false, user: null });
-    res.cookies.set("session_token", "", { path: "/", httpOnly: true, sameSite: "lax", maxAge: 0 });
-    return res;
+  let user;
+  try {
+    user = await getSessionUser(token);
+  } catch (error) {
+    console.error("Session check failed:", error);
+    return NextResponse.json({ error: "Authentication service is unavailable" }, { status: 503 });
   }
 
-  const res = NextResponse.json({
-    authenticated: true,
-    user: {
-      id: user.id,
-      full_name: user.full_name,
-      email: user.email,
-      username: user.username,
-      role: user.role || "operator",
-    },
-  });
-  res.headers.set('Content-Security-Policy', "default-src 'self'; script-src 'none'; style-src 'self' 'unsafe-inline';");
-  return res;
+  if (!user) {
+    const res = NextResponse.json({ authenticated: false, user: null });
+    clearSessionCookie(res);
+    return res;
+  }
+  return NextResponse.json({ authenticated: true, user });
 }

@@ -2,7 +2,7 @@
 module-path = "core"
 timeout = 30.0
 excluded-modules = ["core.tests"]
-test-command = "python -m unittest discover -s core/tests"
+test-command = "python -m pytest -x -q core/tests"
 
 [cosmic-ray.distributor]
 name = "local"

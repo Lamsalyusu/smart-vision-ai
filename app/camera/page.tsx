@@ -162,19 +162,29 @@ export default function CameraPage() {
 
   // Save Detection Crop
   const saveDetectionCrop = useCallback((det: Detection) => {
-    if (!videoRef.current) return;
+    const video = videoRef.current;
+    if (!video) return;
     try {
+      // bbox is in native video pixels because full-resolution frames are uploaded.
+      const [x1, y1, x2, y2] = det.bbox;
+      const sx = Math.max(0, Math.floor(x1));
+      const sy = Math.max(0, Math.floor(y1));
+      const sw = Math.min(video.videoWidth, Math.ceil(x2)) - sx;
+      const sh = Math.min(video.videoHeight, Math.ceil(y2)) - sy;
+      if (sw <= 0 || sh <= 0) return;
+      const scale = Math.min(1, 240 / Math.max(sw, sh));
       const canvas = document.createElement("canvas");
-      canvas.width = 240;
-      canvas.height = 240;
+      canvas.width = Math.max(1, Math.round(sw * scale));
+      canvas.height = Math.max(1, Math.round(sh * scale));
       const ctx = canvas.getContext("2d");
-      if (ctx && videoRef.current) {
-        ctx.drawImage(videoRef.current, 0, 0, 240, 240);
+      if (ctx) {
+        ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
         const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
 
         // Store crop in sessionStorage for 3D viewer
         sessionStorage.setItem("smartvision_crop_image", dataUrl);
         sessionStorage.setItem("smartvision_crop_class", det.class);
+        sessionStorage.setItem("smartvision_crop_confidence", String(det.confidence));
 
         fetch("/api/save-crop", {
           method: "POST",

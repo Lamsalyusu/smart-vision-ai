@@ -16,11 +16,15 @@ class ApiPersistenceIntegrationTests(unittest.IsolatedAsyncioTestCase):
         self.internal_token_patch = patch.dict(os.environ, {"INTERNAL_API_TOKEN": "test-internal-token"})
         self.internal_token_patch.start()
         self.transport = httpx.ASGITransport(app=app)
-        self.client = httpx.AsyncClient(transport=self.transport, base_url="http://test")
         self.internal_headers = {"X-Internal-Token": "test-internal-token"}
+        self.client = httpx.AsyncClient(
+            transport=self.transport, base_url="http://test", headers=self.internal_headers
+        )
+        self.anonymous_client = httpx.AsyncClient(transport=self.transport, base_url="http://test")
 
     async def asyncTearDown(self):
         await self.client.aclose()
+        await self.anonymous_client.aclose()
         self.internal_token_patch.stop()
 
     async def test_01_health_endpoint(self):
@@ -80,7 +84,13 @@ class ApiPersistenceIntegrationTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(session_res.json()["user"]["username"], username)
 
         with SessionLocal() as db:
-            stored_session = db.query(DatabaseSession).filter_by(token=token).first()
+            # Only the SHA-256 digest of the token is stored.
+            self.assertIsNone(db.query(DatabaseSession).filter_by(token=token).first())
+            stored_session = (
+                db.query(DatabaseSession)
+                .filter_by(token=DataManager.hash_session_token(token))
+                .first()
+            )
             self.assertIsNotNone(stored_session)
             stored_session.expires_at = None
             db.commit()
@@ -244,6 +254,153 @@ class ApiPersistenceIntegrationTests(unittest.IsolatedAsyncioTestCase):
             [frame["capturedAt"] for frame in manager.get_replay_frames(session_id)],
             [2.0, 3.0],
         )
+
+
+class ApiSecurityTests(unittest.IsolatedAsyncioTestCase):
+    async def asyncSetUp(self):
+        self.internal_token_patch = patch.dict(os.environ, {"INTERNAL_API_TOKEN": "test-internal-token"})
+        self.internal_token_patch.start()
+        transport = httpx.ASGITransport(app=app)
+        self.headers = {"X-Internal-Token": "test-internal-token"}
+        self.client = httpx.AsyncClient(transport=transport, base_url="http://test", headers=self.headers)
+        self.anonymous = httpx.AsyncClient(transport=transport, base_url="http://test")
+
+    async def asyncTearDown(self):
+        await self.client.aclose()
+        await self.anonymous.aclose()
+        self.internal_token_patch.stop()
+
+    async def _signup(self, username: str, password: str = "correct-horse-battery") -> httpx.Response:
+        return await self.client.post(
+            "/signup",
+            json={
+                "full_name": "Security Test",
+                "email": f"{username.lower()}@example.com",
+                "username": username,
+                "password": password,
+            },
+        )
+
+    async def test_endpoints_reject_requests_without_internal_token(self):
+        calls = [
+            ("POST", "/login", {"email_or_username": "x", "password": "y"}),
+            ("POST", "/signup", {"full_name": "a", "email": "a@b.co", "username": "abc", "password": "12345678"}),
+            ("GET", "/session", None),
+            ("POST", "/crops", {"object_class": "can", "confidence": 0.5}),
+            ("GET", "/crops/latest", None),
+            ("POST", "/detections/batch", {"detections": []}),
+            ("GET", "/stats", None),
+            ("POST", "/history/clear", None),
+            ("GET", "/metrics", None),
+            ("POST", "/webhooks/dispatch", {"target_url": "https://example.com", "event_type": "x", "data": {}}),
+            ("POST", "/mesh/reconstruct", {}),
+        ]
+        for method, path, body in calls:
+            with self.subTest(path=path):
+                response = await self.anonymous.request(method, path, json=body)
+                self.assertEqual(response.status_code, 401)
+
+        wrong = await self.anonymous.get("/stats", headers={"X-Internal-Token": "wrong"})
+        self.assertEqual(wrong.status_code, 401)
+
+    async def test_health_probes_stay_public(self):
+        for path in ("/health", "/health/live", "/health/ready"):
+            with self.subTest(path=path):
+                self.assertEqual((await self.anonymous.get(path)).status_code, 200)
+
+    async def test_signup_returns_session_and_ignores_requested_role(self):
+        username = f"Sec_{uuid4().hex[:8]}"
+        response = await self.client.post(
+            "/signup",
+            json={
+                "full_name": "Role Escalation",
+                "email": f"{username.lower()}@example.com",
+                "username": username,
+                "password": "correct-horse-battery",
+                "role": "admin",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(body["user"]["role"], "operator")
+        session = await self.client.get("/session", headers={"X-Session-Token": body["token"]})
+        self.assertEqual(session.status_code, 200)
+        self.assertEqual(session.json()["user"]["username"], username)
+
+    async def test_signup_validates_input(self):
+        bad_payloads = [
+            {"full_name": "a", "email": "not-an-email", "username": "valid_name", "password": "12345678"},
+            {"full_name": "a", "email": "a@b.co", "username": "ab", "password": "12345678"},
+            {"full_name": "a", "email": "a@b.co", "username": "valid_name", "password": "short"},
+        ]
+        for payload in bad_payloads:
+            with self.subTest(payload=payload):
+                self.assertEqual((await self.client.post("/signup", json=payload)).status_code, 422)
+
+    async def test_duplicate_signup_is_rejected_case_insensitively(self):
+        username = f"Dup_{uuid4().hex[:8]}"
+        self.assertEqual((await self._signup(username)).status_code, 200)
+        again = await self.client.post(
+            "/signup",
+            json={
+                "full_name": "Dup",
+                "email": f"other_{username.lower()}@example.com",
+                "username": username.upper(),
+                "password": "correct-horse-battery",
+            },
+        )
+        self.assertEqual(again.status_code, 400)
+
+    async def test_login_is_case_insensitive_and_wrong_password_is_401(self):
+        username = f"Mixed_{uuid4().hex[:8]}"
+        await self._signup(username)
+        ok = await self.client.post(
+            "/login", json={"email_or_username": username.lower(), "password": "correct-horse-battery"}
+        )
+        self.assertEqual(ok.status_code, 200)
+        bad = await self.client.post(
+            "/login", json={"email_or_username": username, "password": "wrong-password"}
+        )
+        self.assertEqual(bad.status_code, 401)
+        unknown = await self.client.post(
+            "/login", json={"email_or_username": f"nobody_{uuid4().hex}", "password": "whatever1"}
+        )
+        self.assertEqual(unknown.status_code, 401)
+
+    async def test_session_tokens_are_unpredictable(self):
+        username = f"Tok_{uuid4().hex[:8]}"
+        await self._signup(username)
+        tokens = set()
+        for _ in range(3):
+            response = await self.client.post(
+                "/login", json={"email_or_username": username, "password": "correct-horse-battery"}
+            )
+            tokens.add(response.json()["token"])
+        self.assertEqual(len(tokens), 3)
+        for token in tokens:
+            self.assertGreaterEqual(len(token), 40)
+
+    async def test_crops_saved_in_the_same_second_do_not_collide(self):
+        for _ in range(3):
+            response = await self.client.post("/crops", json={"object_class": "pen", "confidence": 0.7})
+            self.assertEqual(response.status_code, 200)
+
+    async def test_webhook_rejects_internal_targets(self):
+        for url in ("http://127.0.0.1:8000/history/clear", "http://169.254.169.254/latest/meta-data", "ftp://example.com"):
+            with self.subTest(url=url):
+                response = await self.client.post(
+                    "/webhooks/dispatch", json={"target_url": url, "event_type": "test", "data": {}}
+                )
+                self.assertEqual(response.status_code, 400)
+
+    async def test_metrics_report_only_measured_values(self):
+        body = (await self.client.get("/metrics")).text
+        self.assertIn("smart_vision_total_detections", body)
+        self.assertNotIn("tracking_efficiency", body)
+
+    async def test_mesh_rejects_malformed_points(self):
+        response = await self.client.post("/mesh/reconstruct", json={"points": [[0, 0], [1, 1], [2, 2], [3, 3]]})
+        self.assertEqual(response.status_code, 422)
 
 
 class ProductionDatabaseConfigurationTests(unittest.TestCase):

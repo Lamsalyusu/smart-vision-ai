@@ -110,8 +110,7 @@ class DataRepositoryManager:
                         if isinstance(first_item, dict):
                             return first_item
                 except Exception:
-                    # Supabase unavailable; fall back to local query
-                    pass
+                    logger.warning("Supabase user lookup by %s failed", col, exc_info=True)
 
         return None
 
@@ -214,8 +213,7 @@ class DataRepositoryManager:
                         "session_token": session_token,
                     }
             except Exception:
-                # Supabase unavailable; operation best-effort
-                pass
+                logger.warning("Supabase session validation failed", exc_info=True)
 
         return None
 
@@ -231,8 +229,7 @@ class DataRepositoryManager:
                     .execute()
                 )
             except Exception:
-                # Supabase unavailable; operation best-effort
-                pass
+                logger.warning("Supabase session invalidation failed", exc_info=True)
 
     # Telemetry, Detections & Crops
 
@@ -264,8 +261,7 @@ class DataRepositoryManager:
                     "crop_image": crop_image,
                 }).execute()
             except Exception:
-                # Supabase unavailable; operation best-effort
-                pass
+                logger.warning("Supabase detection sync failed", exc_info=True)
 
     def get_user_stats(self, user_id: str) -> dict[str, Any]:
         """Compute aggregated detection analytics for user dashboard."""

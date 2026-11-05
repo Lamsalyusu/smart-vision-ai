@@ -16,6 +16,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from backend.ml_model.tracker import SortTracker
 from backend.ml_model.spatial_fusion import Spatial3DFusion
 
+# Inputs are synthetic; only timings are measured. A fixed seed keeps runs comparable.
+rng = np.random.default_rng(0)
+
 
 def benchmark_postprocessing(num_iterations=200):
     grid_sizes = (80, 40, 20)
@@ -35,7 +38,7 @@ def benchmark_postprocessing(num_iterations=200):
 
         for scale_idx, grid_size in enumerate(grid_sizes):
             anchors = anchors_list[scale_idx]
-            pred = np.random.randn(grid_size, grid_size, 3, 15).astype(np.float32)
+            pred = rng.standard_normal((grid_size, grid_size, 3, 15)).astype(np.float32)
 
             obj = sigmoid(pred[..., 4])
             col_grid, row_grid = np.meshgrid(np.arange(grid_size), np.arange(grid_size))
@@ -77,10 +80,10 @@ def benchmark_tracking(num_frames=500):
                 "bbox": [center_x, center_y, center_x + 80, center_y + 120],
                 "class": "water_bottle",
                 "class_id": 2,
-                "confidence": 0.88 + np.random.uniform(-0.05, 0.05),
+                "confidence": 0.88 + rng.uniform(-0.05, 0.05),
             },
             {
-                "bbox": [300 + np.random.uniform(-3, 3), 200, 380, 320],
+                "bbox": [300 + rng.uniform(-3, 3), 200, 380, 320],
                 "class": "chair",
                 "class_id": 4,
                 "confidence": 0.92,
@@ -97,7 +100,7 @@ def benchmark_tracking(num_frames=500):
 
 def benchmark_spatial_fusion(num_iterations=200):
     fuser = Spatial3DFusion()
-    depth_map = np.random.uniform(0.2, 0.9, (384, 384)).astype(np.float32)
+    depth_map = rng.uniform(0.2, 0.9, (384, 384)).astype(np.float32)
     dets = [
         {"bbox": [100.0, 100.0, 250.0, 300.0], "class": "water_bottle", "confidence": 0.9},
         {"bbox": [320.0, 150.0, 480.0, 380.0], "class": "chair", "confidence": 0.85},

@@ -63,7 +63,10 @@ def _init_engine():
                 raise RuntimeError("The configured production database is unavailable") from exc
             logger.warning("PostgreSQL server unreachable (%s); using resilient SQLite database fallback.", exc)
 
-    fallback_url = os.getenv("SQLITE_URL", "sqlite:///smart_vision_ai.db")
+    if target_url and target_url.startswith("sqlite"):
+        fallback_url = target_url
+    else:
+        fallback_url = os.getenv("SQLITE_URL", "sqlite:///smart_vision_ai.db")
     eng = create_engine(
         fallback_url,
         echo=False,

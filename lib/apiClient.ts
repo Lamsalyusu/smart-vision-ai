@@ -1,6 +1,9 @@
 /**
- * Minimal wrapper around the FastAPI authentication service.
- * All Next.js auth routes will delegate to these functions.
+ * Server-side client for the internal FastAPI service.
+ *
+ * FastAPI is the single source of truth for users, sessions, crops and
+ * telemetry. Every request carries the shared INTERNAL_API_TOKEN; browser
+ * code must never import this module.
  */
 
 export interface UserInfo {
@@ -11,57 +14,114 @@ export interface UserInfo {
   role: string;
 }
 
-export async function login(emailOrUsername: string, password: string): Promise<UserInfo> {
-  const resp = await fetch(`${process.env.AUTH_API_URL ?? "http://localhost:8000"}/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email_or_username: emailOrUsername, password }),
-    credentials: "include",
-  });
-  if (!resp.ok) {
-    const err = await resp.json();
-    throw new Error(err.error ?? "Login failed");
-  }
-  const data = await resp.json();
-  return data.user;
+export interface AuthResult {
+  user: UserInfo;
+  token: string;
 }
 
-export async function signup(fullName: string, email: string, username: string, password: string, role?: string) {
-  const resp = await fetch(`${process.env.AUTH_API_URL ?? "http://localhost:8000"}/signup`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ full_name: fullName, email, username, password, role }),
-    credentials: "include",
-  });
-  if (!resp.ok) {
-    const err = await resp.json();
-    throw new Error(err.detail ?? "Signup failed");
+/** An upstream error that carries the HTTP status FastAPI returned. */
+export class UpstreamError extends Error {
+  constructor(message: string, readonly status: number) {
+    super(message);
+    this.name = "UpstreamError";
   }
-  return await resp.json();
 }
 
-export async function getSession(): Promise<UserInfo> {
-  const resp = await fetch(`${process.env.AUTH_API_URL ?? "http://localhost:8000"}/session`, {
-    method: "GET",
-    credentials: "include",
-  });
-  if (!resp.ok) {
-    const err = await resp.json();
-    throw new Error(err.detail ?? "Session fetch failed");
-  }
-  const data = await resp.json();
-  return data.user;
+export function authApiBase(): string {
+  return process.env.AUTH_API_URL?.trim() || "http://localhost:8000";
 }
 
-export async function logout(): Promise<void> {
-  const resp = await fetch(`${process.env.AUTH_API_URL ?? "http://localhost:8000"}/logout`, {
-    method: "POST",
-    credentials: "include",
-  });
-  if (!resp.ok) {
-    const err = await resp.json();
-    throw new Error(err.detail ?? "Logout failed");
+async function readErrorMessage(resp: Response, fallback: string): Promise<string> {
+  const body: unknown = await resp.json().catch(() => null);
+  if (typeof body === "object" && body !== null) {
+    const detail = "detail" in body ? body.detail : "error" in body ? body.error : undefined;
+    if (typeof detail === "string") return detail;
+    // FastAPI validation errors: [{ loc, msg, ... }]
+    if (Array.isArray(detail) && typeof detail[0]?.msg === "string") return detail[0].msg;
   }
+  return fallback;
+}
+
+interface RequestOptions {
+  method?: "GET" | "POST" | "DELETE";
+  body?: unknown;
+  sessionToken?: string;
+  searchParams?: Record<string, string | undefined>;
+  timeoutMs?: number;
+}
+
+export async function internalRequest<T>(
+  path: string,
+  fallbackError: string,
+  { method = "GET", body, sessionToken, searchParams, timeoutMs = 5_000 }: RequestOptions = {}
+): Promise<T> {
+  const internalToken = process.env.INTERNAL_API_TOKEN;
+  if (!internalToken) {
+    throw new UpstreamError("INTERNAL_API_TOKEN is not configured", 503);
+  }
+  const url = new URL(path, authApiBase());
+  for (const [key, value] of Object.entries(searchParams ?? {})) {
+    if (value !== undefined) url.searchParams.set(key, value);
+  }
+  const headers: Record<string, string> = { "X-Internal-Token": internalToken };
+  if (body !== undefined) headers["Content-Type"] = "application/json";
+  if (sessionToken) headers["X-Session-Token"] = sessionToken;
+
+  let resp: Response;
+  try {
+    resp = await fetch(url, {
+      method,
+      headers,
+      body: body === undefined ? undefined : JSON.stringify(body),
+      signal: AbortSignal.timeout(timeoutMs),
+      cache: "no-store",
+    });
+  } catch {
+    throw new UpstreamError("Backend service is unavailable", 503);
+  }
+  if (!resp.ok) {
+    throw new UpstreamError(await readErrorMessage(resp, fallbackError), resp.status);
+  }
+  return (await resp.json()) as T;
+}
+
+export async function login(emailOrUsername: string, password: string): Promise<AuthResult> {
+  const data = await internalRequest<{ user: UserInfo; token: string }>("/login", "Login failed", {
+    method: "POST",
+    body: { email_or_username: emailOrUsername, password },
+  });
+  return { user: data.user, token: data.token };
+}
+
+export async function signup(
+  fullName: string,
+  email: string,
+  username: string,
+  password: string
+): Promise<AuthResult> {
+  const data = await internalRequest<{ user: UserInfo; token: string }>("/signup", "Signup failed", {
+    method: "POST",
+    body: { full_name: fullName, email, username, password },
+  });
+  return { user: data.user, token: data.token };
+}
+
+/** Returns the user for a session token, or null when it is missing, invalid or expired. */
+export async function getSessionUser(sessionToken: string | undefined): Promise<UserInfo | null> {
+  if (!sessionToken) return null;
+  try {
+    const data = await internalRequest<{ user: UserInfo }>("/session", "Session check failed", {
+      sessionToken,
+    });
+    return data.user;
+  } catch (error) {
+    if (error instanceof UpstreamError && error.status === 401) return null;
+    throw error;
+  }
+}
+
+export async function logout(sessionToken: string): Promise<void> {
+  await internalRequest("/logout", "Logout failed", { method: "POST", sessionToken });
 }
 
 export async function saveCrop(cropData: {
@@ -71,54 +131,21 @@ export async function saveCrop(cropData: {
   has_crop?: boolean;
   payload?: Record<string, unknown>;
 }) {
-  const resp = await fetch(`${process.env.AUTH_API_URL ?? "http://localhost:8000"}/crops`, {
+  return internalRequest<{ success: boolean; crop: unknown }>("/crops", "Failed to save crop", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(cropData),
+    body: cropData,
   });
-  if (!resp.ok) {
-    const err = await resp.json();
-    throw new Error(err.detail ?? "Failed to save crop");
-  }
-  return await resp.json();
 }
 
 export async function getLatestCrop(objectClass?: string) {
-  const url = new URL(`${process.env.AUTH_API_URL ?? "http://localhost:8000"}/crops/latest`);
-  if (objectClass) {
-    url.searchParams.set("object_class", objectClass);
-  }
-  const resp = await fetch(url.toString(), {
-    method: "GET",
-  });
-  if (!resp.ok) {
-    const err = await resp.json();
-    throw new Error(err.detail ?? "Failed to get latest crop");
-  }
-  return await resp.json();
-}
-
-export async function recordDetection(
-  className: string,
-  confidence: number,
-  distanceM?: number,
-  hasCrop: boolean = false
-) {
-  const resp = await fetch(`${process.env.AUTH_API_URL ?? "http://localhost:8000"}/detections`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      class_name: className,
-      confidence,
-      distance_m: distanceM,
-      has_crop: hasCrop,
-    }),
-  });
-  if (!resp.ok) {
-    const err = await resp.json();
-    throw new Error(err.detail ?? "Failed to record detection");
-  }
-  return await resp.json();
+  return internalRequest<{
+    crop: {
+      object_class: string;
+      confidence: number;
+      timestamp: string;
+      payload?: { crop_image?: string } | null;
+    } | null;
+  }>("/crops/latest", "Failed to get latest crop", { searchParams: { object_class: objectClass } });
 }
 
 export async function recordDetections(
@@ -130,36 +157,34 @@ export async function recordDetections(
   }>
 ) {
   if (detections.length === 0) return { success: true, count: 0 };
-  const resp = await fetch(`${process.env.AUTH_API_URL ?? "http://localhost:8000"}/detections/batch`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ detections }),
-  });
-  if (!resp.ok) {
-    const err = await resp.json();
-    throw new Error(err.detail ?? "Failed to record detections");
-  }
-  return await resp.json();
+  return internalRequest<{ success: boolean; count: number }>(
+    "/detections/batch",
+    "Failed to record detections",
+    { method: "POST", body: { detections } }
+  );
 }
 
 export async function getStats() {
-  const resp = await fetch(`${process.env.AUTH_API_URL ?? "http://localhost:8000"}/stats`, {
-    method: "GET",
-  });
-  if (!resp.ok) {
-    const err = await resp.json();
-    throw new Error(err.detail ?? "Failed to get stats");
-  }
-  return await resp.json();
+  return internalRequest<Record<string, unknown>>("/stats", "Failed to get stats");
 }
 
 export async function clearHistory() {
-  const resp = await fetch(`${process.env.AUTH_API_URL ?? "http://localhost:8000"}/history/clear`, {
+  return internalRequest<{ success: boolean }>("/history/clear", "Failed to clear history", {
     method: "POST",
   });
-  if (!resp.ok) {
-    const err = await resp.json();
-    throw new Error(err.detail ?? "Failed to clear history");
-  }
-  return await resp.json();
+}
+
+export async function requestPasswordReset(email: string) {
+  return internalRequest<{ success: boolean }>("/password-reset/request", "Could not request a reset", {
+    method: "POST",
+    body: { email },
+    timeoutMs: 15_000,
+  });
+}
+
+export async function confirmPasswordReset(token: string, newPassword: string) {
+  return internalRequest<{ success: boolean }>("/password-reset/confirm", "Could not reset the password", {
+    method: "POST",
+    body: { token, new_password: newPassword },
+  });
 }

@@ -70,7 +70,7 @@ class ChatAssistantService:
                         context_objects=scene_graph.get("nodes"),
                     )
             except Exception:
-                logger.debug("Failed to persist LLM query to local ORM")
+                logger.warning("Failed to persist LLM query to local ORM", exc_info=True)
 
             if supabase_admin and not getattr(settings, "OFFLINE_MODE", False):
                 try:
@@ -81,8 +81,7 @@ class ChatAssistantService:
                         "context_objects": scene_graph.get("nodes"),
                     }).execute()
                 except Exception:
-                    # LLM query logging is non-critical; continue without it
-                    pass
+                    logger.warning("Supabase LLM query logging failed", exc_info=True)
 
         return {
             "response": ai_text,

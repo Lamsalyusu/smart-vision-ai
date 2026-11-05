@@ -52,12 +52,19 @@ class VisionPipelineService:
 
         # Optionally estimate metric 3D attributes
         if include_depth and detections:
+            from backend.ml_model.depth_estimation import (
+                DepthUnavailableError,
+                depth_estimator,
+            )
             try:
-                from backend.ml_model.depth_estimation import depth_estimator
                 depth_map, img_rgb = depth_estimator.estimate_depth(image_bytes)
                 detections = spatial_fuser.estimate_spatial_metrics(
                     detections, depth_map, img_rgb.shape
                 )
+            except DepthUnavailableError:
+                # Reported once when the model fails to load; return detections
+                # without 3D values instead of guessing distances.
+                pass
             except Exception:
                 logger.exception("Optional depth fusion failed during frame processing")
 

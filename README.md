@@ -1,158 +1,147 @@
 # SmartVision AI
 
-Real-time spatial perception and object detection web application built with **Next.js, React, TypeScript, Tailwind CSS, and Three.js**.
+Real-time object detection and spatial perception in the browser, built with **Next.js, React, TypeScript, Tailwind CSS and Three.js**, backed by a custom-trained TensorFlow detector.
 
-This project connects computer vision object detection across 10 custom classes with real-time multi-object tracking, 2D-to-3D spatial estimation using camera intrinsics, and interactive 3D model visualization. It also provides a comprehensive Python core for computer vision algorithms, spatial geometry, robotics, SLAM, and analytics.
+You point a webcam at a scene. The app detects 10 object classes with a YOLO-style model I trained myself, keeps stable track IDs across frames, estimates rough distance when a depth model is available, and lets you ask questions about the scene.
 
 ---
 
 ## What it does
 
-The application provides an interactive camera feed and dashboard for detecting and tracking objects in real time:
-
-- **10 Detection Classes**: Detects `sunglasses`, `knife`, `water_bottle`, `pen`, `chair`, `human_face`, `mobile_phone`, `helmet`, `fire`, and `can`.
-- **Object Tracking**: Uses a Kalman filter box tracker (SORT approach) to keep stable track IDs across frames and estimate velocities.
-- **2D-to-3D Spatial Estimation**: Uses pinhole camera geometry to calculate estimated $(X, Y, Z)$ coordinates and distance from the camera based on bounding box scales and depth.
-- **Spatial Scene Relations**: Identifies basic physical relationships between objects (e.g., whether someone is holding a phone, wearing sunglasses, or if an item is sitting near another).
-- **Interactive 3D Visualizer**: A Three.js viewer with orbit controls that lets you view 3D point clouds and load 3D GLB meshes corresponding to detected classes.
-- **Analytics & History**: Dashboard with detection history, class breakdown, and recent activity logs.
-
----
-
-## Tech Stack
-
-- **Multi-Class Detection Engine**: High-throughput multi-scale detection across 10 object classes (`sunglasses`, `knife`, `water_bottle`, `pen`, `chair`, `human_face`, `mobile_phone`, `helmet`, `fire`, `can`).
-- **SORT Multi-Object Tracking**: Continuous 7-state Kalman filter box tracking (`[u, v, s, r, u_dot, v_dot, s_dot]`) with velocity estimation and bipartite IoU matching (`lib/tracker.ts`).
-- **RGB-D Metric 3D Fusion**: Pinhole camera intrinsic back-projection fusing 2D boxes with monocular depth maps to compute metric 3D positions $(X, Y, Z)$, Euclidean distances, and ground elevations (`lib/spatial-fusion.ts`).
-- **Spatial Scene Graph**: Semantic relation graph $\mathcal{G} = (\mathcal{V}, \mathcal{E})$ computing spatial interactions (`adjacent_to`, `interacting_with`, `wearing`, `supporting`, `left_of`, `above`) for contextual AI reasoning (`lib/scene-graph.ts`).
-- **Multimodal AI Scene Assistant**: Real-time natural language reasoning over spatial scene graphs and perceived objects via `/api/chat`.
-- **Interactive 3D Visualizer**: Dual-mode Three.js WebGL visualizer with real-time OrbitControls, Point Cloud generation with depth/size sliders, and GLB mesh loader (`app/model-viewer/page.tsx`).
-- **Telemetry Console**: Database-backed detection totals, class distributions, active sessions, and recent activity (`app/dashboard/page.tsx`).
-
-**Frontend**: Next.js 15 (App Router), React 19, TypeScript, Tailwind CSS, Three.js & OrbitControls, Lucide React
-**Backend / Core**: Python, PyTorch, TensorFlow, NumPy, SciPy, OpenCV
-**3D Visualization**: Three.js, WebGPU (experimental)
-**Infrastructure**: Docker, Docker Compose, FastAPI, PostgreSQL (via Django ORM)
+- **10 detection classes**: `sunglasses`, `knife`, `water_bottle`, `pen`, `chair`, `human_face`, `mobile_phone`, `helmet`, `fire`, `can`.
+- **Custom detector**: CSP-style backbone, SPPF and an FPN neck with three detection scales (about 7.9M parameters), trained on public Roboflow datasets. See [`model.py`](legacy_django/backend/ml_model/model.py) and the training notebook.
+- **Object tracking**: a SORT tracker in the vision service (Kalman filter on `[u, v, s, r, u̇, v̇, ṡ]` with IoU matching) keeps track IDs stable between frames.
+- **Approximate distance (optional)**: when PyTorch and the MiDaS weights are installed, each box gets a 3D position and distance from monocular depth. MiDaS depth is relative, so distances are mapped into a fixed 0.35–4.5 m range and are rough estimates. Without the depth model, detections are returned without 3D values; the app never guesses.
+- **Scene relations and chat**: a scene graph of spatial relations (`left_of`, `above`, `wearing`, …) feeds a chat assistant. It uses Groq when `GROQ_API_KEY` is set and a rule-based fallback otherwise.
+- **3D viewer**: a Three.js viewer that loads a GLB mesh per class. A mesh can also be reconstructed by the FastAPI service (TSDF + marching cubes). The point-cloud mode shows a synthetic demo surface and is labelled as such.
+- **Dashboard and replay**: detection totals, class breakdown and recent activity from the database, plus a per-session replay of recent detections.
 
 ---
 
-## Getting Started
+## Architecture
+
+```
+Browser ── Next.js (port 3000) ──┬── vision service: Django + TensorFlow (port 8001)
+            middleware.ts         │     detection, tracking, optional depth
+            requires a session    │
+                                  └── auth/persistence service: FastAPI (port 8000)
+                                        users, sessions, telemetry, replay, mesh
+                                        reconstruction ── PostgreSQL
+```
+
+- **Next.js** serves the UI and thin API routes. `middleware.ts` sends anonymous visitors to `/login` and returns 401 from data and inference APIs.
+- **FastAPI** (`core/infrastructure/api`) is the single source of truth for users and sessions. Session tokens are 256-bit random values; only their SHA-256 hashes are stored.
+- **Django** (`legacy_django/`) runs the trained model. It was the original full app; today the Next.js frontend uses it only for inference.
+- The services authenticate each other with a shared `INTERNAL_API_TOKEN`. FastAPI refuses every non-health request without it, and the Django detect endpoint requires it or a signed-in Django user.
+
+---
+
+## Getting started
 
 ### Requirements
-- Node.js (v18 or v20+)
-- npm or yarn
-- Python 3.11+ (for core algorithms)
-- Docker (optional, for inference service)
 
-### Setup Instructions
+- Docker with Docker Compose, **or** Node.js 20+ and Python 3.12+
+- Git LFS (the trained weights are stored with LFS): `git lfs install`
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/Lamsalyusu/smart-vision-ai.git
-   cd smart-vision-ai
-   ```
-
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-3. Run the development server:
-   ```bash
-   npm run dev
-   ```
-
-4. Open [http://localhost:3000](http://localhost:3000) in your browser.
-
-Camera inference runs in the separate vision service (`legacy_django/`, port 8001), which loads the author-trained YOLO weights from `legacy_django/backend/ml_model/weights/best_weights.weights.h5`. The weights file (32 MB) is checked into the repository via Git LFS (see `.gitattributes`). For local Next.js development, start that service with Docker Compose:
+### Run everything with Docker
 
 ```bash
-docker compose up --build vision
+git clone https://github.com/Lamsalyusu/smart-vision-ai.git
+cd smart-vision-ai
+git lfs pull
+
+cp .env.example .env
+# Set at least these two, each to the output of: openssl rand -hex 32
+#   INTERNAL_API_TOKEN=...
+#   SECRET_KEY=...
+
+docker compose up --build
 ```
 
-`next dev` defaults to `http://localhost:8001/api/detect/`; the Compose web service uses `http://vision:8001/api/detect/`. Configure `VISION_API_URL` to a reachable inference service URL in production. Detection requests return `503` when no inference service is configured rather than displaying generated detections.
+Open http://localhost:3000, create an account and open the camera page. Compose refuses to start without `INTERNAL_API_TOKEN`.
 
-### Model weights & dataset licence
-
-The trained detection weights (`best_weights.weights.h5`) were trained by the author on public Roboflow Universe datasets licensed under **Creative Commons Attribution 4.0 International (CC BY 4.0)**.
-
-Full attribution (creator credit, licence URL, modification statement, per-project source URLs): see [`DATASET_ATTRIBUTION.md`](DATASET_ATTRIBUTION.md) and [`legacy_django/backend/ml_model/weights/DATASET_LICENSE.md`](legacy_django/backend/ml_model/weights/DATASET_LICENSE.md).
-
-The weights file itself is licensed by the project author under the MIT License (see [`LICENSE`](LICENSE)); the training data remains CC BY 4.0 and is **not** covered by the project MIT licence.
-
-Generate a private internal service token and place the same value in `INTERNAL_API_TOKEN` for the web and auth services. Replay metadata is scoped to the opaque browser session, capped at 240 frames per session, and retained for 30 days; video images are not stored.
+New accounts get the `operator` role. Clearing the shared detection history needs `admin`. Promote an account with:
 
 ```bash
-openssl rand -hex 32
+docker compose exec auth python -m core.infrastructure.manage set-role your-username admin
+# outside Docker: python -m core.infrastructure.manage set-role your-username admin
 ```
 
-### RTSP camera ingestion
+`list-users` shows every account and its role. Role changes are recorded in the audit log.
 
-The vision service can ingest RTSP/RTSPS streams whose endpoint appears in `RTSP_ALLOWED_HOSTS` (comma-separated `host` or `host:port` values). Manage streams through the token-protected endpoint, sending the same `INTERNAL_API_TOKEN` value in the `X-Internal-Token` header:
+### Run for development
 
-- `GET /api/streams/rtsp/` returns connection and frame-count metrics for each stream.
-- `POST /api/streams/rtsp/` with `{"camera_id": "...", "stream_url": "rtsp://..."}` starts ingestion and returns `202`.
-- `DELETE /api/streams/rtsp/?camera_id=...` stops and removes a stream.
+```bash
+npm install
+pip install -r requirements-dev.txt                        # FastAPI service + test tools
+pip install -r legacy_django/requirements-vision.txt       # vision service
 
-`RTSP_MAX_STREAMS` caps concurrent streams, and `RTSP_RECONNECT_DELAY_SECONDS` controls the wait before reconnecting a dropped camera.
+export INTERNAL_API_TOKEN=$(openssl rand -hex 32)          # same value for all three processes
+
+uvicorn core.infrastructure.api.main:app --port 8000       # uses SQLite if PostgreSQL is unreachable
+(cd legacy_django && DJANGO_DEBUG=True python manage.py runserver 8001)
+npm run dev
+```
+
+`next dev` defaults to `http://localhost:8000` for FastAPI (`AUTH_API_URL`) and `http://localhost:8001/api/detect/` for inference (`VISION_API_URL`). In production, set both explicitly.
+
+### Optional features
+
+| Feature | Enable with |
+| --- | --- |
+| Distance estimates | Included in the Docker vision image (CPU PyTorch; MiDaS weights are fetched at build time). Build with `--build-arg WITH_DEPTH=false` to leave it out. Outside Docker: `pip install torch torchvision timm`; the weights download from TorchHub on first use. |
+| Password reset emails | `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD` (SMTP with STARTTLS; `EMAIL_HOST`/`EMAIL_PORT` default to Gmail) and `APP_BASE_URL`. Without them, the reset page reports that email is not configured. |
+| LLM chat answers | `GROQ_API_KEY` |
+| RTSP cameras | `RTSP_ALLOWED_HOSTS`, then `POST /api/streams/rtsp/` on the vision service with the `X-Internal-Token` header |
+| Supabase sync, OAuth, email | Only used by the Django UI; see `.env.example` |
+
+Replay metadata is scoped to an opaque browser session, capped at 240 frames per session and kept for 30 days; images are not stored.
 
 ---
 
-## Project Structure
+## Development commands
+
+```bash
+make test         # Python (pytest) and TypeScript test suites
+make lint         # ruff and ESLint
+make type-check   # mypy and tsc
+npm run build     # production build of the Next.js app
+
+# Vision service tests (runs the real model; needs the LFS weights)
+cd legacy_django && DJANGO_DEBUG=True python manage.py test backend
+```
+
+CI (`.github/workflows/ci.yml`) runs the core Python checks, the vision service tests with the real weights, the Next.js checks and build, and a Docker Compose smoke test.
+
+The test suites never touch live services: Django tests force `OFFLINE_MODE`, and the core tests use a temporary SQLite database even when `.env` contains real credentials.
+
+---
+
+## Project structure
 
 ```
 smart-vision-ai/
-├── app/                  # Next.js App Router pages and API routes
-│   ├── camera/           # Live camera feed with detection overlay & HUD
-│   ├── dashboard/        # Telemetry, analytics, and class statistics
-│   ├── model-viewer/     # Three.js 3D point cloud & GLB mesh viewer
-│   ├── gpu-viewer/       # WebGPU million-point viewer with measured FPS
-│   ├── replay/           # Session-scoped SQL-backed spatial trajectory replay
-│   └── api/              # API endpoints for detection, chat & 3D models
-├── lib/                  # Core algorithms in TypeScript
-│   ├── detector.ts       # Object detection logic & class thresholds
-│   ├── tracker.ts        # Kalman box tracking (SORT)
-│   ├── spatial-fusion.ts # Camera intrinsics & 3D back-projection
-│   ├── scene-graph.ts    # Spatial relation builder
-│   ├── webgpu-pointcloud.ts # WebGPU point-cloud renderer
-│   ├── geometry-accel.ts # JS geometry with optional WASM acceleration
-│   └── store.ts          # Client state store
-├── core/                 # Computer vision & spatial geometry algorithms in Python
-│   ├── application/      # Application layer (ingestion, perception, simulation, etc.)
-│   ├── domain/           # Domain models (tracking, vision, SLAM, robotics, etc.)
-│   ├── infrastructure/   # Infrastructure (database, API, security, concurrency, etc.)
-│   └── tests/            # Unit tests
-├── rust/geometry/        # Optional Rust/WASM point-cloud geometry kernels
-├── scripts/              # Operational load and chaos measurement commands
-├── public/models/        # 3D GLB assets for detected object classes (10 procedural meshes)
-├── configs/              # Sensor profiles and dataset configurations
-├── docs/                 # Documentation and event schemas
-├── legacy_django/        # Original Django-based vision inference service (port 8001) and model training notebook
-├── sdk/                  # Python and TypeScript SDK clients
-└── tests/                # Frontend tests
+├── app/                  # Next.js pages and API routes
+│   ├── camera/           # live camera feed with detection overlay
+│   ├── dashboard/        # telemetry and class statistics
+│   ├── model-viewer/     # Three.js GLB / mesh viewer
+│   ├── gpu-viewer/       # WebGPU point-cloud renderer demo
+│   ├── replay/           # per-session detection replay
+│   └── api/              # auth, detect, chat, replay, crops, mesh
+├── middleware.ts         # session check for pages and APIs
+├── lib/                  # TypeScript: API client, session helpers, scene graph, WebGPU renderer
+├── core/                 # Python: the FastAPI auth/persistence service
+│   ├── domain/           #   mesh reconstruction (TSDF + marching cubes)
+│   ├── infrastructure/   #   FastAPI app, SQLAlchemy models, JWT/RBAC, webhooks
+│   └── tests/
+├── legacy_django/        # vision service, trained weights (LFS) and training notebook
+├── rust/geometry/        # optional WASM point-cloud kernels for the GPU viewer
+├── sdk/                  # small Python and TypeScript clients for the FastAPI service
+├── public/models/        # one GLB mesh per class
+└── tests/                # TypeScript tests
 ```
 
----
-
-## Development Scripts
-
-```bash
-npm run dev      # Start Next.js development server
-npm run build    # Compile optimized production bundle (23/23 routes)
-npm run start    # Start production server
-npm run lint     # Run ESLint validation
-npx tsc --noEmit # Type-check TypeScript codebase
-```
-
-Operational and quality commands:
-
-```bash
-make load-test     # 64 synthetic camera streams, throughput + p50/p95/p99
-make chaos-test    # Same load with drops, disconnects, and pipeline errors
-make mutation-test # Cosmic Ray mutation testing, writes reports/mutation.json
-```
-
-To build the optional WASM geometry kernels:
+### Optional WASM geometry kernels
 
 ```bash
 rustup target add wasm32-unknown-unknown
@@ -161,70 +150,26 @@ mkdir -p ../../public/wasm
 cp target/wasm32-unknown-unknown/release/smartvision_geometry.wasm ../../public/wasm/geometry.wasm
 ```
 
-When `/wasm/geometry.wasm` is absent the browser uses the JavaScript geometry
-implementation automatically, so WebGPU discovery does not depend on Rust.
+Without `public/wasm/geometry.wasm` the GPU viewer uses the JavaScript implementation.
 
 ---
 
-## Performance Evidence
+## Model evaluation
 
-No production inference benchmark is published yet: accuracy and end-to-end
-camera-to-model latency require representative cameras, GPU hardware, and a
-running Triton/TensorRT deployment. The dashboard labels those values as
-unavailable until they are measured rather than displaying fabricated numbers.
+Per-class precision, recall and F1 on the validation split are in [`legacy_django/model_evaluation/metrics_summary.txt`](legacy_django/model_evaluation/metrics_summary.txt) (mean F1 0.56). The model is strongest on `can`, `helmet` and `chair` and weakest on `fire` and small objects. No end-to-end latency or throughput benchmark is published; the dashboard shows those values as "Not measured".
 
-The synthetic load harness has been measured locally on this workstation's CPU
-for **64 concurrent camera streams x 120 frames** (7,680 frames of deterministic
-320x240 JPEG encode + decode, no model inference):
+## Model weights and dataset licence
 
-| Scenario | Throughput | p50 | p95 | p99 | Max | Faults |
-| --- | --- | --- | --- | --- | --- | --- |
-| Clean streams | 4,461 fps | 3.35 ms | 12.16 ms | 21.39 ms | 53.83 ms | 0 |
-| Chaos injection | 4,011 fps | 3.46 ms | 12.57 ms | 19.81 ms | 48.71 ms | 1,600 |
+The weights (`best_weights.weights.h5`, 32 MB, stored with Git LFS) were trained by the author on public Roboflow Universe datasets licensed under **Creative Commons Attribution 4.0 (CC BY 4.0)**. Attribution and per-dataset sources are in [`DATASET_ATTRIBUTION.md`](DATASET_ATTRIBUTION.md) and [`legacy_django/backend/ml_model/weights/DATASET_LICENSE.md`](legacy_django/backend/ml_model/weights/DATASET_LICENSE.md).
 
-Chaos injection configured drops every 7 frames, disconnects every 23, errors
-every 31, and a 5 ms latency spike every 47. Results include machine and
-JIT/decoder warm-up variance; reproduce with `make load-test` and
-`make chaos-test`. These figures measure the synthetic frame pipeline only, not
-detector accuracy or production inference throughput.
+The weights are released under the project's MIT License; the training data remains CC BY 4.0 and is not covered by the MIT licence.
 
-Mutation testing is wired through `make mutation-test`, which initializes a
-Cosmic Ray session, executes it with the local distributor, and writes
-`reports/mutation.json` with killed/survived counts and the mutation score. A
-smoke session over `core/application/ingestion/frame_admission.py` produced
-**111 killed / 27 survived out of 138 mutations (80.43%)**. The surviving
-mutations cluster around idle-timeout eviction and rate-limit boundary
-assertions; they are reported rather than hidden, and the full `core` target is
-available for a complete score.
+## Model training and background
 
-The TensorFlow detector has a CPU smoke test through its HTTP endpoint. The
-Triton client, TensorRT artifact checks, and multi-GPU scheduler are unit tested
-with injected transports; no GPU cluster was available in this environment, so
-multi-GPU/Triton throughput is not claimed.
-
----
-
-## Model Training & Background
-
-For details about how the dataset was collected, cleaned, and trained on Google Colab, see [`ProjectJourney.md`](ProjectJourney.md) and the training notebook in `legacy_django/144_2432214_YuyutsuLamsal_ObjectDetectionModel.ipynb`.
-
----
-
-## Python Stacks: legacy_django vs core
-
-The project contains two Python codebases that serve different purposes and coexist:
-
-| Stack | Purpose | Technology | Role |
-| :--- | :--- | :--- | :--- |
-| `legacy_django/` | Original vision inference service | Django 6.1 + TensorFlow/Keras | Serves object detection, depth estimation, spatial fusion, and scene graph to the Next.js frontend on port 8001. Loads the checked-in YOLO weights via Git LFS. |
-| `core/` | Modular Python algorithm library | Python stdlib + NumPy/SciPy/OpenCV | Domain models and reusable algorithms for spatial geometry, tracking, estimation, sensor fusion, perception, and infrastructure (FastAPI, database, security). |
-
-**Why both exist:** `legacy_django/` is the production-grade inference service that the frontend depends on for real-time detection. `core/` is a newer, more modular library of computer vision and spatial algorithms developed alongside it. There is some conceptual overlap (both include tracking and spatial fusion), but they are not integrated: the frontend calls `legacy_django/` for inference, while `core/` provides standalone algorithms and domain models.
-
-Neither stack should be removed: `legacy_django/` powers the live vision service, and `core/` is the evolving algorithmic foundation.
+How the dataset was collected, cleaned and trained on Google Colab is described in [`ProjectJourney.md`](ProjectJourney.md) and in the notebook [`legacy_django/YuyutsuLamsal_ObjectDetectionModel.ipynb`](legacy_django/YuyutsuLamsal_ObjectDetectionModel.ipynb).
 
 ---
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT; see [LICENSE](LICENSE). Third-party components are listed in [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).
