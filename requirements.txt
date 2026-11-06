@@ -7,7 +7,10 @@ sqlalchemy==2.0.36
 alembic==1.20.0
 psycopg2-binary==2.9.10
 passlib==1.7.4
-python-dotenv==1.0.1
-numpy==2.5.3
-scipy==1.17.1
-pydantic==2.10.6
+# python-dotenv, numpy, scipy and pydantic match what
+# legacy_django/requirements-vision.txt installs (its supabase packages need
+# pydantic>=2.11.7), so both services install into one dev environment.
+python-dotenv==1.2.4
+numpy==2.5.4
+scipy==1.18.1
+pydantic==2.14.3

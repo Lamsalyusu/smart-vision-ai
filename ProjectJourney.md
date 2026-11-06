@@ -10,8 +10,6 @@ Although some classes had different labels, and the number of images varied a lo
 
 I used seperate blocks for model traings parts like loading data , setting up the configurations , dataset merging , loss function calculation,etc. 
 
-i tried different values of hyperparameters for model training and used learning scheduler.
-
 The model worked pretty well for some classes, but it struggled to detect smaller objects.
 
 I tried adjusting the anchor sizes and confidence threshold to improve the results and minimize incorrect detections.
